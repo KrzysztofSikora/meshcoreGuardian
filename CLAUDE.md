@@ -44,6 +44,10 @@ run: a `[REVIEW]` deviation); don't silently pick one.
   background polling.
 - Privacy: local data only; exports exclude secrets by default; credentials only in
   Keystore-backed secure storage, never SQLite.
+- Stack and layer boundaries: `context/tech-stack.md`. `domain` imports nothing; only `apps/mobile`
+  imports Expo/React Native.
+- `@liamcottle/meshcore.js` is pinned exactly and used only as a codec; timeouts, abort, retries and
+  single-flight live in our `MeshClient`.
 - Protocol/hardware behaviour is `UNVERIFIED` until confirmed on real devices (PRD §8 discovery gate).
 
 ## Gates
@@ -53,15 +57,19 @@ fast ones per phase; `/review` runs all of them.
 
 | Gate | Command | Needs |
 |------|---------|-------|
-| typecheck | `<command>` | - |
-| lint | `<command>` | - |
-| unit tests | `<command>` | - |
-| integration tests | `<command>` | Docker |
-| mutation (one module) | `<command> <file>` | - |
+| typecheck | `pnpm typecheck` | - |
+| lint | `pnpm lint` | - |
+| unit tests | `pnpm test` | - |
+| integration tests | `pnpm e2e` | Android emulator running the fake-transport dev build |
+| mutation (one module) | `pnpm mutation --mutate <file>` | - |
+
+Scripts are created by the first roadmap item (project scaffold). Until then the gates fail.
+Real-hardware BLE checks are human checks with evidence, never a gate.
 
 ## Commands
 
 | Task | Command |
 |------|---------|
-| Install | `<command>` |
-| Dev server | `<command>` |
+| Install | `pnpm install` |
+| Dev build on phone (real BLE) | `pnpm --filter mobile android` |
+| Dev build, fake transport | `EXPO_PUBLIC_TRANSPORT=fake pnpm --filter mobile android` |
