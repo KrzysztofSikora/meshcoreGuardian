@@ -3,6 +3,7 @@
 # Usage: scripts/e2e.sh [--flow <file>] [maestro test options...]
 #   --flow <file>     run one flow instead of every flow in apps/mobile/e2e
 #   E2E_SKIP_BUILD=1  reuse the last built APK
+#   E2E_BOOT_TIMEOUT  seconds to wait for a booted AVD (default 300)
 #   ANDROID_SERIAL    device to use; otherwise the first running emulator, else AVD `guardian`
 #                     is booted headless. A physical phone is only used when named here.
 set -euo pipefail
@@ -15,7 +16,7 @@ repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 app="$repo/apps/mobile"
 apk="$app/android/app/build/outputs/apk/release/app-release.apk"
 avd="${E2E_AVD:-guardian}"
-boot_timeout=300
+boot_timeout="${E2E_BOOT_TIMEOUT:-300}"
 
 flows="$app/e2e"
 maestro_args=()
@@ -33,10 +34,20 @@ while [[ $# -gt 0 ]]; do
 done
 
 started_emulator_pid=""
+started_serial=""
 cleanup() {
   if [[ -n "$started_emulator_pid" ]]; then
-    echo "e2e: stopping emulator $ANDROID_SERIAL"
-    adb -s "$ANDROID_SERIAL" emu kill >/dev/null 2>&1 || true
+    echo "e2e: stopping emulator ${started_serial:-pid $started_emulator_pid}"
+    if [[ -n "$started_serial" ]]; then
+      adb -s "$started_serial" emu kill >/dev/null 2>&1 || true
+      for _ in {1..30}; do
+        kill -0 "$started_emulator_pid" 2>/dev/null || break
+        sleep 1
+      done
+    fi
+    # Signal the process directly too: adb may never have seen the device, and `wait` alone
+    # would block on an emulator that keeps running.
+    kill "$started_emulator_pid" 2>/dev/null || true
     wait "$started_emulator_pid" 2>/dev/null || true
   fi
 }
@@ -54,6 +65,7 @@ boot_emulator() {
   started_emulator_pid=$!
   until serial="$(adb devices | awk '$1 ~ /^emulator-/ { print $1 }' | grep -vxF "$before" | head -n1)" \
     && [[ -n "$serial" ]] \
+    && started_serial="$serial" \
     && [[ "$(adb -s "$serial" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; do
     if ! kill -0 "$started_emulator_pid" 2>/dev/null; then
       echo "e2e: emulator for AVD $avd exited before boot completed" >&2
