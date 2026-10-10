@@ -1,3 +1,17 @@
 
 # Autonomous workflow runtime state and session logs
 .workflow/
+
+# Dependencies and build output
+node_modules/
+coverage/
+reports/
+*.apk
+
+# Local configuration (template: .env.example)
+.env
+
+# Expo Continuous Native Generation output
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/.expo/

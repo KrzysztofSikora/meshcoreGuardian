@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+  - tooling
+
+nodeLinker: hoisted
+
+# Lifecycle scripts of dependencies. unrs-resolver's postinstall only downloads a native binding
+# when the platform optional dependency is missing; pnpm installs that dependency itself.
+allowBuilds:
+  unrs-resolver: false

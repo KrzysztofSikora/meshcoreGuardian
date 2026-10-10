@@ -89,6 +89,8 @@ tooling side of TR-22.
 | D-13 | Scope of the CI `mutation-report` job | `scripts/mutation-changed.sh`: for files changed vs the PR base whose path is listed in `stryker.targets` (one glob per line, mirroring test-plan *Mutation targets*), run `pnpm mutation --mutate <file>` and append the score to `$GITHUB_STEP_SUMMARY`; job has `continue-on-error: true` | B: run Stryker on all of `packages/domain/src` each PR — simpler, slow and noisy; C: no job until S-04 — roadmap asks for it now | Mirrors the test-plan table; one text file to edit when a slice renames a target | cheap | agent |
 | D-14 | Install `expo-localization` now? | No. i18next initialised with `lng: "en"`, `fallbackLng: "en"`, one resource `en.json` | B: install and detect device locale — ready for Polish, but a native module with nothing to choose between | English only (C-09); adding it later touches `src/i18n/index.ts` only | cheap | agent |
 | D-15 | Install `expo-dev-client`? | No. `expo run:android` builds a debug app that loads JS from Metro without it | B: install it — dev launcher UI and network inspector, plus a larger native surface | Not needed for any gate or check in this item | cheap | agent |
+| D-16 | How are the layer-rule import patterns written? | `no-restricted-imports` `patterns` with `regex` (e.g. `^react(-[^/]*)?(/.*)?$`), one block per package glob holding its full list, plus a `packages/storage/test/**` block that repeats the storage list without `node:sqlite` | B: gitignore-style `group` globs (`react*`) — shorter, but they match any path segment, so a relative `./reaction-table` in domain would be flagged | Regexes match only the import specifier's start; the D-4 test has rows for look-alike relative imports | cheap | agent |
+| D-17 | Which typescript-eslint preset? | `configs.recommended` (not type-aware) on `**/*.ts(x)`, on top of `eslint-config-expo/flat` | B: `recommendedTypeChecked` — catches floating promises (relevant for BLE code), but every lint run needs a TS program per package and slows `pnpm lint` | Fast lint now; switching to the type-aware preset is one line when S-01 adds async client code | cheap | agent |
 
 ## Design
 
@@ -312,7 +314,7 @@ Smoke flow `apps/mobile/e2e/smoke.yaml`: `appId` (D-10), `clearState`, `launchAp
 
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
-- [ ] Phase 1: Workspace, packages and quality tooling
+- [x] Phase 1: Workspace, packages and quality tooling
 - [ ] Phase 2: Expo app shell with routes, i18n and transport switch
 - [ ] Phase 3: Mutation, e2e and CI
 
@@ -322,6 +324,12 @@ Smoke flow `apps/mobile/e2e/smoke.yaml`: `appId` (D-10), `clearState`, `launchAp
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
 - [FOLLOW-UP] `context/tech-stack.md` says pnpm 10.x; the machine and this change use pnpm 12.9.1 (D-6). Update the tech-stack row.
+- [minor] Phase 1: plan pins `prettier` (latest 3.9.10); pnpm 12's minimum-release-age policy blocked 3.9.10 (published 2026-10-10) and offered to add a `minimumReleaseAgeExclude` entry. Pinned `prettier@3.9.9` instead and added no exclusion; bump later.
+- [minor] Phase 1 (plan-review #8): the first install failed with `ERR_PNPM_IGNORED_BUILDS` for `unrs-resolver` (eslint-plugin-import's resolver). Its postinstall only fetches a native binding when the platform optional dependency is missing, so `pnpm-workspace.yaml` denies it with `allowBuilds: { unrs-resolver: false }`. Phase 2 must re-check the install output for Expo/RN build scripts.
+- [minor] Phase 1: `vitest.config.ts` became `vitest.config.mts`; the root package is not `type: module`, and Vite warned that it loaded the ESM config as CommonJS once per project.
+- [minor] Phase 1 (plan-review #4): `tooling` is a workspace package (`@guardian/tooling`, in `pnpm-workspace.yaml`) with its own `tsconfig.json` and `typecheck` script, so `pnpm typecheck` covers `tooling/lint/*.ts`; the Vitest `tooling` project includes `lint/**/*.test.ts`; package tsconfigs include `test/**`.
+- [minor] Phase 1 (plan-review #3): layer rules are one block per glob (D-16). Beyond the Design table, `apps/mobile/**` also forbids `@liamcottle/*` (codec only inside meshcore-adapter, `CLAUDE.md`) and `node:sqlite`, and the "domain imports `react`" row is in the test.
+- [minor] Phase 1: as foreseen in D-5, `pnpm install` reports unmet peer `eslint` for `eslint-plugin-import@2.32.0` (`^9`) and `eslint-plugin-react@7.37.5` (`^9.7`); lint runs cleanly with `settings.react.version: "19.2"`.
 - [FOLLOW-UP] `context/tech-stack.md` *Architecture sketch* places `BleTransport`/`ExpoSqlDriver`/`SecretStore` inside packages; D-1 puts them in `apps/mobile/src/platform/`. Update the sketch once D-1 is confirmed.
 
 ## Review response
