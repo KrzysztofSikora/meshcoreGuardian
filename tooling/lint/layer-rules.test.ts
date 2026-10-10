@@ -36,6 +36,9 @@ describe("layer rules (TR-22)", () => {
     [domainFile, "@expo/vector-icons"],
     [domainFile, "@liamcottle/meshcore.js"],
     [domainFile, "node:fs"],
+    [domainFile, "fs"],
+    [domainFile, "fs/promises"],
+    [domainFile, "crypto"],
     [domainFile, "node:sqlite"],
     [adapterFile, "@guardian/storage"],
     [adapterFile, "@guardian/domain/src/index"],
@@ -60,6 +63,7 @@ describe("layer rules (TR-22)", () => {
   it.each([
     [domainFile, "./reaction-table"],
     [domainFile, "../expo-like-name"],
+    [domainFile, "./fs"],
     [adapterFile, "@guardian/domain"],
     [adapterFile, "@liamcottle/meshcore.js"],
     [storageFile, "@guardian/domain"],

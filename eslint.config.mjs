@@ -1,4 +1,6 @@
 // @ts-check
+import { builtinModules } from "node:module";
+
 import expoConfig from "eslint-config-expo/flat.js";
 import { defineConfig } from "eslint/config";
 import { configs as tseslintConfigs } from "typescript-eslint";
@@ -35,7 +37,10 @@ const forbid = {
     regex: "^@liamcottle/",
     message: "@liamcottle/meshcore.js is used only as a codec inside packages/meshcore-adapter.",
   },
-  nodeBuiltins: { regex: "^node:", message: "domain is pure TypeScript without I/O." },
+  nodeBuiltins: {
+    regex: `^(node:|(${builtinModules.join("|")})(/.*)?$)`,
+    message: "domain is pure TypeScript without I/O.",
+  },
   nodeSqlite: {
     regex: "^node:sqlite$",
     message: "node:sqlite is for storage tests only; the app uses expo-sqlite.",
