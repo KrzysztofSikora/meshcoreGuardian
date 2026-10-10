@@ -95,7 +95,8 @@ export default defineConfig([
   layer(["packages/storage/test/**"], storageForbidden),
   layer(["apps/mobile/**"], [forbid.deepImport, forbid.meshcoreJs, forbid.nodeSqlite]),
   {
-    // C-09: every visible string comes from the i18n catalog, never a JSX literal.
+    // C-09: JSX children text comes from the i18n catalog, never a literal. Props are not
+    // checked yet (accessibilityLabel, title): FOLLOW-UP in context/changes/repo-skeleton/plan.md.
     files: ["apps/mobile/src/**/*.tsx"],
     rules: { "react/jsx-no-literals": ["error", { noStrings: true, ignoreProps: true }] },
   },
