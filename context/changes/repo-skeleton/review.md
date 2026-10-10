@@ -56,7 +56,7 @@ Gates: GATES_PLACEHOLDER · Round: 1
 - Fix: track the serial in a global (`started_serial`) as soon as it appears in `adb devices`, use it in `cleanup`, and after `emu kill` fall back to `kill "$started_emulator_pid"` (then `wait`) so cleanup never depends on adb seeing the device.
 - Effort: small
 - Lesson candidate: In shell cleanup traps, never `wait` on a child you have not first signalled directly by PID.
-- Decision: open
+- Decision: fixed (f48b3a0) + lesson proposed
 
 ### R2: Domain layer rule misses Node built-ins imported without the `node:` prefix
 - Severity: minor
@@ -65,7 +65,7 @@ Gates: GATES_PLACEHOLDER · Round: 1
 - Fix: build the regex from `module.builtinModules` in `eslint.config.mjs` (e.g. `^(node:|(${builtinModules.join("|")})(/.*)?$)`) and add a `[domainFile, "fs"]` row to `tooling/lint/layer-rules.test.ts`.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (bc8b8c6)
 
 ### R3: `.env.local` and other local Expo env files are not gitignored
 - Severity: minor
@@ -74,7 +74,7 @@ Gates: GATES_PLACEHOLDER · Round: 1
 - Fix: add `.env*.local` (and `apps/mobile/.env*.local` is then covered too) under the *Local configuration* block.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (fba48bb)
 
 ### R4: C-09 lint rule lets literal strings through visible and announced props
 - Severity: minor
@@ -83,4 +83,4 @@ Gates: GATES_PLACEHOLDER · Round: 1
 - Fix: keep `ignoreProps: true` but add a small custom check, or switch to `noAttributeStrings: true` with `allowedStrings` for enum-like values (`"header"`, `"auto"`) and accept `testID`-style props via `elementOverrides`; extend the test with an `accessibilityLabel` row. If neither is worth it now, record the gap as a `[FOLLOW-UP]` for S-04 and narrow the comment to "children text".
 - Effort: medium
 - Lesson candidate: no
-- Decision: open
+- Decision: deferred (medium effort; switching to `noAttributeStrings` needs an allow-list for enum props, best done with the first real status UI in S-04; lint comment narrowed in 2ab69a0; FOLLOW-UP in plan.md)

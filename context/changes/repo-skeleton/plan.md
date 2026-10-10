@@ -359,6 +359,7 @@ Smoke flow `apps/mobile/e2e/smoke.yaml`: `appId` (D-10), `clearState`, `launchAp
 - [minor] Phase 3: CI uses the current action majors (`actions/checkout@v7`, `actions/setup-node@v7` with `cache: pnpm`, `pnpm/action-setup@v6`, which reads `packageManager`), `permissions: contents: read` and a per-ref `concurrency` group.
 - [minor] Phase 3 (Risks: NDK/CMake): the first `pnpm e2e` build let the Android Gradle plugin install NDK `27.1.12297006` and CMake into `~/Android/Sdk` on its own; the build then passed (4 min 30 s cold) and the smoke flow passed on the headless `guardian` AVD (`evidence/phase-3-e2e.txt`), so e2e did not become a human check. `expo prebuild` regenerates `android/` on each build, so every non-skipped run is a cold Gradle build; `E2E_SKIP_BUILD=1` reuses the APK.
 - [minor] Phase 3: `scripts/mutation-changed.sh` writes its report through a duplicated fd 3, not `>>/dev/stdout`; reopening `/dev/stdout` on a redirected file gave a second file offset and overwrote lines (seen while recording the evidence).
+- [FOLLOW-UP] Review R4: `react/jsx-no-literals` uses `ignoreProps: true`, so literal `accessibilityLabel`/`title`/screen `options` strings pass lint although C-09 covers them (TR-19 labels are user-facing). With S-04's status UI, switch to `noAttributeStrings` plus an allow-list for enum-like props, and add an `accessibilityLabel` row to `tooling/lint/layer-rules.test.ts`.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->
