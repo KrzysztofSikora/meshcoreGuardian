@@ -6,6 +6,7 @@
 node_modules/
 coverage/
 reports/
+.stryker-tmp/
 *.apk
 
 # Local configuration (template: .env.example)

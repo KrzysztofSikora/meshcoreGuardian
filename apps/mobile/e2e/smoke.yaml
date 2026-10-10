@@ -1,0 +1,9 @@
+# Smoke flow (F-01): the fake-transport build starts on the Dashboard and Settings shows the
+# selected transport.
+appId: io.github.krzysztofsikora.guardian
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Known nodes will appear here."
+- openLink: guardian://settings
+- assertVisible: "Transport: Fake (development)"

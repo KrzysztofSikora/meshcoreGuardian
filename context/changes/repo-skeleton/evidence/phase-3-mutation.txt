@@ -1,0 +1,46 @@
+$ stryker run --mutate packages/domain/src/diagnostics/result-code.ts
+23:16:51 (300509) INFO ProjectReader No incremental result file found at reports/stryker-incremental.json, a full mutation testing run will be performed.
+23:16:51 (300509) INFO ProjectReader Found 1 of 123 file(s) to be mutated.
+23:16:51 (300509) INFO Instrumenter Instrumented 1 source file(s) with 7 mutant(s)
+23:16:52 (300509) INFO ConcurrencyTokenProvider Creating 15 test runner process(es).
+23:16:52 (300509) INFO DryRunExecutor Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+23:16:53 (300509) INFO DryRunExecutor Initial test run succeeded. Ran 14 tests in 0 seconds (net 2.96530000000007 ms, overhead 145.03469999999993 ms).
+
+All tests/result-code.test.ts
+  ✘ RESULT_CODES > lists the FR-06 result codes in order (covered 0)
+  ✓ isResultCode > accepts RESPONDED (killed 4)
+  ~ isResultCode > accepts NO_RESPONSE (covered 7)
+  ~ isResultCode > accepts TRANSPORT_UNAVAILABLE (covered 7)
+  ~ isResultCode > accepts UNSUPPORTED (covered 7)
+  ~ isResultCode > accepts NOT_TESTED (covered 7)
+  ✓ isResultCode > rejects an unknown code (killed 2)
+  ~ isResultCode > rejects a lower-case code (covered 7)
+  ~ isResultCode > rejects an empty string (covered 7)
+  ~ isResultCode > rejects undefined (covered 7)
+  ~ isResultCode > rejects null (covered 7)
+  ~ isResultCode > rejects a number (covered 7)
+  ~ isResultCode > rejects an array holding a code (covered 7)
+  ~ isResultCode > rejects a String object (covered 7)
+
+[Survived] ConditionalExpression
+packages/domain/src/diagnostics/result-code.ts:13:10
+-     return typeof value === "string" && (RESULT_CODES as readonly string[]).includes(value);
++     return true && (RESULT_CODES as readonly string[]).includes(value);
+Tests ran:
+    isResultCode > accepts RESPONDED
+    isResultCode > accepts NO_RESPONSE
+    isResultCode > accepts TRANSPORT_UNAVAILABLE
+  and 10 more tests!
+
+
+Ran 4.14 tests per mutant on average.
+----------------|------------------|----------|-----------|------------|----------|----------|
+                | % Mutation score |          |           |            |          |          |
+File            |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+----------------|--------|---------|----------|-----------|------------|----------|----------|
+All files       |  85.71 |   85.71 |        6 |         0 |          1 |        0 |        0 |
+ result-code.ts |  85.71 |   85.71 |        6 |         0 |          1 |        0 |        0 |
+----------------|--------|---------|----------|-----------|------------|----------|----------|
+23:16:53 (300509) INFO JsonReporter Your report can be found at: file:///home/krzysztof/projects/meshcoreGuardian/reports/mutation/mutation.json
+23:16:53 (300509) INFO HtmlReporter Your report can be found at: file:///home/krzysztof/projects/meshcoreGuardian/reports/mutation/mutation.html
+23:16:53 (300509) INFO MutationTestExecutor Done in 1 second.

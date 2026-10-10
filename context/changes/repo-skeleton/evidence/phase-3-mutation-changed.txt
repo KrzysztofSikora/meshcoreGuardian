@@ -1,0 +1,19 @@
+$ bash scripts/mutation-changed.sh main
+## Mutation report
+
+No mutation target files changed against `main`.
+
+$ cat /tmp/targets.txt
+# test override
+packages/domain/src/diagnostics/*.ts
+$ MUTATION_TARGETS=/tmp/targets.txt bash scripts/mutation-changed.sh main
+## Mutation report
+
+| File | Mutation score |
+|------|----------------|
+| `packages/domain/src/diagnostics/result-code.ts` | 85.71% |
+
+$ GITHUB_STEP_SUMMARY=/tmp/summary.md bash scripts/mutation-changed.sh main && cat /tmp/summary.md
+## Mutation report
+
+No mutation target files changed against `main`.

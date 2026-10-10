@@ -64,6 +64,7 @@ export default defineConfig([
       "apps/mobile/ios/",
       "apps/mobile/.expo/",
       "reports/",
+      ".stryker-tmp/",
       "coverage/",
       ".workflow/",
     ],
