@@ -11,6 +11,7 @@ reports/
 
 # Local configuration (template: .env.example)
 .env
+.env*.local
 
 # Expo Continuous Native Generation output
 apps/mobile/android/
