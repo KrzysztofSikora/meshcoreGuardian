@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "MeshCore Guardian",
+    "slug": "meshcore-guardian",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "scheme": "guardian",
+    "android": {
+      "package": "io.github.krzysztofsikora.guardian",
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      ["react-native-ble-plx", { "isBackgroundEnabled": false, "neverForLocation": true }],
+      ["expo-build-properties", { "android": { "minSdkVersion": 31 } }]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

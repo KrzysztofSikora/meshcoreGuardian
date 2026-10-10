@@ -15,6 +15,8 @@ export default defineConfig({
       },
       { test: { name: "storage", root: "packages/storage", include: packageTests } },
       { test: { name: "tooling", root: "tooling", include: ["lint/**/*.test.ts"] } },
+      // App logic tests run in Node and import no React Native modules.
+      { test: { name: "mobile", root: "apps/mobile", include: ["src/**/*.test.ts"] } },
     ],
   },
 });

@@ -71,3 +71,23 @@ describe("layer rules (TR-22)", () => {
     expect(await restrictedImportErrors(file, specifier)).toEqual([]);
   });
 });
+
+describe("message catalog rule (C-09)", () => {
+  async function literalErrors(source: string): Promise<number> {
+    const [result] = await eslint.lintText(source, { filePath: mobileFile });
+    if (!result) throw new Error(`ESLint returned no result for ${mobileFile}`);
+    return result.messages.filter((message) => message.ruleId === "react/jsx-no-literals").length;
+  }
+
+  it("rejects a visible string literal in app JSX", async () => {
+    expect(await literalErrors(`export const X = () => <Text>Hello</Text>;\n`)).toBe(1);
+  });
+
+  it("allows catalog lookups and literal props", async () => {
+    expect(
+      await literalErrors(
+        `export const X = () => <Text accessibilityRole="header">{t("a")}</Text>;\n`,
+      ),
+    ).toBe(0);
+  });
+});

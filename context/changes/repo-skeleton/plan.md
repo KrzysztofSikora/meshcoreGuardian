@@ -91,6 +91,7 @@ tooling side of TR-22.
 | D-15 | Install `expo-dev-client`? | No. `expo run:android` builds a debug app that loads JS from Metro without it | B: install it — dev launcher UI and network inspector, plus a larger native surface | Not needed for any gate or check in this item | cheap | agent |
 | D-16 | How are the layer-rule import patterns written? | `no-restricted-imports` `patterns` with `regex` (e.g. `^react(-[^/]*)?(/.*)?$`), one block per package glob holding its full list, plus a `packages/storage/test/**` block that repeats the storage list without `node:sqlite` | B: gitignore-style `group` globs (`react*`) — shorter, but they match any path segment, so a relative `./reaction-table` in domain would be flagged | Regexes match only the import specifier's start; the D-4 test has rows for look-alike relative imports | cheap | agent |
 | D-17 | Which typescript-eslint preset? | `configs.recommended` (not type-aware) on `**/*.ts(x)`, on top of `eslint-config-expo/flat` | B: `recommendedTypeChecked` — catches floating promises (relevant for BLE code), but every lint run needs a TS program per package and slows `pnpm lint` | Fast lint now; switching to the type-aware preset is one line when S-01 adds async client code | cheap | agent |
+| D-18 | How are optional peer dependencies of Expo packages installed? (not foreseen by the plan) | `autoInstallPeers: false` in `pnpm-workspace.yaml`; every peer we need is a direct dependency (`vite` at the root, `@expo/metro-runtime` in `mobile`) | B: keep pnpm's default (auto-install) — no extra entries, but pnpm installed `react-native-reanimated` 4.7.1, `react-native-worklets` 0.13.0 (outside `expo-modules-core`'s `^0.10` range), `react-native-gesture-handler` and `react-dom` 19.3.0 at their latest versions, and Expo autolinking compiled the native ones into the app; C: add the SDK 57 template versions of reanimated/worklets/gesture-handler — vetted versions, but a larger native surface nothing uses yet | Only versions chosen by us (or `npx expo install`) reach the native build; `react-native-drawer-layout` (from expo-router) keeps unmet peers that matter only if a Drawer is used | cheap (one line; future slices add native peers explicitly) | agent |
 
 ## Design
 
@@ -315,11 +316,12 @@ Smoke flow `apps/mobile/e2e/smoke.yaml`: `appId` (D-10), `clearState`, `launchAp
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
 - [x] Phase 1: Workspace, packages and quality tooling
-- [ ] Phase 2: Expo app shell with routes, i18n and transport switch
+- [x] Phase 2: Expo app shell with routes, i18n and transport switch
 - [ ] Phase 3: Mutation, e2e and CI
 
 ## Human checks
 <!-- Filled by /implement: one open checkbox per human check, with how to run it and evidence. -->
+- [ ] (Phase 2) Dev build on a real Android phone (USB debugging) installs and opens on the Dashboard title; the Settings deep link shows "Transport: BLE"; App info → Permissions lists no location permission — run: `pnpm --filter mobile android`, then `adb shell am start -d guardian://settings` — evidence: `context/changes/repo-skeleton/evidence/phase-2-manifest.txt` (generated manifest: `BLUETOOTH_SCAN` with `neverForLocation`, location permissions capped at `maxSdkVersion 30`, `android.minSdkVersion=31`)
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
@@ -331,6 +333,15 @@ Smoke flow `apps/mobile/e2e/smoke.yaml`: `appId` (D-10), `clearState`, `launchAp
 - [minor] Phase 1 (plan-review #3): layer rules are one block per glob (D-16). Beyond the Design table, `apps/mobile/**` also forbids `@liamcottle/*` (codec only inside meshcore-adapter, `CLAUDE.md`) and `node:sqlite`, and the "domain imports `react`" row is in the test.
 - [minor] Phase 1: as foreseen in D-5, `pnpm install` reports unmet peer `eslint` for `eslint-plugin-import@2.32.0` (`^9`) and `eslint-plugin-react@7.37.5` (`^9.7`); lint runs cleanly with `settings.react.version: "19.2"`.
 - [FOLLOW-UP] `context/tech-stack.md` *Architecture sketch* places `BleTransport`/`ExpoSqlDriver`/`SecretStore` inside packages; D-1 puts them in `apps/mobile/src/platform/`. Update the sketch once D-1 is confirmed.
+- [minor] Phase 2: plan pins `i18next@26.4.3`; it was published on 2026-10-10 and pnpm's minimum-release-age policy auto-added a `minimumReleaseAgeExclude` entry. Reverted the entry and pinned `i18next@26.4.2` (same as Phase 1's prettier handling).
+- [REVIEW] Phase 2 (D-18): plan assumes pnpm's default peer handling; the install auto-added optional peers (reanimated 4.7.1, worklets 0.13.0, gesture-handler, react-dom 19.3.0) that Expo autolinking would compile into the APK, worklets outside `expo-modules-core`'s range. Set `autoInstallPeers: false`, regenerated `pnpm-lock.yaml` (no Phase 1 package dropped; checked against the Phase 1 lockfile) and added `vite@8.3.4` to the root devDependencies, because it was vitest's auto-installed required peer. Consequence: later slices must declare native peers explicitly. Alternative: keep auto-install and add template versions of those native modules (D-18 C).
+- [minor] Phase 2 (plan-review #8 re-check): the Expo/RN install reported no ignored dependency build scripts; `allowBuilds` is unchanged.
+- [minor] Phase 2: `@expo/metro-runtime` (`~57.0.16`) is a direct dependency of `mobile`; it is a required peer of expo-router that the plan's list misses. `npx expo install --check` reports all dependencies up to date.
+- [minor] Phase 2: expo-router root is `apps/mobile/src/app`, the SDK 57 default template's convention; no `root` plugin option needed.
+- [minor] Phase 2: the routes share `apps/mobile/src/components/placeholder-screen.tsx` (heading with `accessibilityRole="header"` + one line), a file not listed in the plan.
+- [minor] Phase 2 (plan-review #5): `react/jsx-no-literals` (`noStrings`, `ignoreProps`) is on for `apps/mobile/src/**/*.tsx`, with two rows in `tooling/lint/layer-rules.test.ts`, so a hardcoded visible string fails lint (C-09).
+- [minor] Phase 2: dropped `userInterfaceStyle` from `app.json`; prebuild warned that it needs `expo-system-ui`, which nothing else needs yet. `apps/mobile/expo-env.d.ts` (generated by `expo start`) is gitignored, as in the Expo template.
+- [FOLLOW-UP] The generated manifest also contains Expo's default `INTERNET`, `SYSTEM_ALERT_WINDOW`, `VIBRATE` and `READ/WRITE_EXTERNAL_STORAGE` permissions (see `evidence/phase-2-manifest.txt`). Check the release manifest and remove the unneeded ones (`android.blockedPermissions`) before the pilot release (S-10, NFR-07 privacy).
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->

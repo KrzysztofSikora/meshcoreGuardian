@@ -88,4 +88,9 @@ export default defineConfig([
   layer(["packages/storage/**"], [...storageForbidden, forbid.nodeSqlite]),
   layer(["packages/storage/test/**"], storageForbidden),
   layer(["apps/mobile/**"], [forbid.deepImport, forbid.meshcoreJs, forbid.nodeSqlite]),
+  {
+    // C-09: every visible string comes from the i18n catalog, never a JSX literal.
+    files: ["apps/mobile/src/**/*.tsx"],
+    rules: { "react/jsx-no-literals": ["error", { noStrings: true, ignoreProps: true }] },
+  },
 ]);

@@ -9,3 +9,7 @@ nodeLinker: hoisted
 # when the platform optional dependency is missing; pnpm installs that dependency itself.
 allowBuilds:
   unrs-resolver: false
+
+# Optional peers (reanimated, worklets, gesture-handler, react-dom) would otherwise be installed at
+# their latest versions and autolinked into the native build. Native deps are added explicitly.
+autoInstallPeers: false
