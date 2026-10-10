@@ -4,8 +4,9 @@
 #   --flow <file>     run one flow instead of every flow in apps/mobile/e2e
 #   E2E_SKIP_BUILD=1  reuse the last built APK
 #   E2E_BOOT_TIMEOUT  seconds to wait for a booted AVD (default 300)
-#   ANDROID_SERIAL    device to use; otherwise the first running emulator, else AVD `guardian`
-#                     is booted headless. A physical phone is only used when named here.
+#   ANDROID_SERIAL    emulator to use (`emulator-NNNN`); otherwise the first running emulator,
+#                     else AVD `guardian` is booted headless. Physical phones are always refused:
+#                     the release APK and `clearState` would overwrite a phone's app data.
 set -euo pipefail
 
 export JAVA_HOME="${JAVA_HOME:-$HOME/.local/opt/jdk-17}"
@@ -90,6 +91,10 @@ if [[ -z "${ANDROID_SERIAL:-}" ]]; then
   else
     boot_emulator
   fi
+fi
+if [[ "$ANDROID_SERIAL" != emulator-* ]]; then
+  echo "e2e: refusing to run on '$ANDROID_SERIAL': e2e runs only on an emulator (emulator-NNNN)" >&2
+  exit 1
 fi
 echo "e2e: using device $ANDROID_SERIAL ($(adb -s "$ANDROID_SERIAL" shell getprop ro.product.model | tr -d '\r'))"
 

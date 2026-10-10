@@ -9,8 +9,14 @@ source "$HERE/config.sh"
 die() { echo "$(basename "$0"): $*" >&2; exit 1; }
 note() { echo "[$(basename "$0") $(date +%H:%M:%S)] $*" | tee -a "$SUMMARY" >&2; }
 
+# Agents use only the emulator: a real phone may hold personal data (CLAUDE.md, Rules).
+phones_attached() { $WF physical-devices | paste -sd, -; }
+
 # begin_run <change-id> <title line>: branch must already be checked out.
 begin_run() {
+  local phones
+  phones=$(phones_attached)
+  [ -z "$phones" ] || die "physical Android device attached ($phones). Disconnect it (or turn off USB/wireless debugging) and start again."
   CHANGE=$1
   BRANCH=$(git branch --show-current)
   LOGS=.workflow/logs/$CHANGE
@@ -46,9 +52,14 @@ commit_docs() {
 # run_step <name> <prompt> [key=value ...]
 # One fresh headless session per attempt; retried while the step's artifact is incomplete.
 run_step() {
-  local name=$1 prompt=$2 attempt missing="" log
+  local name=$1 prompt=$2 attempt missing="" log phones
   shift 2
   for attempt in $(seq 0 "$WORKFLOW_STEP_RETRIES"); do
+    phones=$(phones_attached)
+    if [ -n "$phones" ]; then
+      FAILED="$name: stopped because a physical Android device is attached ($phones)"
+      return 1
+    fi
     N=$((N + 1))
     log=$(printf '%s/%02d-%s.jsonl' "$LOGS" "$N" "$name")
     note "step $name (attempt $((attempt + 1))): $prompt"

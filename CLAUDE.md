@@ -35,6 +35,11 @@ run: a `[REVIEW]` deviation); don't silently pick one.
 
 - No secrets in code, commits, logs or answers. Config comes from `.env` (template:
   `.env.example`).
+- Android devices: agents (autonomous or interactive) use only the `guardian` emulator. Never run
+  `adb`, `maestro`, `expo run:android` or installs against a physical phone, and never `adb connect`
+  or `adb pair`: a real phone may hold personal data. Checks on a real phone are human checks in the
+  PR, done with the CI APK (`android-apk` artifact), not over USB debugging. The runner refuses to
+  start or continue while a physical device is attached, and the PreToolUse hook blocks such commands.
 - No AI attribution anywhere in the repo: no `Co-Authored-By`, `Claude-Session` or "Generated with"
   lines in commits, PR descriptions or issues.
 - One Conventional Commit per implemented phase, scope = change-id: `feat(<change-id>): ...`.

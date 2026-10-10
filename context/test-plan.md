@@ -61,6 +61,8 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | mutation `pnpm mutation --mutate <file>` | `/mutation` per change on its target files; CI job `mutation-report` on PRs touching target modules | no (report only, target 80 %) |
 | hardware `pnpm capture` | S-01 only, when `.env` has `HW_COMPANION` and `HW_REPEATER` | not a gate |
 
+- `android-apk` (CI, every PR and push to `main`): release APK, `arm64-v8a`, real BLE transport, debug-signed, artifact `meshcore-guardian-<pr|branch>-<sha>` kept 14 days. It is how a person tests a PR on a real phone; not a merge gate.
+- Physical devices are never used by agents (CLAUDE.md, Rules): `scripts/e2e.sh` refuses any serial that is not `emulator-*`; the runner stops while a phone is attached.
 - No pre-commit hook: autonomous runs are gated by the skills; human commits rely on CI.
 - CI (`.github/workflows/ci.yml`, created in F-01): Node 24 + pnpm, `pnpm install --frozen-lockfile`, then typecheck, lint, test. A separate `mutation-report` job runs Stryker on changed target files and posts the score as a job summary; it never fails the build.
 - `pnpm e2e` boots the AVD headless if no device is attached (`emulator -avd guardian -no-window -no-audio`), installs the fake-transport debug build, runs `maestro test apps/mobile/e2e`, and stops the emulator it started.
@@ -135,6 +137,13 @@ Tool setup (done in F-01, configuration fixed here): `@stryker-mutator/core` and
 3. Open `reports/mutation/mutation.html` or read the clear-text summary.
 4. Triage each survivor per `.claude/skills/mutation/SKILL.md` (`strengthen` / `equivalent` / `accept` / `bug`).
 5. Never widen `--mutate` to the whole repo; never lower the targets in this file without a recorded reason.
+
+### Install a PR build on a phone (human check)
+1. Prefer a dedicated test phone without personal data. USB/wireless debugging stays **off**; the laptop never connects to the phone.
+2. On the PR: Checks → `ci` → job `android-apk` → Artifacts → `meshcore-guardian-pr<N>-<sha>` (a zip with the `.apk`). From a terminal: `gh run download <run-id> -n meshcore-guardian-pr<N>-<sha>`.
+3. Move the `.apk` to the phone (download it on the phone, or any file transfer) and open it; allow "install unknown apps" for that app once.
+4. The version in Android's App info (`0.0.0-pr<N>.<sha>`) tells which commit you are testing. Installing a newer artifact updates the app in place; data is kept.
+5. Do the PR's human checks, then tick them and comment on the PR.
 
 ### Run a hardware capture (S-01 only)
 1. Pair the companion with the laptop once: `bluetoothctl` → `scan on` → `pair <MAC>` (PIN from the companion display or default) → `trust <MAC>`.
