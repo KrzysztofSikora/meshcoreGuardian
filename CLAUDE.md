@@ -35,6 +35,8 @@ run: a `[REVIEW]` deviation); don't silently pick one.
 
 - No secrets in code, commits, logs or answers. Config comes from `.env` (template:
   `.env.example`).
+- No AI attribution anywhere in the repo: no `Co-Authored-By`, `Claude-Session` or "Generated with"
+  lines in commits, PR descriptions or issues.
 - One Conventional Commit per implemented phase, scope = change-id: `feat(<change-id>): ...`.
 - Commits reference their GitHub issue with `Refs #<n>`; the PR closes it.
 - Layers: UI → application/use-cases → domain diagnostics → MeshCore client abstraction → BLE
