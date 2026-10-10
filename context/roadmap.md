@@ -30,6 +30,9 @@ Sources: `context/prd.md`, `context/tech-stack.md`. Order follows risk: the prot
   - ESLint `no-restricted-imports` enforces the layer rules from tech-stack; a test file shows a forbidden import fails lint.
   - Expo SDK 57 app with expo-router, five empty routes, i18next catalog `en.json`; dev build config with the ble-plx config plugin and Android `minSdkVersion` 31.
   - `EXPO_PUBLIC_TRANSPORT` switch exists (value `fake` selects a stub transport).
+  - Test tooling as configured in `context/test-plan.md`: Vitest projects, `openTestDb` helper on `node:sqlite`, Stryker config (*Mutation targets → Tool setup*), `pnpm e2e` that boots AVD `guardian` headless when no device is attached and defaults `JAVA_HOME`/`ANDROID_HOME`.
+  - `.github/workflows/ci.yml`: typecheck, lint, test on every PR; `mutation-report` job (report only).
+  - `.env.example` with `HW_COMPANION`, `HW_REPEATER`, `HW_GUEST_PASSWORD` (empty); `.env` gitignored.
 - Unknowns: Maestro on the local emulator — if no emulator is available, `pnpm e2e` is documented and recorded as a human check.
 - Decided up front: -
 - Size: M

@@ -62,11 +62,15 @@ fast ones per phase; `/review` runs all of them.
 | typecheck | `pnpm typecheck` | - |
 | lint | `pnpm lint` | - |
 | unit tests | `pnpm test` | - |
-| integration tests | `pnpm e2e` | Android emulator running the fake-transport dev build |
+| e2e | `pnpm e2e` | Android SDK + AVD `guardian` (the script boots it headless if no device is attached) |
 | mutation (one module) | `pnpm mutation --mutate <file>` | - |
 
 Scripts are created by the first roadmap item (project scaffold). Until then the gates fail.
-Real-hardware BLE checks are human checks with evidence, never a gate.
+Unit and integration tests (Vitest) both run under `pnpm test`; strategy and recipes are in
+`context/test-plan.md`. Real-hardware BLE checks are human checks with evidence, never a gate.
+Toolchain on this machine: JDK 17 `~/.local/opt/jdk-17`, SDK `~/Android/Sdk`, Maestro `~/.local/bin`;
+scripts must default `JAVA_HOME`/`ANDROID_HOME` to these paths, because non-interactive shells
+do not load `~/.bashrc`.
 
 ## Commands
 
