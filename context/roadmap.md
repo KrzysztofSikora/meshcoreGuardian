@@ -6,7 +6,7 @@ Sources: `context/prd.md`, `context/tech-stack.md`. Order follows risk: the prot
 ## Overview
 | ID | Issue | change-id | Type | Covers | Depends on | Size | Status |
 |----|-------|-----------|------|--------|------------|------|--------|
-| F-01 | #1 | repo-skeleton | foundation | C-02, C-03, C-09 | - | M | in-progress |
+| F-01 | #1 | repo-skeleton | foundation | C-02, C-03, C-09 | - | M | review |
 | S-01 | #2 | protocol-feasibility-gate | slice | FR-00 | F-01 | M | todo |
 | S-02 | #3 | connect-companion | slice | FR-01, FR-02, FR-03 | S-01 (gate passed) | L | todo |
 | S-03 | #4 | sync-contacts | slice | FR-04 | S-02 | M | todo |
