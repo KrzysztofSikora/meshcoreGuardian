@@ -43,3 +43,57 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: bash scripts/mutation-changed.sh "origin/${{ github.base_ref }}"
+
+  # Installable test build for a real phone (context/test-plan.md, "Install a PR build on a phone").
+  # Release variant with the JS bundle embedded (no Metro, no USB debugging), real BLE transport,
+  # signed with the debug keystore of the prebuild template. Not a Play release (that is S-10).
+  android-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v6
+      - run: pnpm install --frozen-lockfile
+      - name: Stamp version
+        id: version
+        run: |
+          sha=$(git rev-parse --short=7 HEAD)
+          if [ "${{ github.event_name }}" = pull_request ]; then tag="pr${{ github.event.pull_request.number }}"; else tag="${GITHUB_REF_NAME//\//-}"; fi
+          name="0.0.0-$tag.$sha"
+          jq --arg v "$name" --argjson c "${{ github.run_number }}" \
+            '.expo.version = $v | .expo.android.versionCode = $c' apps/mobile/app.json > app.json.tmp
+          mv app.json.tmp apps/mobile/app.json
+          echo "file=meshcore-guardian-$tag-$sha" >> "$GITHUB_OUTPUT"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+      - name: Build release APK (arm64-v8a)
+        working-directory: apps/mobile
+        env:
+          NODE_ENV: production
+        run: |
+          pnpm exec expo prebuild --platform android --no-install
+          cd android
+          ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a
+          mv app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/${{ steps.version.outputs.file }}.apk"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.version.outputs.file }}
+          path: ${{ steps.version.outputs.file }}.apk
+          retention-days: 14
+          if-no-files-found: error
+      - name: Summary
+        run: |
+          {
+            echo "### APK ${{ steps.version.outputs.name }}"
+            echo "Download: Artifacts → \`${{ steps.version.outputs.file }}\` (zip with the .apk), or"
+            echo "\`gh run download ${{ github.run_id }} -n ${{ steps.version.outputs.file }}\`."
+            echo "Install on the phone by opening the .apk (allow \"install unknown apps\" once). No USB debugging needed."
+          } >> "$GITHUB_STEP_SUMMARY"

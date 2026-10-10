@@ -5,6 +5,10 @@ Closes #1
 
 > **Status:** Ready for review
 
+## Added after the autonomous run (by request)
+- **Phone guard.** Agents never touch a physical Android device: `scripts/e2e.sh` refuses any non-emulator serial; the runner (`.claude/workflow/lib.sh`) refuses to start and stops before each step while a phone is attached; the PreToolUse hook (`wf.py`) denies `adb`/`maestro`/`expo run:android` aimed at a non-emulator, any `adb connect`/`pair`, and all device commands while a phone is attached. Rule in `CLAUDE.md`.
+- **CI job `android-apk`.** Release APK (`arm64-v8a`, real BLE, debug-signed) as a PR artifact for testing on a phone without USB debugging. Recipe in `context/test-plan.md` (*Install a PR build on a phone*).
+
 ## ⚠ Needs your decision
 - **D-10 (costly):** Android application id and URL scheme → chose **`io.github.krzysztofsikora.guardian`, scheme `guardian`**. Alternatives: B: `com.meshcoreguardian.app` (nicer, but implies a domain nobody owns); C: decide at S-10 (but the id is already baked into every build and into the e2e `appId`). Switching costs: cheap until the first Play upload in S-10, permanent after it. Today it is one value in `apps/mobile/app.json` and in `apps/mobile/e2e/*.yaml`.
 - **[REVIEW] D-11, e2e build type contradicts artifacts:** `context/test-plan.md` (*Gates*, `pnpm e2e` line) says the script installs the fake-transport **debug** build, and `context/tech-stack.md` (*Local development*) says Maestro runs "against the running fake-transport build". `scripts/e2e.sh` builds and installs a **release** APK (JS embedded, no Metro), as D-11 decided. Alternative: a debug build plus a Metro process that the script starts. If you confirm, the artifacts need updating (see Follow-ups). This is plan-review finding #1 (major).
@@ -18,9 +22,10 @@ Reply in a review comment, e.g. `D-3: take B`, `R4: fix it`, `drop the lessons c
 then run `.claude/workflow/address-pr <PR number>`.
 
 ## Human checks
-- [ ] (Phase 2) Dev build on a real Android phone (USB debugging) installs and opens on the Dashboard title. The Settings deep link shows "Transport: BLE". App info → Permissions lists no location permission. Run: `pnpm --filter mobile android`, then `adb shell am start -d guardian://settings`. Evidence: [`evidence/phase-2-manifest.txt`](context/changes/repo-skeleton/evidence/phase-2-manifest.txt) (generated manifest: `BLUETOOTH_SCAN` with `neverForLocation`, location permissions capped at `maxSdkVersion 30`, `android.minSdkVersion=31`).
+- [ ] (Phase 2) The CI APK installs on a real Android phone and opens on the Dashboard title. The Settings screen shows "Transport: BLE". App info → Permissions lists no location permission. Run: download the `android-apk` artifact of this PR and install it (test-plan cookbook *Install a PR build on a phone*; no USB debugging). Evidence: [`evidence/phase-2-manifest.txt`](context/changes/repo-skeleton/evidence/phase-2-manifest.txt) (generated manifest: `BLUETOOTH_SCAN` with `neverForLocation`, location permissions capped at `maxSdkVersion 30`, `android.minSdkVersion=31`).
 - [ ] (Phase 3) CI workflow `ci` is green on this PR: job `checks` passes, and job `mutation-report` shows "No mutation target files changed" in its summary. Its Stryker path stays unverified on CI until S-04 adds a target (plan-review #9). Run: open the PR's Checks tab. Evidence: [`evidence/phase-3-mutation-changed.txt`](context/changes/repo-skeleton/evidence/phase-3-mutation-changed.txt) (local run of the same script, both paths).
-- [ ] (Phase 3) Optional re-run of the e2e gate on the laptop. Run: `pnpm e2e` with no phone attached (an attached phone is ignored unless `ANDROID_SERIAL` names it); `E2E_SKIP_BUILD=1 pnpm e2e` reuses the APK. Evidence: [`evidence/phase-3-e2e.txt`](context/changes/repo-skeleton/evidence/phase-3-e2e.txt) (agent run: smoke flow passed).
+- [ ] (Added) Job `android-apk` is green and its artifact downloads as `meshcore-guardian-pr13-<sha>.apk`.
+- [ ] (Phase 3) Optional re-run of the e2e gate on the laptop. Run: `pnpm e2e` (it runs only on an emulator and refuses any other `ANDROID_SERIAL`); `E2E_SKIP_BUILD=1 pnpm e2e` reuses the APK. Evidence: [`evidence/phase-3-e2e.txt`](context/changes/repo-skeleton/evidence/phase-3-e2e.txt) (agent run: smoke flow passed).
 
 ## Other decisions made by the agent (cheap to change)
 Full table with rationale: [`plan.md#decisions`](context/changes/repo-skeleton/plan.md#decisions).
