@@ -1,7 +1,15 @@
 # Review: repo-skeleton
 
-Verdict: APPROVE WITH FOLLOW-UPS
-Gates: GATES_PLACEHOLDER · Round: 1
+Verdict: APPROVE
+Gates: typecheck ok, lint ok, unit tests ok (75/75), e2e ok (smoke flow passed on headless AVD `guardian`), mutation ok (`result-code.ts` 85.71 %, survivor triaged equivalent) · Round: 2
+
+## Round 2 (re-review after /fix-review)
+- R1 fixed (f48b3a0): `started_serial` is set as soon as the new emulator appears, and `cleanup` always `kill`s `started_emulator_pid` before `wait` (`scripts/e2e.sh:36-53`, `:66-69`). The emulator launcher on this machine execs `qemu-system-x86_64-headless` under the same PID (checked with `ps` during the gate run), so the PID signal reaches the VM itself. Evidence `evidence/r1-e2e-boot-timeout.txt` shows the timeout path exiting after 5 s; the success path stopped `emulator-5554` and left no qemu process.
+- R2 fixed (bc8b8c6): `forbid.nodeBuiltins` is built from `builtinModules`; rows `fs`, `fs/promises`, `crypto` fail and `./fs` passes in `tooling/lint/layer-rules.test.ts`.
+- R3 fixed (fba48bb): `git check-ignore` matches `.env.local`, `.env.production.local` and `apps/mobile/.env.development.local` via `.gitignore:14`.
+- R4 deferred: comment narrowed in `eslint.config.mjs:98-99` and a `[FOLLOW-UP]` added to plan.md *Deviations*; the gap is documented and owned by S-04. Acceptable for a skeleton with no status UI.
+- The R1 lesson is proposed in `context/lessons.md` and the diff now complies with it.
+- No new findings in the fix commits.
 
 ## Plan vs diff
 | File | Status | Note |
@@ -40,13 +48,13 @@ Gates: GATES_PLACEHOLDER · Round: 1
 ## Areas
 | Area | Result | One-line reason |
 |------|--------|-----------------|
-| Correctness | concern | `pnpm e2e` hangs instead of failing when the AVD does not boot in time (R1) |
+| Correctness | ok | R1 fixed: the boot-timeout path exits and stops the emulator by PID |
 | Design | ok | packages source-only, native code confined to `apps/mobile`, single composition point |
-| Safety | concern | `.env.local` (loaded by Expo) is not gitignored (R3); no secrets in the diff |
+| Safety | ok | `.env*.local` ignored (R3 fixed); no secrets in the diff |
 | Tests | ok | behaviour tables, failure paths covered; mutation `equivalent` on `result-code.ts:13` is plausible |
 | Simplicity | ok | small modules, no dead code |
 | Plan fidelity | ok | every divergence is logged under *Deviations* |
-| Agent decisions | concern | D-10 (costly) lives in `app.json` and `smoke.yaml` only, as claimed; lint rules leave two gaps against their stated intent (R2, R4) |
+| Agent decisions | ok | D-10 (costly) lives in `app.json` and `smoke.yaml` only, as claimed; R2 closed, R4 gap deferred to S-04 as a logged FOLLOW-UP |
 
 ## Findings
 ### R1: `pnpm e2e` hangs forever when the emulator it started does not finish booting
