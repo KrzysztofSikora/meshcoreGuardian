@@ -24,10 +24,19 @@ export {
 } from "./fixtures/format";
 export { FakeTransport, type ScriptFrame } from "./transport/fake-transport";
 export { HANDSHAKE_FRAMES, withFirmware } from "./transport/handshake-script";
-export { MeshClient, type AbortSignalLike, type MeshClientOptions } from "./client/mesh-client";
+export { CONTACTS_FRAMES } from "./transport/contacts-script";
+export {
+  MeshClient,
+  type AbortSignalLike,
+  type ContactsResult,
+  type MeshClientOptions,
+} from "./client/mesh-client";
 export {
   AbortError,
+  CommandRejectedError,
+  ContactsTimeoutError,
   HandshakeTimeoutError,
   TransportUnavailableError,
+  type ContactsStage,
   type HandshakeStep,
 } from "./client/errors";
