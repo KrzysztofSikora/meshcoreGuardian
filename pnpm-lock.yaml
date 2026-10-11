@@ -211,6 +211,9 @@ importers:
       '@guardian/meshcore-adapter':
         specifier: workspace:*
         version: link:../../packages/meshcore-adapter
+      '@guardian/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       expo:
         specifier: ~57.0.27
         version: 57.0.27(@babel/core@7.29.7(supports-color@8.1.1))(@expo/metro-runtime@57.0.16)(expo-router@57.0.25)(react-native@0.86.3(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1)(typescript@6.0.3)
@@ -280,6 +283,9 @@ importers:
       '@guardian/domain':
         specifier: workspace:*
         version: link:../domain
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
 
   tooling: {}
 

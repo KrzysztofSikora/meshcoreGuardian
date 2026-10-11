@@ -1,0 +1,44 @@
+# FR-04 AC3: a label and role set by the user survive an app restart, without connecting.
+appId: io.github.krzysztofsikora.guardian
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Known nodes will appear here."
+- openLink: guardian://debug/scenario/connect-ok
+- extendedWaitUntil:
+    visible: "Scan for companions"
+    timeout: 10000
+- tapOn: "Scan for companions"
+- extendedWaitUntil:
+    visible: "Connect to MeshCore-companion"
+    timeout: 10000
+- tapOn: "Connect to MeshCore-companion"
+- extendedWaitUntil:
+    visible: "Connected"
+    timeout: 20000
+- back
+- extendedWaitUntil:
+    visible: "Contacts synced: 31"
+    timeout: 30000
+- scrollUntilVisible:
+    element: "Sensor test"
+- tapOn: "Sensor test"
+- tapOn: "Repeater"
+- tapOn:
+    id: "label-input"
+- inputText: "Hilltop"
+- hideKeyboard
+- tapOn: "Save label"
+- assertVisible: "Reported as Unknown (type 4)"
+- assertVisible: "Reported name: Sensor test"
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: "Hilltop"
+    timeout: 15000
+- assertNotVisible: "Contacts synced.*"
+- tapOn: "Hilltop"
+- assertVisible: "Role: Repeater"
+- assertVisible: "Reported name: Sensor test"
+- assertVisible: "Reported as Unknown (type 4)"
+- takeScreenshot: phase-6-label-restart

@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { FakeTransport, HANDSHAKE_FRAMES } from "@guardian/meshcore-adapter";
+import {
+  AbortError,
+  FakeTransport,
+  HANDSHAKE_FRAMES,
+  TransportUnavailableError,
+} from "@guardian/meshcore-adapter";
 
 import { SCENARIOS, type ScenarioName } from "../../debug/scenarios";
 import { FakeBlePlatform } from "../../platform/fake/fake-ble-platform";
@@ -433,6 +438,87 @@ describe("CompanionSession", () => {
       expect(session.getState().scan.status).toBe("done");
     });
 
+    describe("fetchContacts", () => {
+      async function connected() {
+        const ctx = scripted((t) => t.silence(0x04));
+        await ctx.session.initialize();
+        const done = ctx.session.connect(ID);
+        await vi.runAllTimersAsync();
+        await done;
+        expect(ctx.session.getState().connection.kind).toBe("connected");
+        return ctx;
+      }
+      const writes = (platform: { transports: FakeTransport[] }) =>
+        (platform.transports[0]?.writtenFrames ?? []).filter((f) => f[0] === 0x04).length;
+
+      it("aborting the caller's signal ends the fetch with AbortError and frees the session", async () => {
+        const { session, platform } = await connected();
+        const controller = new AbortController();
+        const first = session.fetchContacts({ signal: controller.signal });
+        const settled = expect(first).rejects.toBeInstanceOf(AbortError);
+        await vi.advanceTimersByTimeAsync(10);
+        controller.abort();
+        await settled;
+        const second = session.fetchContacts();
+        const secondSettled = expect(second).rejects.not.toBeInstanceOf(AbortError);
+        await vi.advanceTimersByTimeAsync(0);
+        expect(writes(platform)).toBe(2);
+        await vi.runAllTimersAsync();
+        await secondSettled;
+      });
+
+      it("a finished fetch detaches the caller's listener", async () => {
+        const { session } = await connected();
+        const controller = new AbortController();
+        const removed = vi.spyOn(controller.signal, "removeEventListener");
+        const settled = expect(
+          session.fetchContacts({ signal: controller.signal }),
+        ).rejects.toBeDefined();
+        await vi.runAllTimersAsync();
+        await settled;
+        expect(removed).toHaveBeenCalledWith("abort", expect.any(Function));
+      });
+
+      it("an already aborted signal rejects without a write", async () => {
+        const { session, platform } = await connected();
+        const controller = new AbortController();
+        controller.abort();
+        await expect(session.fetchContacts({ signal: controller.signal })).rejects.toBeInstanceOf(
+          AbortError,
+        );
+        expect(writes(platform)).toBe(0);
+      });
+
+      it("dispose() during a fetch ends it with AbortError", async () => {
+        const { session } = await connected();
+        const running = session.fetchContacts();
+        const settled = expect(running).rejects.toBeInstanceOf(AbortError);
+        await vi.advanceTimersByTimeAsync(10);
+        await session.dispose();
+        await settled;
+      });
+
+      it("disconnect() during a fetch ends it with AbortError", async () => {
+        const { session } = await connected();
+        const running = session.fetchContacts();
+        const settled = expect(running).rejects.toBeInstanceOf(AbortError);
+        await vi.advanceTimersByTimeAsync(10);
+        await session.disconnect();
+        await settled;
+      });
+
+      it("rejects with TransportUnavailableError while connecting", async () => {
+        const { session } = scripted((t) => t);
+        await session.initialize();
+        const done = session.connect(ID);
+        await vi.advanceTimersByTimeAsync(20);
+        expect(session.getState().connection.kind).toBe("connecting");
+        await expect(session.fetchContacts()).rejects.toBeInstanceOf(TransportUnavailableError);
+        await vi.runAllTimersAsync();
+        await done;
+      });
+    });
+
     it("dispose unsubscribes from app state", async () => {
       const appState = new InMemoryAppState();
       const platform = new FakeBlePlatform(SCENARIOS["connect-ok"]);
@@ -449,5 +535,11 @@ describe("CompanionSession", () => {
       appState.set("background");
       expect(session.getState().scan.status).toBe("scanning");
     });
+  });
+
+  it("fetchContacts rejects with TransportUnavailableError when not connected", async () => {
+    const { session } = setup("connect-ok");
+    await session.initialize();
+    await expect(session.fetchContacts()).rejects.toBeInstanceOf(TransportUnavailableError);
   });
 });

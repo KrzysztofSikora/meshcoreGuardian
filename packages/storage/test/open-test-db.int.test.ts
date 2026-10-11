@@ -13,8 +13,8 @@ describe("openTestDb", () => {
     testDb = undefined;
   });
 
-  it("opens a file-backed database that persists rows", () => {
-    testDb = openTestDb();
+  it("opens a file-backed database that persists rows", async () => {
+    testDb = await openTestDb({ migrate: false });
     testDb.db.exec("CREATE TABLE node (id TEXT PRIMARY KEY, name TEXT NOT NULL)");
     testDb.db.prepare("INSERT INTO node (id, name) VALUES (?, ?)").run("a1", "Repeater");
 
@@ -24,9 +24,9 @@ describe("openTestDb", () => {
     expect(existsSync(testDb.path)).toBe(true);
   });
 
-  it("gives every call its own database", () => {
-    const first = openTestDb();
-    const second = openTestDb();
+  it("gives every call its own database", async () => {
+    const first = await openTestDb();
+    const second = await openTestDb();
     try {
       expect(first.path).not.toBe(second.path);
     } finally {
@@ -35,8 +35,8 @@ describe("openTestDb", () => {
     }
   });
 
-  it("removes the temp directory on close", () => {
-    testDb = openTestDb();
+  it("removes the temp directory on close", async () => {
+    testDb = await openTestDb();
     const dir = dirname(testDb.path);
 
     testDb.close();

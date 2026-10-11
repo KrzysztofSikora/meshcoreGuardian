@@ -1,4 +1,9 @@
-import { FakeTransport, HANDSHAKE_FRAMES, withFirmware } from "@guardian/meshcore-adapter";
+import {
+  CONTACTS_FRAMES,
+  FakeTransport,
+  HANDSHAKE_FRAMES,
+  withFirmware,
+} from "@guardian/meshcore-adapter";
 
 import type {
   AdapterState,
@@ -37,6 +42,8 @@ function abortReject(signal: AbortSignal): Promise<never> {
 /** Scripted Bluetooth for the fake build and the tests. No radio, no OS. */
 export class FakeBlePlatform implements BlePlatform {
   readonly calls = { scan: 0, connect: 0, requestPermissions: 0, openSettings: 0 };
+  /** The transport of the latest connect, so tests can inject faults or read the writes. */
+  lastTransport: FakeTransport | null = null;
   private attemptIndex = 0;
   private scanFails = false;
 
@@ -94,11 +101,14 @@ export class FakeBlePlatform implements BlePlatform {
     this.attemptIndex += 1;
     if (attempt === "connect-error") throw new Error("Fake connect error");
     if (attempt === "connect-timeout") return abortReject(signal);
-    const frames =
+    const handshake =
       typeof attempt === "object" && "firmware" in attempt
         ? withFirmware(HANDSHAKE_FRAMES, attempt.firmware)
         : HANDSHAKE_FRAMES;
+    // Two syncs per connection: the automatic one and one tap on "Sync contacts" (plan D-12).
+    const frames = [...handshake, ...CONTACTS_FRAMES, ...CONTACTS_FRAMES];
     const transport = FakeTransport.fromFrames(frames);
+    this.lastTransport = transport;
     if (attempt === "silent") {
       for (const frame of frames)
         if (frame.dir === "tx") transport.silence(parseInt(frame.hex.slice(0, 2), 16));

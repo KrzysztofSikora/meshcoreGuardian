@@ -7,6 +7,7 @@ import {
 } from "@guardian/domain";
 import {
   AbortError,
+  type ContactsResult,
   HandshakeTimeoutError,
   MalformedFrameError,
   MeshClient,
@@ -82,6 +83,7 @@ export class CompanionSession {
   private scanToken = 0;
   private attempt: { id: string; abort: AbortController } | null = null;
   private client: MeshClient | null = null;
+  private readonly fetches = new Set<AbortController>();
   private lastTarget: LastCompanion | null = null;
   private readonly unsubscribeAppState: () => void;
 
@@ -133,12 +135,16 @@ export class CompanionSession {
     this.scanAbort = abort;
     this.set({ scan: { status: "scanning", devices: [] } });
     this.scanTimer = setTimeout(() => this.stopScan(), SCAN_WINDOW_MS);
-    this.ports.platform.scan((device) => {
-      if (abort.signal.aborted) return;
-      const { devices } = this.getState().scan;
-      if (devices.some((known) => known.id === device.id)) return;
-      this.set({ scan: { status: "scanning", devices: [...devices, device] } });
-    }, abort.signal, () => void this.onScanError(abort));
+    this.ports.platform.scan(
+      (device) => {
+        if (abort.signal.aborted) return;
+        const { devices } = this.getState().scan;
+        if (devices.some((known) => known.id === device.id)) return;
+        this.set({ scan: { status: "scanning", devices: [...devices, device] } });
+      },
+      abort.signal,
+      () => void this.onScanError(abort),
+    );
   }
 
   /** A native scan failure is not "no companions": end it as `failed` and re-read the adapter. */
@@ -191,10 +197,35 @@ export class CompanionSession {
     return this.retry();
   }
 
+  /**
+   * One contact sync on the current link (plan D-16). It ends with `AbortError` when `signal`
+   * aborts or when the user disconnects, and with `TransportUnavailableError` when not connected
+   * or the link drops.
+   */
+  async fetchContacts({ signal }: { signal?: AbortSignal } = {}): Promise<ContactsResult> {
+    const client = this.client;
+    if (client === null || this.getState().connection.kind !== "connected") {
+      throw new TransportUnavailableError();
+    }
+    const own = new AbortController();
+    const onAbort = () => own.abort();
+    if (signal?.aborted) own.abort();
+    signal?.addEventListener("abort", onAbort, { once: true });
+    this.fetches.add(own);
+    try {
+      return await client.getContacts({ signal: own.signal });
+    } finally {
+      this.fetches.delete(own);
+      signal?.removeEventListener("abort", onAbort);
+    }
+  }
+
   async disconnect(): Promise<void> {
     const attempt = this.attempt;
     this.attempt = null;
     attempt?.abort.abort();
+    // A user disconnect ends a running sync as an abort, not as a link failure.
+    for (const fetch of this.fetches) fetch.abort();
     await this.closeClient();
     this.set({ connection: { kind: "disconnected" }, linkLostNote: false, capabilities: null });
   }
@@ -213,6 +244,7 @@ export class CompanionSession {
     this.stopScan();
     this.attempt?.abort.abort();
     this.attempt = null;
+    for (const fetch of this.fetches) fetch.abort();
     await this.closeClient();
   }
 

@@ -28,11 +28,11 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | TR-08 | Response matched to the wrong request (late reply from a previous run, different node) | H | L | integration | fixture with interleaved replies; reply carrying another node's key prefix is not attributed to the current run | planned (S-04) |
 | TR-09 | Guest password leaks to SQLite, logs, fixtures or export | H | L | integration | write known password `pw-LEAK-CANARY`, then scan the SQLite file bytes, captured log output and export output: none contain it; capture tool test asserts password field is never serialised | covered (S-01 capture part); planned (S-05, S-08) |
 | TR-10 | Export includes full public keys by default or omits redaction preview | M | M | unit | golden files for JSON and CSV with redaction on/off; default settings → 8 hex chars only | planned (S-08) |
-| TR-11 | Data lost on restart or on schema migration | H | L | integration | repository round-trip on file-backed `node:sqlite`; migration test applies every migration in order to a DB seeded at each earlier version and checks rows survive | planned (S-03, S-06) |
+| TR-11 | Data lost on restart or on schema migration | H | L | integration | repository round-trip on file-backed `node:sqlite`; migration test applies every migration in order to a DB seeded at each earlier version and checks rows survive | covered S-03 (migration, restart round-trip); S-06 planned |
 | TR-12 | Link drop not surfaced; in-flight run hangs; reconnect needs app restart | H | M | integration + e2e | `FakeTransport.drop()` mid-request → run ends `TRANSPORT_UNAVAILABLE` within 5 s fake time; e2e `reconnect.yaml` | covered (S-02) |
 | TR-13 | Permission denied / Bluetooth off shown as "no devices found" | M | M | e2e | `permission-denied.yaml`, `bluetooth-off.yaml` with fake transport scripted states | covered (S-02) |
 | TR-14 | Unsupported capability still callable or unlabelled | M | M | unit + e2e | capability → enabled-actions mapping; e2e asserts disabled button and reason text | covered (S-02: mapping + reason text); S-04 adds the disabled-button e2e |
-| TR-15 | Contact sync duplicates nodes, overwrites user label/role, or deletes history of removed contacts | M | M | integration | sync twice → one row per key; user label kept over protocol name; contact missing from companion → node kept with flag | planned (S-03) |
+| TR-15 | Contact sync duplicates nodes, overwrites user label/role, or deletes history of removed contacts | M | M | integration | sync twice → one row per key; user label kept over protocol name; contact missing from companion → node kept with flag | covered (S-03) |
 | TR-16 | Telemetry shown without unit, 0 instead of N/A, RSSI/SNR presented as end-to-end | M | M | unit | mapping tests from decoded telemetry → domain samples; presenter tests for N/A and "last hop" labels | planned (S-06) |
 | TR-17 | Trend or prediction shown on too little data | M | L | unit | trend rule: 4 samples / 23 h → "Not enough data"; 5 samples / 24 h → trend; no API returns a prediction | planned (S-07) |
 | TR-18 | Background BLE activity or automatic remote requests | M | L | integration | use-case tests: app-state `background` → transport receives no writes; no timer schedules a run | covered (S-02); S-04 adds the request side |
@@ -132,6 +132,8 @@ Tool setup (done in F-01, configuration fixed here): `@stryker-mutator/core` and
 3. Assert user-visible outcomes only (text, enabled/disabled, labels). Never assert colours.
 4. Run one flow: `pnpm e2e --flow apps/mobile/e2e/<flow>.yaml`; all: `pnpm e2e`.
 5. Keep the e2e suite under ~15 flows; push detail down to integration tests.
+
+Existing S-03 flows: `contacts-sync.yaml` (FR-04 AC1, AC2, AC4: sync after connect, Unknown role, chat contacts only under All contacts, pin to Dashboard, second sync) and `contacts-label-restart.yaml` (FR-04 AC3: label and role survive `stopApp`/`launchApp` without `clearState`).
 
 ### Run a mutation check
 1. Pick the target from *Mutation targets* (or the file your change touched in that list).

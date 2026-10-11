@@ -1,6 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/triple-slash-reference -- the ambient declaration must travel with the source to consumers
 /// <reference path="../types/timers.d.ts" />
-import type { CompanionInfo } from "@guardian/domain";
+import { contactLastHeard, type CompanionInfo, type ContactReport } from "@guardian/domain";
 
 import { COMPANION_PROTOCOL_VERSION, MeshCoreConnection } from "../connection/mesh-core-connection";
 import { decodeFrame, type DecodedFrame } from "../decode/decode-frame";
@@ -9,6 +9,8 @@ import type { MeshTransport, Unsubscribe } from "../transport/mesh-transport";
 
 import {
   AbortError,
+  CommandRejectedError,
+  ContactsTimeoutError,
   HandshakeTimeoutError,
   TransportUnavailableError,
   type HandshakeStep,
@@ -17,6 +19,13 @@ import {
 /** Plan D-4: the first step covers the Android pairing dialog, the second is a plain reply. */
 export const DEVICE_QUERY_TIMEOUT_MS = 30_000;
 export const APP_START_TIMEOUT_MS = 5_000;
+/**
+ * Plan D-11: the companion answers `contactsStart` at once; after that only contact frames
+ * count. The recorded sync has a 4.9 s gap while the companion handled LoRa traffic, hence 15 s.
+ */
+export const CONTACTS_START_TIMEOUT_MS = 5_000;
+export const CONTACTS_IDLE_TIMEOUT_MS = 15_000;
+export const CONTACTS_TOTAL_TIMEOUT_MS = 120_000;
 
 /** The part of `AbortSignal` we use; the adapter compiles without DOM or Node types. A real signal fits. */
 export interface AbortSignalLike {
@@ -28,11 +37,20 @@ export interface AbortSignalLike {
 export interface MeshClientOptions {
   deviceQueryTimeoutMs?: number;
   appStartTimeoutMs?: number;
+  contactsStartTimeoutMs?: number;
+  contactsIdleTimeoutMs?: number;
+  contactsTotalTimeoutMs?: number;
 }
 
+export interface ContactsResult {
+  contacts: ContactReport[];
+  /** The count the companion announced in `contactsStart`. */
+  expected: number;
+}
+
+/** The one request in flight: gets every decoded frame, and is told how it ended. */
 interface Pending {
-  kind: DecodedFrame["kind"];
-  resolve: (frame: DecodedFrame) => void;
+  onFrame: (frame: DecodedFrame) => void;
   reject: (error: Error) => void;
   cleanup: () => void;
 }
@@ -48,6 +66,9 @@ export class MeshClient {
   private readonly disconnectListeners = new Set<() => void>();
   private readonly deviceQueryTimeoutMs: number;
   private readonly appStartTimeoutMs: number;
+  private readonly contactsStartTimeoutMs: number;
+  private readonly contactsIdleTimeoutMs: number;
+  private readonly contactsTotalTimeoutMs: number;
   private pending: Pending | null = null;
   private busy = false;
   private unavailable = false;
@@ -58,6 +79,9 @@ export class MeshClient {
   ) {
     this.deviceQueryTimeoutMs = options.deviceQueryTimeoutMs ?? DEVICE_QUERY_TIMEOUT_MS;
     this.appStartTimeoutMs = options.appStartTimeoutMs ?? APP_START_TIMEOUT_MS;
+    this.contactsStartTimeoutMs = options.contactsStartTimeoutMs ?? CONTACTS_START_TIMEOUT_MS;
+    this.contactsIdleTimeoutMs = options.contactsIdleTimeoutMs ?? CONTACTS_IDLE_TIMEOUT_MS;
+    this.contactsTotalTimeoutMs = options.contactsTotalTimeoutMs ?? CONTACTS_TOTAL_TIMEOUT_MS;
     // The library only encodes: it gets a send-only view so it never parses (or throws on) rx.
     this.connection = new MeshCoreConnection({
       write: (frame) => transport.write(frame),
@@ -97,6 +121,32 @@ export class MeshClient {
         firmwareVerCode: device.firmwareVerCode,
         buildDate: device.buildDate,
       };
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  /**
+   * `CMD_GET_CONTACTS` without `since`: `contactsStart`, the contact frames, `endOfContacts`
+   * (plan D-11). Returns what arrived; the caller compares `expected` with the number received.
+   * Frames of other kinds are ignored and do not reset the idle bound. No retry.
+   */
+  async getContacts({ signal }: { signal?: AbortSignalLike } = {}): Promise<ContactsResult> {
+    if (this.busy) throw new Error("busy");
+    if (signal?.aborted) throw new AbortError();
+    if (this.unavailable) throw new TransportUnavailableError();
+    this.busy = true;
+    try {
+      const reply = this.collectContacts(signal);
+      reply.catch(() => undefined); // rejected during `write`, before we return it
+      try {
+        await this.connection.sendCommandGetContacts();
+      } catch (error) {
+        this.failPending(
+          error instanceof TransportUnavailableError ? error : new TransportUnavailableError(),
+        );
+      }
+      return await reply;
     } finally {
       this.busy = false;
     }
@@ -144,22 +194,91 @@ export class MeshClient {
     signal: AbortSignalLike | undefined,
   ): Promise<DecodedFrame> {
     return new Promise<DecodedFrame>((resolve, reject) => {
-      const onAbort = () => this.failPending(new AbortError());
       const timer = setTimeout(
         () => this.failPending(new HandshakeTimeoutError(step, timeoutMs)),
         timeoutMs,
       );
-      signal?.addEventListener("abort", onAbort);
-      this.pending = {
-        kind,
-        resolve,
+      this.setPending(
         reject,
-        cleanup: () => {
-          clearTimeout(timer);
-          signal?.removeEventListener("abort", onAbort);
+        signal,
+        () => clearTimeout(timer),
+        (frame) => {
+          if (frame.kind !== kind) return;
+          this.finishPending();
+          resolve(frame);
         },
-      };
+      );
     });
+  }
+
+  private collectContacts(signal: AbortSignalLike | undefined): Promise<ContactsResult> {
+    return new Promise<ContactsResult>((resolve, reject) => {
+      const contacts: ContactReport[] = [];
+      let expected: number | null = null;
+      let idleTimer: ReturnType<typeof setTimeout> | undefined;
+      const timeout = (stage: "start" | "idle" | "total") => () =>
+        this.failPending(new ContactsTimeoutError(stage, contacts.length, expected));
+      const armIdle = (ms: number, stage: "start" | "idle") => {
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(timeout(stage), ms);
+      };
+      armIdle(this.contactsStartTimeoutMs, "start");
+      const totalTimer = setTimeout(timeout("total"), this.contactsTotalTimeoutMs);
+      this.setPending(
+        reject,
+        signal,
+        () => {
+          clearTimeout(idleTimer);
+          clearTimeout(totalTimer);
+        },
+        (frame) => {
+          if (frame.kind === "err") {
+            this.failPending(new CommandRejectedError(frame.code));
+          } else if (frame.kind === "contactsStart") {
+            expected = frame.count;
+            armIdle(this.contactsIdleTimeoutMs, "idle");
+          } else if (expected === null) {
+            return; // nothing counts before `contactsStart`
+          } else if (frame.kind === "contact") {
+            contacts.push({
+              publicKey: frame.publicKey,
+              name: frame.name,
+              type: frame.type,
+              lastHeardAt: contactLastHeard(frame.lastMod),
+            });
+            armIdle(this.contactsIdleTimeoutMs, "idle");
+          } else if (frame.kind === "endOfContacts") {
+            this.finishPending();
+            resolve({ contacts, expected });
+          }
+        },
+      );
+    });
+  }
+
+  /** Registers the single in-flight request with its abort listener. */
+  private setPending(
+    reject: (error: Error) => void,
+    signal: AbortSignalLike | undefined,
+    clean: () => void,
+    onFrame: (frame: DecodedFrame) => void,
+  ): void {
+    const onAbort = () => this.failPending(new AbortError());
+    signal?.addEventListener("abort", onAbort);
+    this.pending = {
+      onFrame,
+      reject,
+      cleanup: () => {
+        clean();
+        signal?.removeEventListener("abort", onAbort);
+      },
+    };
+  }
+
+  private finishPending(): void {
+    const pending = this.pending;
+    this.pending = null;
+    pending?.cleanup();
   }
 
   private failPending(error: Error): void {
@@ -181,10 +300,7 @@ export class MeshClient {
       else throw error;
       return;
     }
-    if (decoded.kind !== pending.kind) return;
-    this.pending = null;
-    pending.cleanup();
-    pending.resolve(decoded);
+    pending.onFrame(decoded);
   }
 
   private onTransportDisconnect(): void {

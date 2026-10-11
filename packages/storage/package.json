@@ -7,9 +7,11 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "gen:migrations": "node scripts/gen-migrations.mjs"
   },
   "dependencies": {
-    "@guardian/domain": "workspace:*"
+    "@guardian/domain": "workspace:*",
+    "zod": "4.6.5"
   }
 }
