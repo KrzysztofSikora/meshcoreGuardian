@@ -19,11 +19,16 @@ function abortable(aborted = false) {
   const listeners = new Set<() => void>();
   const signal: AbortSignalLike & { aborted: boolean } = {
     aborted,
-    addEventListener: (_type, listener) => listeners.add(listener),
-    removeEventListener: (_type, listener) => listeners.delete(listener),
+    addEventListener: (type, listener) => {
+      if (type === "abort") listeners.add(listener);
+    },
+    removeEventListener: (type, listener) => {
+      if (type === "abort") listeners.delete(listener);
+    },
   };
   return {
     signal,
+    listenerCount: () => listeners.size,
     abort() {
       signal.aborted = true;
       for (const listener of [...listeners]) listener();
@@ -152,5 +157,49 @@ describe("MeshClient.handshake", () => {
     await client.close();
     expect(transport.closed).toBe(true);
     await expect(client.handshake()).rejects.toBeInstanceOf(TransportUnavailableError);
+    expect(transport.writtenFrames).toEqual([]);
+  });
+
+  it("close ends a waiting handshake and later accepts a new one", async () => {
+    const { client } = setup((t) => t.silence(DEVICE_QUERY));
+    const outcome = run(client);
+    await vi.advanceTimersByTimeAsync(1_000);
+    await client.close();
+    expect(await outcome).toMatchObject({
+      error: expect.objectContaining({
+        name: "TransportUnavailableError",
+        message: "Client closed",
+      }),
+    });
+    // The failed handshake released the single-flight guard.
+    await expect(client.handshake()).rejects.toBeInstanceOf(TransportUnavailableError);
+  });
+
+  it("onDisconnect listeners can unsubscribe and are not called after close", async () => {
+    const { transport, client } = setup();
+    const kept = vi.fn();
+    const removed = vi.fn();
+    client.onDisconnect(kept);
+    client.onDisconnect(removed)();
+    transport.drop();
+    expect(kept).toHaveBeenCalledTimes(1);
+    expect(removed).not.toHaveBeenCalled();
+    const afterClose = vi.fn();
+    client.onDisconnect(afterClose);
+    await client.close();
+    expect(afterClose).not.toHaveBeenCalled();
+  });
+
+  it("releases the abort listener and the single-flight guard after a handshake", async () => {
+    const { client } = setup();
+    const controller = abortable();
+    const outcome = run(client, controller.signal);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(await outcome).toHaveProperty("value");
+    expect(controller.listenerCount()).toBe(0);
+    // Not "busy": a finished handshake allows the next call (here it stops at the aborted signal).
+    expect(await run(client, abortable(true).signal)).toMatchObject({
+      error: expect.any(AbortError),
+    });
   });
 });

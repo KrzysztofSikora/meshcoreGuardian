@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { FakeTransport, HANDSHAKE_FRAMES } from "@guardian/meshcore-adapter";
+
 import { SCENARIOS, type ScenarioName } from "../../debug/scenarios";
 import { FakeBlePlatform } from "../../platform/fake/fake-ble-platform";
+import type { BleLink } from "./ports";
 import { InMemoryAppState, InMemoryLastCompanionStore } from "../../platform/fake/in-memory";
 
 import { CompanionSession, type SessionState } from "./companion-session";
@@ -259,5 +262,160 @@ describe("CompanionSession", () => {
     expect(state.connection).toEqual({ kind: "disconnected" });
     expect(state.capabilities).toBeNull();
     expect(state.scan).toEqual({ status: "idle", devices: [] });
+  });
+
+  it("starts in an unknown, idle state before initialize", () => {
+    const { session } = setup("connect-ok");
+    expect(session.getState()).toMatchObject({
+      permission: "unknown",
+      bluetooth: "unknown",
+      linkLostNote: false,
+      lastCompanion: null,
+      connection: { kind: "disconnected" },
+    });
+  });
+
+  it("requests permission and opens settings through the platform", async () => {
+    const { session, platform } = setup("permission-denied");
+    await session.initialize();
+    await session.requestPermission();
+    await session.openSettings();
+    expect(platform.calls.requestPermissions).toBe(1);
+    expect(platform.calls.openSettings).toBe(1);
+    expect(session.getState().permission).toBe("denied");
+    platform.setScenario(SCENARIOS["connect-ok"]);
+    await session.requestPermission();
+    expect(session.getState().permission).toBe("granted");
+  });
+
+  it("connecting without permission stays disconnected and never touches the radio", async () => {
+    const { session, platform } = setup("permission-denied");
+    await session.initialize();
+    await session.connect(ID);
+    expect(session.getState().connection).toEqual({ kind: "disconnected" });
+    expect(platform.calls.connect).toBe(0);
+  });
+
+  it("lists a device announced twice only once and does not scan twice", async () => {
+    const { session, platform } = setup("connect-ok");
+    const device = { id: ID, name: "MeshCore-companion" };
+    platform.setScenario({ ...SCENARIOS["connect-ok"], devices: [device, device] });
+    await session.initialize();
+    await session.startScan();
+    await vi.advanceTimersByTimeAsync(500);
+    expect(session.getState().scan.devices).toEqual([device]);
+
+    await session.startScan(); // already scanning: no second radio scan
+    expect(platform.calls.scan).toBe(1);
+  });
+
+  it("an old scan timer does not stop a newer scan", async () => {
+    const { session } = setup("connect-ok");
+    await session.initialize();
+    await session.startScan();
+    await vi.advanceTimersByTimeAsync(5_000);
+    session.stopScan();
+    await session.startScan();
+    await vi.advanceTimersByTimeAsync(5_500);
+    expect(session.getState().scan.status).toBe("scanning");
+    await vi.advanceTimersByTimeAsync(4_500);
+    expect(session.getState().scan.status).toBe("done");
+  });
+
+  it("keeps the saved companion across a failed save and a failed load", async () => {
+    const platform = new FakeBlePlatform(SCENARIOS["connect-ok"]);
+    const failing = {
+      load: () => Promise.reject(new Error("storage")),
+      save: () => Promise.reject(new Error("storage")),
+    };
+    const session = new CompanionSession({
+      platform,
+      appState: new InMemoryAppState(),
+      lastCompanionStore: failing,
+    });
+    await session.initialize();
+    expect(session.getState().lastCompanion).toBeNull();
+    const done = session.connect(ID);
+    await vi.runAllTimersAsync();
+    await done;
+    expect(session.getState().connection.kind).toBe("connected");
+    expect(session.getState().lastCompanion).toEqual({ id: ID, name: expect.any(String) });
+  });
+
+  it("a deliberate disconnect after a link drop clears the link-lost note", async () => {
+    const { session } = setup("link-drop");
+    await session.initialize();
+    const done = session.connect(ID);
+    await vi.advanceTimersByTimeAsync(3_100);
+    await done;
+    expect(session.getState().linkLostNote).toBe(true);
+    await session.disconnect();
+    expect(session.getState().linkLostNote).toBe(false);
+  });
+
+  describe("with a scripted transport", () => {
+    class ScriptedPlatform extends FakeBlePlatform {
+      transports: FakeTransport[] = [];
+      constructor(private readonly configure: (t: FakeTransport) => FakeTransport) {
+        super(SCENARIOS["connect-ok"]);
+      }
+      override async connect(_id: string, _signal: AbortSignal): Promise<BleLink> {
+        this.calls.connect += 1;
+        const transport = this.configure(FakeTransport.fromFrames(HANDSHAKE_FRAMES));
+        this.transports.push(transport);
+        return { transport, mtu: 23 };
+      }
+    }
+
+    function scripted(configure: (t: FakeTransport) => FakeTransport) {
+      const platform = new ScriptedPlatform(configure);
+      const session = new CompanionSession({
+        platform,
+        appState: new InMemoryAppState(),
+        lastCompanionStore: new InMemoryLastCompanionStore(),
+      });
+      return { platform, session };
+    }
+
+    it("a malformed handshake reply fails with HANDSHAKE_MALFORMED", async () => {
+      const { session } = scripted((t) => t.corrupt(0));
+      await session.initialize();
+      const done = session.connect(ID);
+      await vi.runAllTimersAsync();
+      await done;
+      expect(session.getState().connection).toEqual({
+        kind: "failed",
+        reason: "HANDSHAKE_MALFORMED",
+      });
+    });
+
+    it("dispose stops the scan, cancels the attempt and closes the transport", async () => {
+      const { session, platform } = scripted((t) => t);
+      await session.initialize();
+      const done = session.connect(ID);
+      await vi.runAllTimersAsync();
+      await done;
+      await session.startScan();
+      await session.dispose();
+      expect(platform.transports[0]?.closed).toBe(true);
+      expect(session.getState().scan.status).toBe("done");
+    });
+
+    it("dispose unsubscribes from app state", async () => {
+      const appState = new InMemoryAppState();
+      const platform = new FakeBlePlatform(SCENARIOS["connect-ok"]);
+      const session = new CompanionSession({
+        platform,
+        appState,
+        lastCompanionStore: new InMemoryLastCompanionStore(),
+      });
+      await session.initialize();
+      await session.startScan();
+      await session.dispose();
+      await session.startScan();
+      expect(session.getState().scan.status).toBe("scanning");
+      appState.set("background");
+      expect(session.getState().scan.status).toBe("scanning");
+    });
   });
 });
