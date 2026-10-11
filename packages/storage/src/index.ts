@@ -1,2 +1,3 @@
-// Repositories and the SqlDriver port arrive with S-03.
-export {};
+export type { SqlDriver, SqlValue } from "./driver";
+export { migrateToLatest, SchemaTooNewError } from "./migrate";
+export { MIGRATIONS, type Migration } from "./migrations/generated";
