@@ -30,6 +30,13 @@ const bytes = (hex: string) => Uint8Array.from(hex.match(/../g) ?? [], (b) => pa
 describe("CONTACTS_FRAMES", () => {
   const contacts = CONTACTS_FRAMES.slice(2, -1);
 
+  it("writes once, then only receives", () => {
+    expect(CONTACTS_FRAMES.map((f) => f.dir)).toEqual([
+      "tx",
+      ...Array.from({ length: CONTACTS_FRAMES.length - 1 }, () => "rx"),
+    ]);
+  });
+
   it("starts with the recorded get-contacts write", () => {
     expect(CONTACTS_FRAMES[0]).toEqual(strip(recorded(4)));
   });
@@ -42,6 +49,7 @@ describe("CONTACTS_FRAMES", () => {
 
   it("rewrites only the count in contactsStart", () => {
     const start = CONTACTS_FRAMES[1]!;
+    expect(start.dir).toBe(recorded(5).dir);
     expect(start.tMs).toBe(recorded(5).tMs);
     expect(decodeFrame(bytes(start.hex))).toEqual({ kind: "contactsStart", count: 31 });
     expect(start.hex.slice(0, 2)).toBe(recorded(5).hex.slice(0, 2));

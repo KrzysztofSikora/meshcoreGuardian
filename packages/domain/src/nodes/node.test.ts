@@ -161,6 +161,20 @@ describe("sortNodes", () => {
     expect(input[0]).toBe(a);
   });
 
+  it("breaks name ties by key in either input order", () => {
+    const low = node({ publicKey: "01".repeat(32), reportedName: "Same" });
+    const high = node({ publicKey: "02".repeat(32), reportedName: "Same" });
+    expect(sortNodes([high, low]).map((n) => n.publicKey)).toEqual([low.publicKey, high.publicKey]);
+    expect(sortNodes([low, high]).map((n) => n.publicKey)).toEqual([low.publicKey, high.publicKey]);
+  });
+
+  it("keeps two entries with the same name and key in input order", () => {
+    const first = node({ reportedName: "Same", createdAt: 1 });
+    const second = node({ reportedName: "Same", createdAt: 2 });
+    expect(sortNodes([first, second])).toEqual([first, second]);
+    expect(sortNodes([second, first])).toEqual([second, first]);
+  });
+
   it("sorts by the label when set", () => {
     const a = node({ publicKey: "01".repeat(32), reportedName: "Zed", userLabel: "Alpha" });
     const b = node({ publicKey: "02".repeat(32), reportedName: "Beta" });

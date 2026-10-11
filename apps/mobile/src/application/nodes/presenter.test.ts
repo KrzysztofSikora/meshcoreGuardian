@@ -127,6 +127,16 @@ describe("syncButton", () => {
     });
   });
 
+  it("needs both a connection and known capabilities", () => {
+    const needConnection = { enabled: false, reason: { key: "sync.needConnection" } };
+    expect(
+      syncButton({ connected: false, capabilities: supported, sync: { kind: "idle" } }),
+    ).toEqual(needConnection);
+    expect(syncButton({ connected: true, capabilities: null, sync: { kind: "idle" } })).toEqual(
+      needConnection,
+    );
+  });
+
   it("is disabled with the firmware reason when contacts are unsupported", () => {
     expect(syncButton({ connected: true, capabilities: old, sync: { kind: "idle" } })).toEqual({
       enabled: false,

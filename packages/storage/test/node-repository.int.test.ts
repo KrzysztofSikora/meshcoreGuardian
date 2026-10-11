@@ -38,6 +38,23 @@ describe("SqliteNodeRepository", () => {
     expect(await repo.listAll()).toHaveLength(1);
   });
 
+  it("reads a contact missing from a complete sync as not in contacts, in get and listAll", async () => {
+    testDb = await openTestDb();
+    const repo = new SqliteNodeRepository(testDb.driver);
+    const other = { publicKey: "cd".repeat(32), name: "Ridge", type: 2, lastHeardAt: 0 };
+
+    await repo.applySync([report, other], { complete: true, now: 7 });
+    await repo.applySync([other], { complete: true, now: 8 });
+
+    expect((await repo.get(KEY))?.inContacts).toBe(false);
+    expect((await repo.get(other.publicKey))?.inContacts).toBe(true);
+    const listed = await repo.listAll();
+    expect(listed.map((n) => [n.publicKey, n.inContacts]).sort()).toEqual([
+      [KEY, false],
+      [other.publicKey, true],
+    ]);
+  });
+
   it("keeps label, role and pin after the database is closed and reopened", async () => {
     testDb = await openTestDb();
     const first = new SqliteNodeRepository(testDb.driver);
