@@ -57,7 +57,7 @@ Gates: typecheck ok, lint ok, unit tests ok (45 files, 615 tests), e2e ok (9/9 f
 - Fix: Add tests to `mesh-client-contacts.int.test.ts`: (a) finish one sync, start a second `getContacts` on a transport that stays silent after `contactsStart`, advance past the first sync's 120 s point but before the second's bounds, and assert the second is still pending (kills `:231`, `:232`, `:251`); (b) script a `contact` frame before `contactsStart` and assert it is not in `contacts`. Then add a `mesh-client.ts` section to `mutation.md` with a decision for every survivor.
 - Effort: small
 - Lesson candidate: Run mutation on every test-plan target file the diff touches; never skip a target because its change looks small.
-- Decision: open
+- Decision: fixed (2b15f2b) + lesson proposed
 
 ### R2: `NodesController` never tests a partial sync or the UNSUPPORTED and MALFORMED mappings
 - Severity: major
@@ -66,7 +66,7 @@ Gates: typecheck ok, lint ok, unit tests ok (45 files, 615 tests), e2e ok (9/9 f
 - Fix: Add controller tests with a scripted transport (lesson: minimal port double): `contactsStart` count 3, two contacts, `endOfContacts` → `partial { received: 2, expected: 3 }` and `applySync` called with `complete: false`; an `err` frame → `failed(UNSUPPORTED)`; a truncated contact frame → `failed(MALFORMED_RESPONSE)`; for the guard, assert the state never leaves `syncing` between the two calls. Optionally drop the controller's disconnect subscription abort and keep `dispose()` as the only use of its `AbortController`.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (ac610ad)
 
 ### R3: The reported name disappears once the user sets a label
 - Severity: major
@@ -75,7 +75,7 @@ Gates: typecheck ok, lint ok, unit tests ok (45 files, 615 tests), e2e ok (9/9 f
 - Fix: When `userLabel !== null`, show "Reported name: <reportedName>" (new key `nodes.reportedName`) on the node screen. Show the "Reported as <role>" line always on the node screen, or at least whenever `reportedRole === "unknown"`. Extend `presenter.test.ts`, and assert the reported name in `contacts-label-restart.yaml`.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (ac610ad)
 
 ### R4: Unclassified sync errors are shown as "the Bluetooth link was lost"
 - Severity: minor
@@ -84,7 +84,7 @@ Gates: typecheck ok, lint ok, unit tests ok (45 files, 615 tests), e2e ok (9/9 f
 - Fix: Map the busy case explicitly (a typed `BusyError` in the adapter → its own reason, or leave the state unchanged), and give other unknown errors a neutral text such as "Contact sync failed (unexpected error)" instead of claiming a link loss.
 - Effort: small
 - Lesson candidate: Do not let an error mapper's default branch claim a specific cause; unknown errors get a neutral reason.
-- Decision: open
+- Decision: fixed (ac610ad; neutral UNEXPECTED reason, typed busy error left as FOLLOW-UP in plan.md) + lesson proposed
 
 ### R5: The Dashboard says "No contacts yet" when only chat contacts exist
 - Severity: minor
@@ -93,4 +93,4 @@ Gates: typecheck ok, lint ok, unit tests ok (45 files, 615 tests), e2e ok (9/9 f
 - Fix: Use a filter-specific empty text for the Dashboard, for example "No repeaters or room servers yet. Chat contacts are under All contacts.", and keep "No contacts yet" for the All filter.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (ac610ad)
