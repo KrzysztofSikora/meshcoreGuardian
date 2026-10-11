@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { deviceInfoFrame } from "../../test/support/frames";
+import { deviceInfoFrame, frame } from "../../test/support/frames";
 import { decodeDeviceInfo } from "./device-info";
 import { MalformedFrameError } from "./errors";
 
@@ -34,6 +34,24 @@ describe("decodeDeviceInfo (firmware 1.17 layout)", () => {
     expect(withNeither).not.toHaveProperty("repeatEnabled");
     expect(withNeither).not.toHaveProperty("pathHashMode");
     expect(withNeither.firmwareVersion).toBe("v1.17.1");
+  });
+
+  it("reads strings that fill their whole field without spilling into the next one", () => {
+    const full = frame(13)
+      .u8(10)
+      .u8(175)
+      .u8(40)
+      .u32(123456)
+      .text("D".repeat(12))
+      .text("M".repeat(40))
+      .text("V".repeat(20))
+      .raw([1, 2])
+      .build();
+    expect(decodeDeviceInfo(full)).toMatchObject({
+      buildDate: "D".repeat(12),
+      manufacturer: "M".repeat(40),
+      firmwareVersion: "V".repeat(20),
+    });
   });
 
   it("has no PIN field, and the PIN bytes do not change the result", () => {

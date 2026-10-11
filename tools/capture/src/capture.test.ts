@@ -16,7 +16,7 @@ import {
   statusResponseFrame,
   telemetryResponseFrame,
 } from "../test/support/frames";
-import { NODE_SPACING_MS, RequestBudget, type Clock } from "./budget";
+import { BudgetExceededError, NODE_SPACING_MS, RequestBudget, type Clock } from "./budget";
 import {
   COMPANION_REPLY_TIMEOUT_MS,
   CONTACT_IDLE_TIMEOUT_MS,
@@ -111,14 +111,19 @@ const systemClock: Clock = {
 };
 
 /** Runs a capture on fake timers until it finishes. */
-async function run(scenario: Scenario, transport: ScriptedCompanion, targetPrefix = "a0a1a2") {
+async function run(
+  scenario: Scenario,
+  transport: ScriptedCompanion,
+  targetPrefix = "a0a1a2",
+  budget = new RequestBudget(systemClock),
+) {
   const log: string[] = [];
   let result: CaptureResult | undefined;
   let failure: unknown;
   runCapture(scenario, {
     connection: new MeshCoreConnection(transport),
     link: transport,
-    budget: new RequestBudget(systemClock),
+    budget,
     clock: systemClock,
     targetPrefix,
     guestPassword: CANARY,
@@ -179,18 +184,23 @@ describe("runCapture: handshake", () => {
     expect(Date.now()).toBe(COMPANION_REPLY_TIMEOUT_MS);
   });
 
-  it("waits for contacts that trickle in below the idle timeout", async () => {
+  it("waits for contacts that trickle in below the idle timeout, however long the sync", async () => {
     const transport = companion({
       [Cmd.GetContacts]: [
         {
-          now: [contactsStartFrame(2), contacts[0] as Uint8Array],
-          later: { frames: [contacts[1] as Uint8Array, endOfContactsFrame()], afterMs: 4_999 },
+          now: [contactsStartFrame(3), contacts[0] as Uint8Array],
+          later: { frames: [contacts[1] as Uint8Array], afterMs: 4_000 },
         },
       ],
     });
+    // Each gap is below the idle timeout; together they are longer than it.
+    setTimeout(() => {
+      transport.push(contacts[2] as Uint8Array);
+      transport.push(endOfContactsFrame());
+    }, 8_000);
     const { result, log } = await run("handshake", transport);
     expect(result).toEqual({ requests: [] });
-    expect(log.at(-1)).toBe("contacts: 2 received, 2 announced");
+    expect(log.at(-1)).toBe("contacts: 3 received, 3 announced");
   });
 
   it("aborts a contact sync that stalls instead of hanging (plan-review #3)", async () => {
@@ -262,17 +272,29 @@ describe("runCapture: remote", () => {
       expect((sentAt[index] ?? 0) - (sentAt[index - 1] ?? 0)).toBe(NODE_SPACING_MS);
   });
 
-  it.each<[string, number, number, string]>([
-    ["just inside estTimeout + margin", 1_000, 1_000 + REPLY_MARGIN_MS - 1, "responded"],
-    ["just after estTimeout + margin", 1_000, 1_000 + REPLY_MARGIN_MS + 1, "no_response"],
-    ["just inside the cap", 60_000, REPLY_CAP_MS - 1, "responded"],
-    ["just after the cap", 60_000, REPLY_CAP_MS + 1, "no_response"],
-  ])("waits for a status reply %s", async (_, estTimeoutMs, afterMs, outcome) => {
+  // A reply after the wait arrives before the retry; it must not count as the retry's reply.
+  it.each<[string, number, number, string[]]>([
+    ["just inside estTimeout + margin", 1_000, 1_000 + REPLY_MARGIN_MS - 1, ["responded"]],
+    [
+      "just after estTimeout + margin",
+      1_000,
+      1_000 + REPLY_MARGIN_MS + 1,
+      ["no_response", "no_response"],
+    ],
+    ["just inside the cap", 60_000, REPLY_CAP_MS - 1, ["responded"]],
+    ["just after the cap", 60_000, REPLY_CAP_MS + 1, ["no_response", "no_response"]],
+  ])("waits for a status reply %s", async (_, estTimeoutMs, afterMs, outcomes) => {
     const transport = companion({
       [Cmd.Status]: [answered(estTimeoutMs, statusResponseFrame(), afterMs), unanswered(1)],
     });
     const { result } = await run("remote", transport);
-    expect(result.requests[1]).toMatchObject({ kind: "status", outcome, estTimeoutMs });
+    expect(result.requests[1]).toMatchObject({
+      kind: "status",
+      outcome: outcomes[0],
+      estTimeoutMs,
+    });
+    const status = result.requests.filter((request) => request.kind === "status");
+    expect(status.map((request) => request.outcome)).toEqual(outcomes);
   });
 
   it("reports a rejected login, does not retry it, and still asks for status and telemetry", async () => {
@@ -318,12 +340,54 @@ describe("runCapture: remote", () => {
     });
   });
 
-  it("ignores a reply of another kind from the target", async () => {
+  it.each<[string, number, Uint8Array[], string]>([
+    [
+      "login",
+      Cmd.Login,
+      [statusResponseFrame(), telemetryResponseFrame(), loginSuccessFrame()],
+      "responded",
+    ],
+    [
+      "status",
+      Cmd.Status,
+      [loginSuccessFrame(), loginFailFrame(), telemetryResponseFrame()],
+      "no_response",
+    ],
+    [
+      "status",
+      Cmd.Status,
+      [contactFrame({ code: 0x8a }), loginFailFrame(), statusResponseFrame()],
+      "responded",
+    ],
+    ["telemetry", Cmd.Telemetry, [statusResponseFrame(), loginSuccessFrame()], "no_response"],
+  ])(
+    "answers a %s request only with its own reply from the target (%#)",
+    async (kind, code, frames, outcome) => {
+      const transport = companion({
+        [code]: [{ now: [sentFrame(1_000)], later: { frames, afterMs: 500 } }, unanswered(1)],
+      });
+      const { result } = await run("remote", transport);
+      expect(result.requests.find((request) => request.kind === kind)?.outcome).toBe(outcome);
+    },
+  );
+
+  it("skips a frame it cannot decode and keeps waiting for the reply", async () => {
+    const truncatedStatus = Uint8Array.from([0x87, 0]);
     const transport = companion({
-      [Cmd.Telemetry]: [answered(1_000, statusResponseFrame(), 500), unanswered(1)],
+      [Cmd.Status]: [
+        {
+          now: [sentFrame(4_000)],
+          later: { frames: [truncatedStatus, statusResponseFrame()], afterMs: 500 },
+        },
+      ],
     });
     const { result } = await run("remote", transport);
-    expect(result.requests[2]).toMatchObject({ kind: "telemetry", outcome: "no_response" });
+    expect(result.requests[1]).toEqual({
+      kind: "status",
+      outcome: "responded",
+      estTimeoutMs: 4_000,
+      latencyMs: 500,
+    });
   });
 
   it("does not contact any node when the target is not in the contact list", async () => {
@@ -366,6 +430,20 @@ describe("runCapture: remote", () => {
     expect(transport.remoteLog.map((entry) => entry.code)).toEqual([Cmd.Login]);
   });
 
+  it("reports a disconnect during a write as a disconnect, not as no response", async () => {
+    const transport = companion();
+    const write = transport.write.bind(transport);
+    transport.write = async (frame) => {
+      if (frame[0] === Cmd.Status) transport.drop();
+      await write(frame);
+    };
+    const { result } = await run("remote", transport);
+    expect(result).toEqual({
+      requests: [{ kind: "login", outcome: "responded", estTimeoutMs: 3_000, latencyMs: 2_000 }],
+      aborted: "transport_disconnected",
+    });
+  });
+
   it("stops when a write fails", async () => {
     const transport = companion();
     const write = transport.write.bind(transport);
@@ -381,5 +459,22 @@ describe("runCapture: remote", () => {
   it("never puts the password in a log line", async () => {
     const { log } = await run("remote", companion({ [Cmd.Login]: [unanswered(1)] }));
     expect(log.join("\n")).not.toContain(CANARY);
+  });
+});
+
+describe("runCapture: request budget", () => {
+  it("counts its handshake and contact sync against the run budget", async () => {
+    const budget = new RequestBudget(systemClock);
+    await run("handshake", companion(), "a0a1a2", budget);
+    expect(() => budget.take("handshake")).toThrow(BudgetExceededError);
+    expect(() => budget.take("sync")).toThrow(BudgetExceededError);
+  });
+
+  it("fails instead of reporting an abort when the budget refuses a request", async () => {
+    const budget = new RequestBudget(systemClock);
+    budget.take("handshake");
+    await expect(run("handshake", companion(), "a0a1a2", budget)).rejects.toThrow(
+      BudgetExceededError,
+    );
   });
 });

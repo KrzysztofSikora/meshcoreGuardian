@@ -70,7 +70,8 @@ describe("redactFrame (D-4)", () => {
 
   it.each([3, 0x8a])("renames chat contacts and zeroes their position (code %i)", (code) => {
     const state = createRedactionState();
-    const alice = contactFrame({ code, type: 1, key: publicKey(0x01), name: "Alice" });
+    // Longer than `chat-1`, so no tail of the real name may survive.
+    const alice = contactFrame({ code, type: 1, key: publicKey(0x01), name: "Alice Liddell" });
     const bob = contactFrame({ code, type: 1, key: publicKey(0x02), name: "Bob" });
 
     const first = redact("rx", alice, state);
@@ -90,6 +91,28 @@ describe("redactFrame (D-4)", () => {
       toHex(Array.from("chat-2", (c) => c.charCodeAt(0))),
     );
     expect(again.bytes).toEqual(first.bytes);
+  });
+
+  it("numbers two chat contacts apart even when their key bytes run together", () => {
+    const state = createRedactionState();
+    const key = (...head: number[]) => [...head, ...new Array<number>(32 - head.length).fill(0)];
+    redact("rx", contactFrame({ type: 1, key: key(1, 23) }), state);
+    const second = redact("rx", contactFrame({ type: 1, key: key(12, 3) }), state);
+    expect(decodeFrame(second.bytes)).toMatchObject({ name: "chat-2" });
+  });
+
+  it("leaves other rx frames with a chat type byte at the contact offset alone", () => {
+    const frame = contactFrame({ code: 0x10, type: 1, name: "Alice" });
+    expect(redact("rx", frame)).toEqual({ bytes: frame, redactions: [] });
+  });
+
+  it("redacts frames that end right after the redacted bytes", () => {
+    const info = redact("rx", deviceInfoFrame().subarray(0, 8));
+    expect(toHex(info.bytes.subarray(4, 8))).toBe("00000000");
+    const self = redact("rx", selfInfoFrame().subarray(0, 44));
+    expect(toHex(self.bytes.subarray(36, 44))).toBe("0000000000000000");
+    const chat = redact("rx", contactFrame({ type: 1 }).subarray(0, 144));
+    expect(toHex(chat.bytes.subarray(136, 144))).toBe("0000000000000000");
   });
 
   it("decodes a redacted chat contact with the new name and no position", () => {

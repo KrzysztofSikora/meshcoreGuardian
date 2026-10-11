@@ -14,7 +14,7 @@ describe("byte readers", () => {
     expect(i16le(bytes, 2)).toBe(-2);
     expect(u16le(bytes, 2)).toBe(0xfffe);
     expect(u32le(bytes, 4)).toBe(0x12345678);
-    expect(i32le(Uint8Array.from([0xff, 0xff, 0xff, 0xff]), 0)).toBe(-1);
+    expect(i32le(Uint8Array.from([0xfe, 0xff, 0xff, 0xff]), 0)).toBe(-2);
     expect(u32le(Uint8Array.from([0xff, 0xff, 0xff, 0xff]), 0)).toBe(0xffffffff);
   });
 

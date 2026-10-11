@@ -14,7 +14,7 @@ const valid = (): Fixture => ({
     redactions: ["deviceInfo.blePin"],
   },
   frames: [
-    { seq: 0, dir: "tx", tMs: 0, hex: "16" },
+    { seq: 0, dir: "tx", tMs: 0, hex: "1603" },
     { seq: 1, dir: "rx", tMs: 12, hex: "00", decoded: { kind: "ok" } },
     { seq: 2, dir: "rx", tMs: 15, hex: "05", decodeError: "Malformed frame" },
   ],
@@ -22,6 +22,7 @@ const valid = (): Fixture => ({
     frames: { tx: 1, rx: 2, decodeErrors: 1 },
     requests: [
       { kind: "login", outcome: "responded", estTimeoutMs: 3000, latencyMs: 2100 },
+      { kind: "login", outcome: "rejected" },
       { kind: "status", outcome: "no_response" },
     ],
     aborted: "transport_disconnected",
@@ -63,13 +64,16 @@ describe("readFixture", () => {
 
   it("drops fields the format does not define", () => {
     const fixture = readFixture(withEdit((json) => (json.frames[0].note = "x")));
-    expect(fixture.frames[0]).toEqual({ seq: 0, dir: "tx", tMs: 0, hex: "16" });
+    expect(fixture.frames[0]).toEqual({ seq: 0, dir: "tx", tMs: 0, hex: "1603" });
   });
 
   it.each<[string, JsonEdit, string]>([
     ["another format version", (json) => (json.formatVersion = 2), "formatVersion"],
     ["a missing header", (json) => delete json.header, "header: expected an object"],
     ["an array header", (json) => (json.header = []), "header: expected an object"],
+    ["a string firmware", (json) => (json.header.firmware = "v1"), "header.firmware: expected an"],
+    ["missing libraries", (json) => delete json.header.libraries, "header.libraries: expected an"],
+    ["a string redaction list", (json) => (json.header.redactions = "x"), "header.redactions: exp"],
     ["a numeric firmware version", (json) => (json.header.firmware.version = 1), "version"],
     ["a string verCode", (json) => (json.header.firmware.verCode = "10"), "verCode"],
     ["a missing model", (json) => delete json.header.firmware.model, "firmware.model"],
@@ -85,6 +89,7 @@ describe("readFixture", () => {
     ["a missing seq", (json) => delete json.frames[0].seq, "frames[0].seq"],
     ["an unknown direction", (json) => (json.frames[0].dir = "up"), "frames[0].dir"],
     ["a NaN-like time", (json) => (json.frames[0].tMs = null), "frames[0].tMs"],
+    ["a numeric hex", (json) => (json.frames[0].hex = 16), "frames[0].hex: expected a string"],
     ["upper-case hex", (json) => (json.frames[0].hex = "AB"), "frames[0].hex"],
     ["a half byte of hex", (json) => (json.frames[0].hex = "abc"), "frames[0].hex"],
     ["non-hex characters", (json) => (json.frames[0].hex = "zz"), "frames[0].hex"],
@@ -96,6 +101,7 @@ describe("readFixture", () => {
     ["a missing rx count", (json) => delete json.summary.frames.rx, "summary.frames.rx"],
     ["a missing error count", (json) => delete json.summary.frames.decodeErrors, "decodeErrors"],
     ["requests as an object", (json) => (json.summary.requests = {}), "summary.requests"],
+    ["a request that is not an object", (json) => (json.summary.requests[1] = 1), "requests[1]: "],
     ["an unknown request kind", (json) => (json.summary.requests[0].kind = "ping"), "kind"],
     ["an unknown outcome", (json) => (json.summary.requests[0].outcome = "ok"), "outcome"],
     ["a string estimate", (json) => (json.summary.requests[0].estTimeoutMs = "1"), "estTimeout"],
