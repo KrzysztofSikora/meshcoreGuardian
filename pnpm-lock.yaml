@@ -271,6 +271,12 @@ importers:
 
   tooling: {}
 
+  tools/capture:
+    dependencies:
+      '@guardian/meshcore-adapter':
+        specifier: workspace:*
+        version: link:../../packages/meshcore-adapter
+
 packages:
 
   '@babel/code-frame@7.29.7':

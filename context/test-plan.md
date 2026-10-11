@@ -8,7 +8,7 @@ Test levels in this repo:
 
 | Level | Tool | Where | Touches |
 |-------|------|-------|---------|
-| **unit** | Vitest | `packages/*/src/**/*.test.ts`, `apps/mobile/src/**/*.test.ts` | pure functions only |
+| **unit** | Vitest | `packages/*/src/**/*.test.ts`, `apps/mobile/src/**/*.test.ts`, `tools/*/src/**/*.test.ts` | pure functions only |
 | **integration** | Vitest | `packages/*/test/**/*.int.test.ts` | adapter ↔ `FakeTransport` with recorded fixtures; repositories ↔ real SQLite (`node:sqlite`); use-cases ↔ real adapter + storage with fake transport and clock |
 | **e2e** | Maestro on Android emulator (AVD `guardian`, API 35) | `apps/mobile/e2e/*.yaml` | app build with `EXPO_PUBLIC_TRANSPORT=fake` |
 | **hardware** | `pnpm capture` (S-01 only) and human checks | `tools/capture`, PR checklist | real Heltec companion + repeater; never a gate |
