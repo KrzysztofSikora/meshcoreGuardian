@@ -4,9 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "capture": "tsx src/main.ts"
   },
   "dependencies": {
-    "@guardian/meshcore-adapter": "workspace:*"
+    "@guardian/meshcore-adapter": "workspace:*",
+    "node-ble": "1.13.0"
+  },
+  "devDependencies": {
+    "tsx": "4.23.15"
   }
 }

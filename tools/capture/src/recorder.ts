@@ -9,6 +9,7 @@ import {
   type Unsubscribe,
 } from "@guardian/meshcore-adapter";
 
+import { fromHex, toHex } from "./hex";
 import { createRedactionState, redactFrame, type Direction, type RedactionLabel } from "./redact";
 
 /** What the capture run knows about itself; the recorder adds the firmware, frames and counts. */
@@ -22,8 +23,54 @@ export interface FixtureMeta {
   aborted?: string;
 }
 
-const toHex = (bytes: Uint8Array) =>
-  Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+/** `decoded` or `decodeError` of a recorded rx frame. */
+function decodeRecorded(bytes: Uint8Array): Pick<FixtureFrame, "decoded" | "decodeError"> {
+  try {
+    return { decoded: decodeFrame(bytes) };
+  } catch (error) {
+    // A frame the decoder cannot read is still evidence: keep it with the reason (D-3).
+    return {
+      decodeError: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+    };
+  }
+}
+
+function firmwareOf(frames: readonly FixtureFrame[]): FixtureFirmware | null {
+  for (const { decoded } of frames)
+    if (decoded?.kind === "deviceInfo")
+      return {
+        version: decoded.firmwareVersion,
+        buildDate: decoded.buildDate,
+        verCode: decoded.firmwareVerCode,
+        model: decoded.manufacturer,
+      };
+  return null;
+}
+
+/**
+ * Decodes every rx frame of a recorded fixture again from its `hex` (plan-review #1): after a
+ * decoder fix, the fixture follows without a new capture and without editing it by hand. The
+ * frames, their bytes and the run summary stay as recorded; only `decoded`, `decodeError`, the
+ * decode-error count and the header firmware are recomputed.
+ */
+export function redecodeFixture(fixture: Fixture): Fixture {
+  const frames = fixture.frames.map((frame): FixtureFrame => {
+    const { decoded: _, decodeError: __, ...recorded } = frame;
+    return frame.dir === "rx" ? { ...recorded, ...decodeRecorded(fromHex(frame.hex)) } : recorded;
+  });
+  return {
+    ...fixture,
+    header: { ...fixture.header, firmware: firmwareOf(frames) },
+    frames,
+    summary: {
+      ...fixture.summary,
+      frames: {
+        ...fixture.summary.frames,
+        decodeErrors: frames.filter((frame) => frame.decodeError !== undefined).length,
+      },
+    },
+  };
+}
 
 /**
  * Wraps a transport and records every frame in both directions (plan D-3). The recorded copy is
@@ -88,7 +135,7 @@ export class RecordingTransport implements MeshTransport {
     return {
       formatVersion: FIXTURE_FORMAT_VERSION,
       header: {
-        firmware: this.firmware(),
+        firmware: firmwareOf(this.frames),
         captureDate: meta.captureDate,
         tool: meta.tool,
         libraries: meta.libraries,
@@ -110,27 +157,6 @@ export class RecordingTransport implements MeshTransport {
       tMs: Math.round((this.now() - this.start) * 10) / 10,
       hex: toHex(bytes),
     };
-    if (dir === "rx") {
-      try {
-        frame.decoded = decodeFrame(bytes);
-      } catch (error) {
-        // A frame the decoder cannot read is still evidence: keep it with the reason (D-3).
-        frame.decodeError =
-          error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-      }
-    }
-    this.frames.push(frame);
-  }
-
-  private firmware(): FixtureFirmware | null {
-    for (const { decoded } of this.frames)
-      if (decoded?.kind === "deviceInfo")
-        return {
-          version: decoded.firmwareVersion,
-          buildDate: decoded.buildDate,
-          verCode: decoded.firmwareVerCode,
-          model: decoded.manufacturer,
-        };
-    return null;
+    this.frames.push(dir === "rx" ? { ...frame, ...decodeRecorded(bytes) } : frame);
   }
 }

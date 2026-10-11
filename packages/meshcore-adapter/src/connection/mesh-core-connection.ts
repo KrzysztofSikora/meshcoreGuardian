@@ -9,6 +9,9 @@ export interface LoginFailEvent {
   pubKeyPrefix: Uint8Array;
 }
 
+/** The companion protocol version meshcore.js speaks; the device query announces it. */
+export const COMPANION_PROTOCOL_VERSION: number = Constants.SupportedCompanionProtocolVersion;
+
 const LOGIN_FAIL_PREFIX_START = 2;
 const LOGIN_FAIL_PREFIX_END = 8;
 

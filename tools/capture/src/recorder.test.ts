@@ -10,7 +10,7 @@ import {
   selfInfoFrame,
   toHex,
 } from "../test/support/frames";
-import { RecordingTransport, type FixtureMeta } from "./recorder";
+import { RecordingTransport, redecodeFixture, type FixtureMeta } from "./recorder";
 
 const CANARY = "pw-LEAK-CANARY";
 const canaryHex = toHex(Array.from(CANARY, (char) => char.charCodeAt(0)));
@@ -179,5 +179,59 @@ describe("RecordingTransport (TR-09)", () => {
     inner.push(Uint8Array.from([0]));
     expect(received).toEqual([]);
     expect(recorder.recorded).toHaveLength(1);
+  });
+});
+
+describe("redecodeFixture (plan-review #1)", () => {
+  async function recorded() {
+    const { inner, recorder } = setup();
+    await recorder.write(Uint8Array.from([22, 3]));
+    inner.push(deviceInfoFrame());
+    inner.push(Uint8Array.from([2, 1]));
+    inner.push(contactFrame({ type: 2, name: "Room K" }));
+    return recorder.fixture(meta);
+  }
+
+  it("gives the same fixture when the decoders have not changed", async () => {
+    const fixture = await recorded();
+    expect(redecodeFixture(fixture)).toEqual(fixture);
+  });
+
+  it("replaces stale decoded values, errors and firmware from the recorded hex", async () => {
+    const fixture = await recorded();
+    const [tx, info, malformed, contact] = fixture.frames;
+    const stale = {
+      ...fixture,
+      header: { ...fixture.header, firmware: null },
+      frames: [
+        tx,
+        { ...info, decoded: { kind: "ok" } },
+        { ...malformed, decodeError: undefined, decoded: { kind: "ok" } },
+        { ...contact, decoded: undefined, decodeError: "Error: old decoder" },
+      ],
+      summary: { ...fixture.summary, frames: { tx: 1, rx: 3, decodeErrors: 7 } },
+    } as typeof fixture;
+
+    const redecoded = redecodeFixture(JSON.parse(JSON.stringify(stale)));
+
+    expect(redecoded).toEqual(fixture);
+    expect(Object.keys(redecoded.frames[2] ?? {})).not.toContain("decoded");
+    expect(Object.keys(redecoded.frames[3] ?? {})).not.toContain("decodeError");
+  });
+
+  it("keeps tx frames, bytes, redactions and requests as recorded", async () => {
+    const fixture = await recorded();
+    const redecoded = redecodeFixture(fixture);
+    expect(redecoded.frames.map(({ seq, dir, tMs, hex }) => ({ seq, dir, tMs, hex }))).toEqual(
+      fixture.frames.map(({ seq, dir, tMs, hex }) => ({ seq, dir, tMs, hex })),
+    );
+    expect(redecoded.header.redactions).toEqual(fixture.header.redactions);
+    expect(redecoded.summary.requests).toBe(fixture.summary.requests);
+    expect(redecoded.frames[0]).toEqual({
+      seq: 0,
+      dir: "tx",
+      tMs: expect.any(Number),
+      hex: "1603",
+    });
   });
 });

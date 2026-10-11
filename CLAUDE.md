@@ -84,3 +84,5 @@ do not load `~/.bashrc`.
 | Install | `pnpm install` |
 | Dev build on phone (real BLE) | `pnpm --filter mobile android` |
 | Dev build, fake transport | `EXPO_PUBLIC_TRANSPORT=fake pnpm --filter mobile android` |
+| Hardware capture (S-01 only, needs `.env`, laptop BLE) | `pnpm capture --scenario handshake\|remote` |
+| Re-decode a recorded fixture (no BLE) | `pnpm capture --redecode <fixture.json>` |

@@ -87,3 +87,25 @@ export const contactFrame = ({
 /** CMD_SEND_LOGIN: code 26, the 32-byte public key, then the password as the rest of the frame. */
 export const sendLoginFrame = (password: string, key = publicKey(0xa0)) =>
   Uint8Array.from([26, ...key, ...text(password)]);
+
+export const contactsStartFrame = (count: number) => Uint8Array.from([2, ...u32(count)]);
+
+export const endOfContactsFrame = () => Uint8Array.from([4, ...u32(1_760_000_100)]);
+
+/** RESP_CODE_SENT: `[6, flood flag, expected ack/tag u32, est_timeout u32 ms]`. */
+export const sentFrame = (estTimeoutMs: number) =>
+  Uint8Array.from([6, 1, ...u32(0x01020304), ...u32(estTimeoutMs)]);
+
+export const errFrame = (code = 2) => Uint8Array.from([1, code]);
+
+/** A push `[code, reserved, key prefix (6), payload]` from the node whose key starts with `first`. */
+const push = (code: number, first: number, payload: number[] = []) =>
+  Uint8Array.from([code, 0, ...publicKey(first).slice(0, 6), ...payload]);
+
+export const loginSuccessFrame = (first = 0xa0) => push(0x85, first, [...u32(7), 1, 3]);
+export const loginFailFrame = (first = 0xa0) => push(0x86, first);
+/** The 48-byte stats struct with 4.1 V battery and nothing else set. */
+export const statusResponseFrame = (first = 0xa0) =>
+  push(0x87, first, [0x04, 0x10, ...new Array<number>(46).fill(0)]);
+/** CayenneLPP: channel 1, voltage (type 116) 4.10 V. */
+export const telemetryResponseFrame = (first = 0xa0) => push(0x8b, first, [1, 116, 0x01, 0x9a]);
