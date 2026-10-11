@@ -65,7 +65,7 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 - Physical devices are never used by agents (CLAUDE.md, Rules): `scripts/e2e.sh` refuses any serial that is not `emulator-*`; the runner stops while a phone is attached.
 - No pre-commit hook: autonomous runs are gated by the skills; human commits rely on CI.
 - CI (`.github/workflows/ci.yml`, created in F-01): Node 24 + pnpm, `pnpm install --frozen-lockfile`, then typecheck, lint, test. A separate `mutation-report` job runs Stryker on changed target files and posts the score as a job summary; it never fails the build.
-- `pnpm e2e` boots the AVD headless if no device is attached (`emulator -avd guardian -no-window -no-audio`), installs the fake-transport debug build, runs `maestro test apps/mobile/e2e`, and stops the emulator it started.
+- `pnpm e2e` boots the AVD `guardian` headless if no emulator is running, builds and installs the fake-transport **release** APK (JS embedded, no Metro; D-11 in repo-skeleton; `E2E_SKIP_BUILD=1` reuses it), runs `maestro test apps/mobile/e2e`, and stops the emulator it started.
 
 ## Mutation targets
 | Module | Why | Target score | CI (report / break at N%) |

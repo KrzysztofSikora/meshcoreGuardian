@@ -23,7 +23,7 @@ source on GitHub. Exact React Native / React versions are whatever Expo SDK 57 p
 | Lists | React Native `FlatList` | (RN) | Virtualised already; no extra dependency |
 | Export / share | expo-file-system + expo-sharing | 57.0.7 / 57.0.22 | Write JSON/CSV to cache, open system share sheet |
 | Unit / integration tests | Vitest (projects per package) | 5.0.3 | Mandated |
-| E2E tests | Maestro CLI, Android emulator, fake transport build | 2.x (cli-2.11.0) | Screen flows without BLE hardware |
+| E2E tests | Maestro CLI, Android emulator, fake-transport release APK | 2.x (cli-2.11.0) | Screen flows without BLE hardware |
 | Mutation testing | Stryker + vitest-runner | 10.0.0 | Per-module mutation gate |
 | Lint / format | ESLint 10 + eslint-config-expo + typescript-eslint; Prettier | 10.12 / 57.0.2 / 8.71.1 | Expo's flat config; layer rules via `no-restricted-imports` |
 | Release build | EAS Build (`eas build --local` allowed) → AAB; EAS Submit to Play internal track | eas-cli current | C-07 |
@@ -175,5 +175,5 @@ Domain defines the ports (`MeshClient`, repositories, `SecretStore`, `Clock`); a
   (real BLE) or emulator.
 - `EXPO_PUBLIC_TRANSPORT=fake pnpm --filter mobile android` — dev build with the fake transport
   (emulator, e2e).
-- `pnpm e2e` — Maestro flows against the running fake-transport build.
+- `pnpm e2e` — builds the fake-transport release APK (JS embedded, no Metro), installs it on the emulator and runs the Maestro flows.
 - No Docker and no backend.
