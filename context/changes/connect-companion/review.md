@@ -63,7 +63,7 @@ Gates: typecheck ok, lint ok, unit tests ok (466/466), e2e ok (7/7 flows), mutat
 - Fix: do not touch `lastTarget` in `initialize()` when it is already set (only seed it from the store when it is `null`), or run `initialize()` once at composition or app start, not per screen mount. Add an integration test: fail, `initialize()`, `retry()` → connects to the same id.
 - Effort: small
 - Lesson candidate: Screen effects that may run many times must not reset use-case state; make `initialize`-style calls idempotent.
-- Decision: open
+- Decision: fixed (600d74d) + lesson proposed
 
 ### R2: BLE scan errors are swallowed and shown as "No companions found"
 - Severity: major
@@ -72,7 +72,7 @@ Gates: typecheck ok, lint ok, unit tests ok (466/466), e2e ok (7/7 flows), mutat
 - Fix: give `BlePlatform.scan` an error path (an `onError` callback, or a returned promise). In the session, end the scan with a distinct state (`scan.status: "failed"` plus a reason) and re-read the adapter state so Bluetooth off shows "Bluetooth is off". Catch both promise rejections. Cover it with a fake-platform scan error in the integration test.
 - Effort: medium
 - Lesson candidate: Every port that starts native work must surface its failure to the use case; a callback-only API needs an error callback.
-- Decision: open
+- Decision: fixed (600d74d) + lesson proposed
 
 ### R3: `mesh-client.ts` is below its mutation target, and two `accept`s do not hold
 - Severity: major
@@ -83,7 +83,7 @@ Gates: typecheck ok, lint ok, unit tests ok (466/466), e2e ok (7/7 flows), mutat
 - Fix: add `mesh-client.int.test.ts` cases with a minimal hand-written `MeshTransport`: a write that rejects with a plain `Error` → `TransportUnavailableError` at once (not a 30 s timeout); an unsolicited `other`/`ok` frame during `deviceQuery` is ignored and the real reply still resolves; a malformed frame during a step → `MalformedFrameError`. Re-run mutation on the file and update `mutation.md`.
 - Effort: small
 - Lesson candidate: Do not accept a mutant because the shared fake cannot reach it; write a minimal port double in the test.
-- Decision: open
+- Decision: fixed (01c03c3) + lesson proposed
 
 ### R4: Mutation targets and the TR-14 status are out of sync with the plan
 - Severity: minor
@@ -92,4 +92,4 @@ Gates: typecheck ok, lint ok, unit tests ok (466/466), e2e ok (7/7 flows), mutat
 - Fix: add the two domain files to `stryker.targets`. Set TR-14 to `covered (S-02: mapping + reason text); S-04 adds the disabled-button e2e`.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (cfaf24a)
