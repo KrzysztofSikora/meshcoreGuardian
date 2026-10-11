@@ -13,7 +13,7 @@ Skipped as wiring or presentation: BLE platform, persistence, composition, scree
 | capabilities.ts | 100% | 100% (25 / 0 / 0) |
 | firmware.ts | 92.9% | 92.9% (13 / 1 / 0) |
 | companion-session.ts | 68.3% (155 / 61 / 11) | 80.2% (182 / 44 / 1) |
-| mesh-client.ts | 67.4% (64 / 27 / 4) | 75.8% (72 / 19 / 4) |
+| mesh-client.ts | 67.4% (64 / 27 / 4) | 80.0% (76 / 17 / 0) after review R3 |
 
 ## Mutants
 | File:line | Mutator | Change | Decision | Note / test added |
@@ -34,8 +34,9 @@ Skipped as wiring or presentation: BLE platform, persistence, composition, scree
 | mesh-client:89-90 | unreachable kind guard | equivalent | `step` already filters by kind |
 | mesh-client:101,107,111-114,152,157-159 | busy guard, unsubscribe, close, abort listener | strengthen | close, unsubscribe, listener-release and guard tests; abort helper now respects event type |
 | mesh-client:126,129 | closed fast path, swallowed rejection | accept | `write` on a closed transport raises the same error |
-| mesh-client:132-133 | `send` failing with a non-transport error | accept | no transport double throws one |
-| mesh-client:175,180,184 | late/foreign frames | accept | needs a fake that injects out-of-order frames; covered by decode tests |
+| mesh-client:132-133 | `send` failing with a non-transport error | strengthen | review R3: hand-written transport rejects with a plain `Error` → `TransportUnavailableError` at once |
+| mesh-client:175,184 | late/foreign frames | strengthen | review R3: hand-written transport pushes an `ok` frame and stray frames; ignored |
+| mesh-client:180 | non-malformed decode error rethrown | accept | `decodeFrame` only throws `MalformedFrameError` for any input |
 | mesh-client:191 | `unavailable` after drop | accept | `FakeTransport.write` throws after a drop, same error |
 
 No `bug` mutants.

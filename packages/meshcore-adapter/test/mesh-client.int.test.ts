@@ -8,6 +8,7 @@ import {
   HandshakeTimeoutError,
   MalformedFrameError,
   MeshClient,
+  type MeshTransport,
   TransportUnavailableError,
 } from "../src";
 
@@ -203,3 +204,78 @@ describe("MeshClient.handshake", () => {
     });
   });
 });
+
+/** A hand-written port double: it can fail writes and push any frame, which FakeTransport cannot. */
+class StubTransport implements MeshTransport {
+  frameListeners = new Set<(frame: Uint8Array) => void>();
+  writes: Uint8Array[] = [];
+  constructor(private readonly onWrite: (frame: Uint8Array, t: StubTransport) => Promise<void>) {}
+  write(frame: Uint8Array): Promise<void> {
+    this.writes.push(frame);
+    return this.onWrite(frame, this);
+  }
+  push(frame: Uint8Array): void {
+    for (const listener of [...this.frameListeners]) listener(frame);
+  }
+  onFrame(callback: (frame: Uint8Array) => void) {
+    this.frameListeners.add(callback);
+    return () => void this.frameListeners.delete(callback);
+  }
+  onDisconnect() {
+    return () => undefined;
+  }
+  async close(): Promise<void> {}
+}
+
+describe("MeshClient with a hand-written transport (R3)", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  const settle = <T>(promise: Promise<T>) =>
+    promise.then(
+      (value) => ({ value }) as const,
+      (error: unknown) => ({ error }) as const,
+    );
+
+  it("a plain Error from write fails at once with TransportUnavailableError, not after 30 s", async () => {
+    const transport = new StubTransport(() => Promise.reject(new Error("GATT write failed")));
+    const client = new MeshClient(transport);
+    const outcome = settle(client.handshake());
+    await vi.advanceTimersByTimeAsync(0);
+    expect(await outcome).toMatchObject({ error: expect.any(TransportUnavailableError) });
+  });
+
+  it("ignores frames of another kind and malformed frames without a waiting step", async () => {
+    const replies = HANDSHAKE_FRAMES.filter((f) => f.dir === "rx").map((f) => hex(f.hex));
+    const [deviceInfo, selfInfo] = replies;
+    const okFrame = Uint8Array.of(0x00);
+    const transport = new StubTransport(async (frame, t) => {
+      if (frame[0] === DEVICE_QUERY) {
+        t.push(okFrame); // not the awaited kind: ignored
+        t.push(deviceInfo!);
+      } else if (frame[0] === APP_START) t.push(selfInfo!);
+    });
+    const client = new MeshClient(transport);
+    const outcome = settle(client.handshake());
+    await vi.advanceTimersByTimeAsync(0);
+    const result = await outcome;
+    expect(result).toHaveProperty("value");
+    // Nothing is waiting any more: a stray frame, even a broken one, is dropped silently.
+    expect(() => transport.push(selfInfo!)).not.toThrow();
+    expect(() => transport.push(Uint8Array.of(0x05))).not.toThrow();
+  });
+
+  it("a malformed frame during a step fails with MalformedFrameError", async () => {
+    const transport = new StubTransport(async (_frame, t) => {
+      t.push(Uint8Array.of(0x0d)); // device info marker, truncated
+    });
+    const client = new MeshClient(transport);
+    const outcome = settle(client.handshake());
+    await vi.advanceTimersByTimeAsync(0);
+    expect(await outcome).toMatchObject({ error: expect.any(MalformedFrameError) });
+  });
+});
+
+function hex(value: string): Uint8Array {
+  return Uint8Array.from(value.match(/../g) ?? [], (byte) => parseInt(byte, 16));
+}
