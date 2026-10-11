@@ -262,7 +262,7 @@ describe("NodesController", () => {
         appState: new InMemoryAppState(),
         clock: () => NOW,
       });
-      return { nodes, calls: () => calls };
+      return { nodes, store, calls: () => calls };
     }
 
     it("a partial sync is stored as incomplete, so no absent node is marked missing", async () => {
@@ -308,6 +308,22 @@ describe("NodesController", () => {
       await running;
       expect(signal?.aborted).toBe(true);
       expect(nodes.getState().sync).toEqual({ kind: "idle" });
+    });
+
+    it("a disposed controller does not sync on the next connection", async () => {
+      const { nodes, calls, store } = scripted(async () => ({ contacts: [], expected: 0 }));
+      nodes.dispose();
+      store.setState({
+        connection: { kind: "connected" },
+        capabilities: { contacts: { supported: true } },
+      } as unknown as Partial<SessionState>);
+      await vi.runAllTimersAsync();
+      expect(calls()).toBe(0);
+    });
+
+    it("dispose() without a running sync does not throw", () => {
+      const { nodes } = scripted(async () => ({ contacts: [], expected: 0 }));
+      expect(() => nodes.dispose()).not.toThrow();
     });
 
     it("the controller itself refuses a second sync while one runs", async () => {
