@@ -74,7 +74,7 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | `packages/domain/src/diagnostics/rules.ts` | result × reason → explanation/next steps (FR-09) | 80 % | report |
 | `packages/domain/src/policy/timeout.ts`, `retry.ts`, `cooldown.ts` | radio hygiene and false NO_RESPONSE (TR-03, TR-04) | 80 % | report |
 | `packages/meshcore-adapter/src/client/mesh-client.ts` | orchestration: abort, single-flight, error → reason mapping (TR-04, TR-05, TR-08) | 80 % | report |
-| `packages/meshcore-adapter/src/decode/*.ts` | mapping library events → Zod-validated domain types (TR-06, TR-16) | 80 % | report |
+| `packages/meshcore-adapter/src/decode/*.ts` | companion frames → JSON-safe decoded records, corrections of meshcore.js misreads (TR-06, TR-16) | 80 % | report |
 | `packages/domain/src/export/redact.ts`, `packages/domain/src/export/serialize.ts` | privacy defaults (TR-09, TR-10) | 80 % | report |
 | `packages/domain/src/trend.ts` | no trend on thin data (TR-17) | 80 % | report |
 | `packages/storage/src/sync/contacts.ts` | merge rules for labels/roles and removed contacts (TR-15) | 70 % | report |

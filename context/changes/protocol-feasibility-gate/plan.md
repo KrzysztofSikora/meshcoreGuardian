@@ -108,6 +108,7 @@ down:
 | D-8 | Capture scenarios and output names | `--scenario handshake` (device query, app start, contacts: no LoRa TX) and `--scenario remote` (handshake + guest login + status + telemetry to `HW_REPEATER`, each ≥ 60 s after the previous request to that node; a second attempt of a kind only if the first got no reply). Output `packages/meshcore-adapter/fixtures/<firmware-version>/<scenario>.json`; rerunning overwrites (git shows the diff) | B: one fixed full run. Simpler CLI, but every run transmits. C: one flag per request kind. Finer control, more ways to exceed the budget | `handshake` lets the tool be checked without airtime. The budget (1 handshake, 1 sync, ≤ 2 each of login/status/telemetry) is enforced in code per run | cheap | agent |
 | D-9 | Do decoders produce Zod-validated domain types now? | No. Decoders return adapter-level plain types (hex strings, numbers) with explicit length checks, throwing `MalformedFrameError`. Zod and domain entities come with the slices that consume them | B: add Zod and domain entities now. Earlier boundary validation, but it designs S-02/S-03/S-06 types without their ACs | Keeps S-01 to its ACs; the decoder output is the input those slices will validate | cheap | agent |
 | D-10 | Under which event name does `MeshCoreConnection` emit the login-fail push? | The numeric `Constants.PushCodes.LoginFail` (0x86), payload `{ pubKeyPrefix }`, and the frame is also emitted as `rx` like every other frame | B: the string `"LoginFail"`, as the Phase 1 contract could be read. Easier to grep, but it is the only event not keyed by its code, so callers would need two conventions | Every meshcore.js event, including `LoginSuccess`, is keyed by its numeric code; S-04 listens to both pushes the same way | cheap | agent |
+| D-11 | Units and names of decoded values (S-02/S-03/S-06 read them from fixtures) | Byte arrays as lower-case hex; positions in degrees (`int32 / 1e6`); radio frequency and bandwidth and status `lastSnrX4` raw as sent (units `UNVERIFIED`); contact `outPath` trimmed to `hashSize × hops` bytes (max 64); telemetry keeps the raw `lppHex` next to the parsed `values`; self-info type as `advType` | B: all raw integers (`latE6`). Exact, but every consumer divides. C: scale SNR and radio values now. Friendlier, but the units are not confirmed yet | Degrees are exact enough as JSON doubles and are what every consumer wants; unconfirmed units stay raw so nothing is guessed; `lppHex` keeps telemetry the library cannot parse (it stops at an unknown type) | cheap (decoder output only; fixtures are re-decodable from `hex`) | agent |
 
 ## Design
 **Adapter (`packages/meshcore-adapter/src`)**
@@ -261,7 +262,7 @@ mid-run → write what was recorded, with `summary.aborted = "transport_disconne
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
 - [x] Phase 1: Adapter transport and connection
-- [ ] Phase 2: Frame decoders
+- [x] Phase 2: Frame decoders
 - [ ] Phase 3: Fixture format, redaction, budget and recorder
 - [ ] Phase 4: node-ble transport and capture CLI
 - [ ] Phase 5: Hardware capture, fixture tests and compatibility record
@@ -275,6 +276,11 @@ mid-run → write what was recorded, with `summary.aborted = "transport_disconne
 - [minor] (Phase 1) Plan: tests for the connection. Code: the adapter tsconfig has `lib: es2023` and no Node types, so `console`, `setTimeout` and `TextEncoder` do not type-check there. Consequence: tests use no Node globals (char codes instead of `TextEncoder`, `globalThis` cast for the console spy, an ordered probe event instead of a `setTimeout` flush); Node types stay out of the package so `Buffer` cannot creep into `src`.
 - [minor] (Phase 1) Plan: drop `src/index.test.ts` if superseded. Code: it still checks that `@guardian/domain` resolves through its entry point, which nothing else in the package covers. Consequence: kept.
 - [minor] (Phase 1) Plan-review #5: `emit` defers every listener through `setTimeout(0)`. The ambient type documents it, and the connection tests await events instead of expecting synchronous delivery.
+- [minor] (Phase 2) Plan: `status.ts` decodes the stats struct. Code: `decodeStats(frame, offset)` takes the whole push frame, so `MalformedFrameError` reports the frame's length and code, not the payload's. Consequence: none outside the module.
+- [minor] (Phase 2) Plan (D-1): the library parses contacts. Code: meshcore.js `readCString(32)` returns `undefined` for a name that fills all 32 bytes, so the contact name is read from the raw bytes like `out_path_len`. Consequence: one more correction, tested.
+- [minor] (Phase 2) Plan: truncated frames throw `MalformedFrameError(code, length, needed)`. Code: telemetry length cannot be known before parsing; meshcore.js throws a `RangeError` for a cut numeric value, which becomes `MalformedFrameError` with `needed = length + 1` (a lower bound). A cut GPS value is not detected: the library reads missing bytes as 0. Consequence: `lppHex` keeps the raw payload so a fixture can be re-checked; S-06 owns telemetry validation.
+- [minor] (Phase 2) Plan: frame-building helpers for the decoder tests. Code: they live in `packages/meshcore-adapter/test/support/frames.ts`, outside the mutation glob `src/decode/*.ts`. Consequence: Stryker does not mutate test code.
+- [minor] (Phase 2) Plan-review #10: the test-plan mutation row for `src/decode/*.ts` no longer mentions Zod (D-9).
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->
