@@ -1,0 +1,20 @@
+packages:
+  - apps/*
+  - packages/*
+  - tooling
+
+nodeLinker: hoisted
+
+# Lifecycle scripts of dependencies. unrs-resolver's postinstall only downloads a native binding
+# when the platform optional dependency is missing; pnpm installs that dependency itself.
+allowBuilds:
+  unrs-resolver: false
+
+# Optional peers (reanimated, worklets, gesture-handler, react-dom) would otherwise be installed at
+# their latest versions and autolinked into the native build. Native deps are added explicitly.
+autoInstallPeers: false
+
+# Stryker's Vitest runner 10.0.0 joins test names with " ", Vitest 5 matches " > ": without the
+# patch every mutant run filters out all tests and every mutant survives.
+patchedDependencies:
+  "@stryker-mutator/vitest-runner@10.0.0": patches/@stryker-mutator__vitest-runner@10.0.0.patch

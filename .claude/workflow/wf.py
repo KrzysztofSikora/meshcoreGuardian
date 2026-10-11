@@ -13,6 +13,7 @@ artifacts in `context/` and from `.workflow/run.json`, never from chat memory.
   wf.py pr-title <change-id>                 -> first `# ` line of pr-body.md
   wf.py cost <session.jsonl>                 -> cost, turns and outcome of a `claude -p` session
   wf.py new-comments <in.jsonl> <out.json>   -> PR comments newer than the last agent reply; prints count
+  wf.py physical-devices                     -> serials of attached Android devices that are not emulators
   wf.py hook pre-tool | stop                 -> Claude Code hook entry points (JSON on stdin)
 """
 
@@ -217,6 +218,44 @@ GIT_RULES = [
 ]
 
 
+# Android device access (project rule: agents use the emulator only; a real phone may hold
+# personal data, so it is touched only by the person, never by an autonomous session).
+DEVICE_TOOLS = re.compile(
+    r"\b(adb|maestro|scrcpy|gradlew\s+\S*install\w*)\b"
+    r"|\bexpo\s+run:android\b|\bpnpm\b[^;&|]*\b(android|e2e)\b|\bscripts/e2e\.sh\b")
+WIRELESS_ATTACH = re.compile(r"\badb\s+(?:-\S+\s+)*(connect|pair)\b")
+NAMED_DEVICE = re.compile(r"(?:\badb\s+-s|--device|--serial|ANDROID_SERIAL=)\s*['\"]?([^\s'\";&|]+)")
+
+
+def physical_devices() -> list[str]:
+    """Serials of attached Android devices (any state) that are not emulators."""
+    sdk = os.environ.get("ANDROID_HOME") or str(Path.home() / "Android" / "Sdk")
+    adb = Path(sdk) / "platform-tools" / "adb"
+    try:
+        out = subprocess.run([str(adb) if adb.exists() else "adb", "devices"],
+                             capture_output=True, text=True, timeout=15).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    serials = [line.split()[0] for line in out.splitlines()[1:] if line.strip()]
+    return [s for s in serials if not s.startswith("emulator-")]
+
+
+def device_violation(command: str) -> str:
+    """Why a command must not run in an autonomous session, or "" when it may."""
+    if not DEVICE_TOOLS.search(command):
+        return ""
+    if WIRELESS_ATTACH.search(command):
+        return "Do not attach Android devices (adb connect/pair)."
+    for serial in NAMED_DEVICE.findall(command):
+        if not serial.startswith("emulator-") and not serial.startswith("$"):
+            return f"Device '{serial}' is not an emulator."
+    phones = physical_devices()
+    if phones:
+        return (f"A physical Android device is attached ({', '.join(phones)}). Device commands "
+                "are blocked until it is disconnected.")
+    return ""
+
+
 def deny(reason: str) -> None:
     print(json.dumps({
         "hookSpecificOutput": {
@@ -251,6 +290,11 @@ def hook_pre_tool(event: dict) -> None:
         if re.search(pattern, command):
             deny(f"Autonomous run guard: {reason} See .claude/workflow/autonomy.md section 4.")
             return
+    device = device_violation(command)
+    if device:
+        deny(f"Autonomous run guard: {device} Agents use only the `guardian` emulator; checks "
+             "on a real phone are human checks in the PR (CLAUDE.md, Rules).")
+        return
     if re.search(GIT + r"commit\b", command) and current_branch() != run.get("branch"):
         deny(f"Autonomous run guard: commit only on {run.get('branch')} "
              f"(current branch: {current_branch() or 'detached'}).")
@@ -337,6 +381,8 @@ def main(argv: list[str]) -> int:
         fresh.sort(key=lambda i: i["created_at"])
         Path(args[1]).write_text(json.dumps(fresh, indent=2) + "\n", encoding="utf-8")
         print(len(fresh))
+    elif cmd == "physical-devices":
+        print("\n".join(physical_devices()))
     elif cmd == "hook":
         try:
             event = json.load(sys.stdin)

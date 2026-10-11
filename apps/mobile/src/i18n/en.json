@@ -1,0 +1,30 @@
+{
+  "app": {
+    "name": "MeshCore Guardian"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "placeholder": "Known nodes will appear here."
+  },
+  "connect": {
+    "title": "Connect",
+    "placeholder": "Companion connection will appear here."
+  },
+  "node": {
+    "title": "Node",
+    "placeholder": "Node details will appear here."
+  },
+  "run": {
+    "title": "Diagnostic run",
+    "placeholder": "Diagnostic results will appear here."
+  },
+  "settings": {
+    "title": "Settings",
+    "placeholder": "Settings will appear here.",
+    "transport": "Transport: {{mode}}"
+  },
+  "transport": {
+    "ble": "BLE",
+    "fake": "Fake (development)"
+  }
+}

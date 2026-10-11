@@ -1,0 +1,10 @@
+pnpm-lock.yaml
+reports/
+.stryker-tmp/
+coverage/
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/.expo/
+.workflow/
+context/
+*.md

@@ -1,0 +1,7 @@
+# R1: scripts/e2e.sh with a stub `adb` (never lists the new emulator, `emu kill` fails) and a stub
+# `emulator` (`exec sleep 1001`), ANDROID_HOME=<stub dir>, E2E_BOOT_TIMEOUT=5, under `timeout 30`.
+e2e: booting AVD guardian headless
+e2e: AVD guardian did not finish booting within 5s
+e2e: stopping emulator pid 326002
+exit=1 after 5s
+# leftover `sleep 1001` processes: 0

@@ -1,3 +1,20 @@
 
 # Autonomous workflow runtime state and session logs
 .workflow/
+
+# Dependencies and build output
+node_modules/
+coverage/
+reports/
+.stryker-tmp/
+*.apk
+
+# Local configuration (template: .env.example)
+.env
+.env*.local
+
+# Expo Continuous Native Generation output
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/.expo/
+apps/mobile/expo-env.d.ts
