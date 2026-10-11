@@ -297,7 +297,7 @@ domain: ConnectionState, ConnectFailureReason, CompanionInfo, deriveCapabilities
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
 - [x] Phase 1: Domain companion model
 - [x] Phase 2: FakeTransport and handshake client
-- [ ] Phase 3: Companion session (application layer) and fake platform
+- [x] Phase 3: Companion session (application layer) and fake platform
 - [ ] Phase 4: BLE platform, persistence, composition and bundle
 - [ ] Phase 5: Connect screen, dashboard status, scenarios route and e2e
 
@@ -308,6 +308,9 @@ domain: ConnectionState, ConnectFailureReason, CompanionInfo, deriveCapabilities
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
 - [minor] (Phase 2) The adapter compiles without DOM/Node types, so `AbortSignal`, `setTimeout` and `clearTimeout` are not known. Added `AbortSignalLike` (a real `AbortSignal` fits it) and `src/types/timers.d.ts` (referenced by the files that use timers). Also `AbortError` lives in `client/errors.ts` next to the other client errors.
 - [minor] (Phase 2) `MeshClient` gives `MeshCoreConnection` a send-only transport view, so the library never parses rx frames (a truncated frame would make it throw inside the transport callback). Receiving stays `onFrame` + `decodeFrame`, as planned.
+
+- [minor] (Phase 3) Plan lists no startup method on `CompanionSession`; added `initialize()` (loads the remembered companion and the permission/adapter state) and `connect(id, name?)`. `refreshPermission()` also reads the adapter state.
+- [minor] (Phase 3) Added a `"silent"` fake attempt (silences every recorded tx code) so the integration test can reach `HANDSHAKE_NO_RESPONSE` without patching the platform.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->

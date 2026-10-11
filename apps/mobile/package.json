@@ -11,6 +11,7 @@
   "dependencies": {
     "@expo/metro-runtime": "~57.0.16",
     "@guardian/domain": "workspace:*",
+    "@guardian/meshcore-adapter": "workspace:*",
     "expo": "~57.0.27",
     "expo-build-properties": "~57.0.22",
     "expo-constants": "~57.0.21",
@@ -23,7 +24,8 @@
     "react-native": "0.86.3",
     "react-native-ble-plx": "3.5.1",
     "react-native-safe-area-context": "~5.7.0",
-    "react-native-screens": "~4.26.0"
+    "react-native-screens": "~4.26.0",
+    "zustand": "5.0.15"
   },
   "devDependencies": {
     "@types/react": "~19.2.2"
