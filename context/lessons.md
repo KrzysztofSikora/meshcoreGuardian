@@ -31,3 +31,15 @@ Rules from reviews. Binding for planning, implementing and reviewing once accept
 - Seen in: connect-companion, R5
 - Scope: `context/changes/*/mutation.md`, all mutation targets
 - Status: proposed in the PR for connect-companion
+
+## Run mutation on every test-plan target file the diff touches; never skip a target because its change looks small
+- Why: a "thin" change to `mesh-client.ts` added three timers and a pending handler whose cleanup no test noticed missing.
+- Seen in: sync-contacts, R1
+- Scope: `context/changes/*/mutation.md`, all test-plan mutation targets
+- Status: proposed in the PR for sync-contacts
+
+## Do not let an error mapper's default branch claim a specific cause; unknown errors get a neutral reason
+- Why: an unrecognised error was shown as "the Bluetooth link was lost" while the link was fine, which breaks honest status.
+- Seen in: sync-contacts, R4
+- Scope: `apps/mobile/src/application/**`, `packages/domain/**` failure types
+- Status: proposed in the PR for sync-contacts
