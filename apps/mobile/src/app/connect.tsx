@@ -97,6 +97,7 @@ export default function ConnectScreen() {
           {scan.status === "done" && scan.devices.length === 0 && bluetooth === "on" && (
             <Text>{t("connect.noneFound")}</Text>
           )}
+          {scan.status === "failed" && bluetooth === "on" && <Text>{t("connect.scanFailed")}</Text>}
           <FlatList
             scrollEnabled={false}
             data={scan.devices}

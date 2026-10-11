@@ -20,8 +20,15 @@ export interface BlePlatform {
   requestPermissions(): Promise<PermissionStatus>;
   openSettings(): Promise<void>;
   adapterState(): Promise<AdapterState>;
-  /** Reports companions until `signal` aborts. The session owns the time limit. */
-  scan(onDevice: (device: ScannedDevice) => void, signal: AbortSignal): void;
+  /**
+   * Reports companions until `signal` aborts. The session owns the time limit. `onError` is
+   * called once if the scan cannot start or dies (Bluetooth switched off, unauthorized, ...).
+   */
+  scan(
+    onDevice: (device: ScannedDevice) => void,
+    signal: AbortSignal,
+    onError: (error: Error) => void,
+  ): void;
   /** Opens a link; rejects when `signal` aborts. */
   connect(id: string, signal: AbortSignal): Promise<BleLink>;
 }

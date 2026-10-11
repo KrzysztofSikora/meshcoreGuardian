@@ -112,6 +112,38 @@ describe("CompanionSession", () => {
     expect(kinds).toEqual(["disconnected", "connecting", "failed", "connecting", "connected"]);
   });
 
+  it("initialize() on a remounted screen keeps the failed target for Retry (R1)", async () => {
+    const { session, platform, store } = setup("connect-fail");
+    await store.save({ id: "OTHER:ID", name: "Other" });
+    await session.initialize();
+    await session.connect(ID, "MeshCore-companion");
+    expect(session.getState().connection.kind).toBe("failed");
+    await session.initialize();
+    const done = session.retry();
+    await vi.runAllTimersAsync();
+    await done;
+    expect(platform.calls.connect).toBe(2);
+    expect(session.getState().connection.kind).toBe("connected");
+    expect(session.getState().lastCompanion?.id).toBe(ID);
+  });
+
+  it("a native scan error ends as failed, not as an empty done list (R2)", async () => {
+    const { session, platform } = setup("connect-ok");
+    await session.initialize();
+    platform.failNextScan();
+    await session.startScan();
+    await vi.advanceTimersByTimeAsync(500);
+    expect(session.getState().scan.status).toBe("failed");
+    expect(session.getState().scan.devices).toEqual([]);
+    // The 10 s timer must not turn it into "done" afterwards.
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(session.getState().scan.status).toBe("failed");
+    // A new scan is possible.
+    await session.startScan();
+    await vi.advanceTimersByTimeAsync(500);
+    expect(session.getState().scan.devices).toHaveLength(1);
+  });
+
   it("every state is exactly one of the four kinds", async () => {
     const { kinds } = await connectOk();
     for (const kind of kinds) {

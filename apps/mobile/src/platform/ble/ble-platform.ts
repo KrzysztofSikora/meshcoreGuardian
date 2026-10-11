@@ -54,17 +54,31 @@ export class RnBlePlatform implements BlePlatform {
     return "unavailable";
   }
 
-  scan(onDevice: (device: ScannedDevice) => void, signal: AbortSignal): void {
+  scan(
+    onDevice: (device: ScannedDevice) => void,
+    signal: AbortSignal,
+    onError: (error: Error) => void,
+  ): void {
     const manager = this.ble();
-    const stop = () => manager.stopDeviceScan();
+    const stop = () => void Promise.resolve(manager.stopDeviceScan()).catch(() => undefined);
+    const fail = (error: unknown) => {
+      stop();
+      if (!signal.aborted) onError(error instanceof Error ? error : new Error(String(error)));
+    };
     signal.addEventListener("abort", stop, { once: true });
-    // No OS-level UUID filter (D-8): match the UUID or the name here.
-    void manager.startDeviceScan(null, { allowDuplicates: false }, (error, device) => {
-      if (error !== null) return stop();
-      if (device === null || signal.aborted) return;
-      const ad = { name: device.name ?? device.localName, serviceUUIDs: device.serviceUUIDs };
-      if (isCompanionAdvertisement(ad)) onDevice({ id: device.id, name: ad.name ?? null });
-    });
+    try {
+      // No OS-level UUID filter (D-8): match the UUID or the name here.
+      void Promise.resolve(
+        manager.startDeviceScan(null, { allowDuplicates: false }, (error, device) => {
+          if (error !== null) return fail(error);
+          if (device === null || signal.aborted) return;
+          const ad = { name: device.name ?? device.localName, serviceUUIDs: device.serviceUUIDs };
+          if (isCompanionAdvertisement(ad)) onDevice({ id: device.id, name: ad.name ?? null });
+        }),
+      ).catch(fail);
+    } catch (error) {
+      fail(error);
+    }
   }
 
   async connect(id: string, signal: AbortSignal): Promise<BleLink> {

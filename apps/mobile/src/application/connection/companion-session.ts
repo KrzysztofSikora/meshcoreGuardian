@@ -31,7 +31,7 @@ export const CONNECT_TIMEOUT_MS = 15_000;
 export interface SessionState {
   permission: PermissionStatus | "unknown";
   bluetooth: AdapterState | "unknown";
-  scan: { status: "idle" | "scanning" | "done"; devices: ScannedDevice[] };
+  scan: { status: "idle" | "scanning" | "done" | "failed"; devices: ScannedDevice[] };
   connection: ConnectionState;
   lastCompanion: LastCompanion | null;
   mtu: number | null;
@@ -98,7 +98,8 @@ export class CompanionSession {
   /** Loads the remembered companion and the current permission and adapter state. */
   async initialize(): Promise<void> {
     const last = await this.ports.lastCompanionStore.load().catch(() => null);
-    this.lastTarget = last;
+    // Called on every Connect screen mount: it must not replace the companion Retry points at.
+    this.lastTarget ??= last;
     this.set({ lastCompanion: last });
     await this.refreshPermission();
   }
@@ -137,7 +138,15 @@ export class CompanionSession {
       const { devices } = this.getState().scan;
       if (devices.some((known) => known.id === device.id)) return;
       this.set({ scan: { status: "scanning", devices: [...devices, device] } });
-    }, abort.signal);
+    }, abort.signal, () => void this.onScanError(abort));
+  }
+
+  /** A native scan failure is not "no companions": end it as `failed` and re-read the adapter. */
+  private async onScanError(abort: AbortController): Promise<void> {
+    if (this.scanAbort !== abort) return;
+    this.stopScan();
+    this.set({ scan: { status: "failed", devices: this.getState().scan.devices } });
+    await this.refreshPermission().catch(() => undefined);
   }
 
   stopScan(): void {

@@ -38,6 +38,7 @@ function abortReject(signal: AbortSignal): Promise<never> {
 export class FakeBlePlatform implements BlePlatform {
   readonly calls = { scan: 0, connect: 0, requestPermissions: 0, openSettings: 0 };
   private attemptIndex = 0;
+  private scanFails = false;
 
   constructor(private scenario: Scenario) {}
 
@@ -63,8 +64,23 @@ export class FakeBlePlatform implements BlePlatform {
     return this.scenario.bluetooth;
   }
 
-  scan(onDevice: (device: ScannedDevice) => void, signal: AbortSignal): void {
+  /** Makes the next scan report a native error instead of devices. */
+  failNextScan(): void {
+    this.scanFails = true;
+  }
+
+  scan(
+    onDevice: (device: ScannedDevice) => void,
+    signal: AbortSignal,
+    onError: (error: Error) => void,
+  ): void {
     this.calls.scan += 1;
+    if (this.scanFails) {
+      this.scanFails = false;
+      const failTimer = setTimeout(() => onError(new Error("Fake scan error")), SCAN_DELAY_MS);
+      signal.addEventListener("abort", () => clearTimeout(failTimer));
+      return;
+    }
     const timer = setTimeout(() => {
       for (const device of this.scenario.devices) onDevice(device);
     }, SCAN_DELAY_MS);

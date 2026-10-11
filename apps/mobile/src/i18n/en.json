@@ -23,6 +23,7 @@
     "scan": "Scan for companions",
     "scanning": "Scanning…",
     "noneFound": "No companions found",
+    "scanFailed": "The scan failed. Check Bluetooth, then scan again.",
     "unnamed": "Unnamed device",
     "connectTo": "Connect to {{name}}",
     "connectLast": "Connect to {{name}} (last used)",
