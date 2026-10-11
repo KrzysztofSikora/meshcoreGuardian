@@ -1,7 +1,7 @@
 # Review: sync-contacts
 
 Verdict: APPROVE WITH FOLLOW-UPS
-Gates: typecheck ok, lint ok, unit tests ok (45 files, 615 tests), e2e ok (9/9 flows, incl. contacts-sync and contacts-label-restart), mutation mesh-client.ts 87.95 % (18 survived, 2 no coverage), mutation nodes-controller.ts 75.15 % (21 survived, 20 no coverage) · Round: 1
+Gates: typecheck ok, lint ok, unit tests ok (45 files, 631 tests), e2e ok (9/9 flows), mutation (`--force`) presenter.ts 100 %, mesh-client.ts 90.36 % (14 survived, 2 no coverage), nodes-controller.ts 89.70 % (17 survived), companion-session.ts 78.2 % (55 survived, 3 no coverage) · Round: 2
 
 ## Plan vs diff
 | File | Status | Note |
@@ -21,32 +21,34 @@ Gates: typecheck ok, lint ok, unit tests ok (45 files, 615 tests), e2e ok (9/9 f
 | `packages/meshcore-adapter/src/client/errors.ts`, `src/index.ts` | done | |
 | `packages/meshcore-adapter/src/transport/contacts-script.ts` | done | D-12, retimed per plan-review #3 |
 | `packages/meshcore-adapter/test/mesh-client-contacts.int.test.ts`, `contacts-script.int.test.ts` | done | |
-| `apps/mobile/src/application/connection/companion-session.ts` + int test | done | `fetchContacts`; also aborts fetches on disconnect/dispose (logged deviation); unrelated reformat of the `scan` call |
-| `apps/mobile/src/application/nodes/nodes-controller.ts` + int test | done | partial-sync and two error mappings untested (R2) |
+| `apps/mobile/src/application/connection/companion-session.ts` + int test | done | `fetchContacts`; also aborts fetches on disconnect/dispose (logged deviation); test-plan mutation target never mutated in this change (R6) |
+| `apps/mobile/src/application/nodes/nodes-controller.ts` + int test | done | R2 fixed: partial sync, UNSUPPORTED/MALFORMED/UNEXPECTED, guard and dispose tested |
 | `apps/mobile/src/application/nodes/presenter.ts` + test | done | |
 | `apps/mobile/src/platform/sqlite/expo-sql-driver.ts` | done | D-19 mutex |
 | `apps/mobile/src/platform/sqlite/expo-sql-driver.test.ts`, `open-guardian-db.ts` | unplanned | logged deviation (phase 5) |
 | `apps/mobile/src/platform/fake/fake-ble-platform.ts` | done | |
 | `apps/mobile/src/composition/index.ts`, `apps/mobile/package.json` | done | |
-| `apps/mobile/src/app/index.tsx`, `components/node-row.tsx` | done | empty-state text wrong when only chat contacts exist (R5) |
-| `apps/mobile/src/app/node/[id].tsx` | diverged | reported name never shown once a label is set; "Reported as" hidden until an edit (R3) |
+| `apps/mobile/src/app/index.tsx`, `components/node-row.tsx` | done | R5 fixed: Dashboard filter has its own empty text |
+| `apps/mobile/src/app/node/[id].tsx` | done | R3 fixed: "Reported name: …" under a label; unknown type always shown |
 | `apps/mobile/src/components/translate.ts`, `i18n/catalog.test.ts` | unplanned | logged deviation (phase 6) |
 | `apps/mobile/src/i18n/en.json` | done | |
 | `apps/mobile/e2e/contacts-sync.yaml`, `contacts-label-restart.yaml` | done | plan-review #5 applied ("Syncing contacts…" asserted) |
 | `docs/compatibility.md`, `context/test-plan.md` | done | |
-| `context/changes/sync-contacts/{plan,plan-review,mutation}.md`, `evidence/*` | done | mutation.md skips `mesh-client.ts` with a wrong reason (R1) |
+| `context/changes/sync-contacts/{plan,plan-review,mutation}.md`, `evidence/*` | done | R1 fixed: `mesh-client.ts` and `nodes-controller.ts` triaged; `companion-session.ts` still missing (R6) |
+| `packages/domain/src/nodes/sync.ts` + test, `en.json` | done | round 1: `UNEXPECTED` failure reason (R4), logged under *Deviations* |
+| `context/lessons.md` | unplanned | two lessons proposed in round 1 |
 | `context/roadmap.md`, `pnpm-lock.yaml` | unplanned | status and lockfile, expected |
 
 ## Areas
 | Area | Result | One-line reason |
 |------|--------|-----------------|
-| Correctness | ok | ACs met; merge rules, bounds and error model match the plan; e2e passes |
-| Design | ok | layers respected; port in domain, SQL in storage, expo only in `platform/sqlite` |
-| Safety | ok | bound parameters only; column names in `update()` are internal constants; no secrets |
-| Tests | concern | untriaged survivors on mutation target `mesh-client.ts` (stale timers); controller partial-sync path untested |
-| Simplicity | ok | small modules; cancellation has two owners (controller and session), see R2 note |
-| Plan fidelity | concern | roadmap "protocol value kept for display" not met for the name (R3) |
-| Agent decisions | ok | D-8 and D-9 (costly) each live in one place (`applyContactSync`, `in_contacts`) |
+| Correctness | ok | R3, R4, R5 fixed as suggested; unknown errors now map to a neutral `UNEXPECTED` reason |
+| Design | ok | layers respected; cancellation still has two owners, logged as FOLLOW-UP |
+| Safety | ok | no new inputs or secrets in round 1 |
+| Tests | concern | `companion-session.ts` (test-plan target) not mutated: 78 %, untriaged survivors in `fetchContacts` signal forwarding (R6); one controller survivor untriaged (R7) |
+| Simplicity | ok | fixes are small and local |
+| Plan fidelity | ok | roadmap "reported as …" now met for name and role |
+| Agent decisions | ok | D-8 and D-9 (costly) each live in one place; round 1 decisions recorded under *Deviations* |
 
 ## Findings
 
@@ -94,3 +96,21 @@ Gates: typecheck ok, lint ok, unit tests ok (45 files, 615 tests), e2e ok (9/9 f
 - Effort: small
 - Lesson candidate: no
 - Decision: fixed (ac610ad)
+
+### R6: `companion-session.ts` is a test-plan mutation target but was never mutated; `fetchContacts` signal forwarding is untested
+- Severity: major
+- Where: `context/changes/sync-contacts/mutation.md:3-13`, `apps/mobile/src/application/connection/companion-session.ts:207,211-219,247`
+- Problem: The test plan lists `companion-session.ts` as a mutation target (80 %). This diff adds `fetchContacts` and the fetch aborts in `disconnect`/`dispose`, but `mutation.md` names the file neither as a target nor as skipped (the same gap R1 fixed for `mesh-client.ts`). `pnpm mutation --mutate apps/mobile/src/application/connection/companion-session.ts --force` gives 78.2 % (207 killed, 55 survived, 3 no coverage). Survivors in the new code: removing `signal?.addEventListener("abort", onAbort, …)` (`:213`) and `if (signal?.aborted) own.abort()` (`:212`), emptying the `finally` block (`:217-219`, so `fetches` keeps finished controllers and the caller's listener stays attached), and `client === null || …connected` → `client === null && …` (`:207`, a call while the client exists but the state is not `connected` reaches `getContacts`). `:212` and the `dispose()` fetch abort (`:247`) have no coverage. So the path `NodesController.dispose()` → caller signal → session → `MeshClient` abort is not tested anywhere: the controller test uses a scripted session, and the session test only checks the not-connected rejection. Mutation.md accepts the controller's `:76` abort survivor because "`CompanionSession` aborts its fetches too", but that session behaviour is itself unproven by mutation.
+- Fix: Add `companion-session.int.test.ts` cases on a connected fake session with a contacts script that stalls after `contactsStart`: (a) aborting the caller's signal rejects `fetchContacts` with `AbortError` and a following `fetchContacts` succeeds (kills `:213`, `:217-219`); (b) an already-aborted signal rejects at once without a write (kills `:212`); (c) `dispose()` during a fetch rejects it with `AbortError` (covers `:247`); (d) `fetchContacts` during `connecting` rejects with `TransportUnavailableError` (kills `:207`). Then add `companion-session.ts` to `mutation.md` with a decision for every survivor in the changed lines (the older ones may be one `accept` row pointing at connect-companion).
+- Effort: small
+- Lesson candidate: no (covered by the lesson proposed for R1)
+- Decision: open
+
+### R7: Controller `dispose()` test claims "unsubscribes" but does not check it; the survivor is missing from mutation.md
+- Severity: minor
+- Where: `apps/mobile/src/application/nodes/nodes-controller.int.test.ts:296`, `apps/mobile/src/application/nodes/nodes-controller.ts:143-144`, `context/changes/sync-contacts/mutation.md` round-1 table
+- Problem: Removing `this.unsubscribe()` in `dispose()` (`:143`) survives, and so does `this.abort?.abort()` → `this.abort.abort()` (`:144`, `dispose()` with no sync running would throw). Neither line is in the round-1 triage table, which lists `:158` (now killed) instead. Without the unsubscribe, a disposed controller still starts a sync on the next connection.
+- Fix: In the dispose test, after `dispose()` drive the session store to `connected` with `contacts` supported and assert `calls()` stays 1; add a `dispose()` call without a running sync. Update the mutation.md row.
+- Effort: small
+- Lesson candidate: no
+- Decision: open
