@@ -6,8 +6,11 @@ packages/domain/src/policy/timeout.ts
 packages/domain/src/policy/retry.ts
 packages/domain/src/policy/cooldown.ts
 packages/meshcore-adapter/src/client/mesh-client.ts
+packages/domain/src/companion/capabilities.ts
+packages/domain/src/companion/firmware.ts
 packages/meshcore-adapter/src/decode/*.ts
 packages/domain/src/export/redact.ts
 packages/domain/src/export/serialize.ts
 packages/domain/src/trend.ts
 packages/storage/src/sync/contacts.ts
+apps/mobile/src/application/connection/companion-session.ts

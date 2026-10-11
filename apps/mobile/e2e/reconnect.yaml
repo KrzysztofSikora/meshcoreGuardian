@@ -1,0 +1,26 @@
+# FR-02 AC1/AC2, TR-12: a link drop shows Disconnected and Reconnect works without a restart.
+appId: io.github.krzysztofsikora.guardian
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Known nodes will appear here."
+- openLink: guardian://debug/scenario/link-drop
+- extendedWaitUntil:
+    visible: "Scan for companions"
+    timeout: 10000
+- tapOn: "Scan for companions"
+- extendedWaitUntil:
+    visible: "Connect to MeshCore-companion"
+    timeout: 10000
+- tapOn: "Connect to MeshCore-companion"
+- extendedWaitUntil:
+    visible: "Connected"
+    timeout: 20000
+- extendedWaitUntil:
+    visible: "Disconnected"
+    timeout: 15000
+- assertVisible: "Link lost.*"
+- tapOn: "Reconnect"
+- extendedWaitUntil:
+    visible: "Connected"
+    timeout: 20000

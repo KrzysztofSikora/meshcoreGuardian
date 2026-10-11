@@ -1,0 +1,12 @@
+== EXPO_PUBLIC_TRANSPORT=fake
+node_modules/expo-router/assets/error.png (469B)
+› android bundles (1):
+_expo/static/js/android/entry-b234ad9a78a6e06d1ee10666a6cf2f8f.hbc (3.9MB)
+Exported: /tmp/guardian-export-fake
+exit=0
+== EXPO_PUBLIC_TRANSPORT=ble
+node_modules/expo-router/assets/error.png (469B)
+› android bundles (1):
+_expo/static/js/android/entry-b234ad9a78a6e06d1ee10666a6cf2f8f.hbc (3.9MB)
+Exported: /tmp/guardian-export-ble
+exit=0

@@ -1,0 +1,24 @@
+# FR-01 AC4/AC5, FR-03 AC1 (TR-07 under Hermes): scan, connect, handshake, capabilities.
+appId: io.github.krzysztofsikora.guardian
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Known nodes will appear here."
+- openLink: guardian://debug/scenario/connect-ok
+- extendedWaitUntil:
+    visible: "Disconnected"
+    timeout: 10000
+- tapOn: "Scan for companions"
+- extendedWaitUntil:
+    visible: "Connect to MeshCore-companion"
+    timeout: 10000
+- tapOn: "Connect to MeshCore-companion"
+- extendedWaitUntil:
+    visible: "Connected"
+    timeout: 20000
+- assertVisible: "Firmware: v1.17.1-d929643"
+- assertVisible: "Model: Heltec V3"
+- assertVisible: "Telemetry request"
+- assertNotVisible: "Untested firmware"
+- assertNotVisible: "Not supported by companion firmware.*"
+- takeScreenshot: phase-5-connect-ok

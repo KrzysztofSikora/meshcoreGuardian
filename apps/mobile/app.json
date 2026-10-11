@@ -12,7 +12,8 @@
     "plugins": [
       "expo-router",
       ["react-native-ble-plx", { "isBackgroundEnabled": false, "neverForLocation": true }],
-      ["expo-build-properties", { "android": { "minSdkVersion": 31 } }]
+      ["expo-build-properties", { "android": { "minSdkVersion": 31 } }],
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true

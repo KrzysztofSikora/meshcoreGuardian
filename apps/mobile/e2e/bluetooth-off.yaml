@@ -1,0 +1,13 @@
+# FR-01 AC3, TR-13: Bluetooth off is never shown as 'No companions found'.
+appId: io.github.krzysztofsikora.guardian
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Known nodes will appear here."
+- openLink: guardian://debug/scenario/bluetooth-off
+- extendedWaitUntil:
+    visible: "Bluetooth is off"
+    timeout: 10000
+- tapOn: "Scan for companions"
+- assertVisible: "Bluetooth is off"
+- assertNotVisible: "No companions found"

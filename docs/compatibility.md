@@ -88,4 +88,16 @@ exercised.
 
 ## Android phone
 
-Left for S-02 (connect-companion): ble-plx MTU and bonding dialog, and meshcore.js under Hermes.
+Filled from the S-02 human checks (CI APK on a real phone). Everything here is `not verified` until then. The emulator
+run (fake transport) proved meshcore.js encoding and adapter decoding under Hermes only, not BLE.
+
+| Item | Observed | Status |
+|------|----------|--------|
+| Phone model / Android version | | not verified |
+| Pairing/PIN dialog (at which step it appears) | | not verified |
+| Negotiated MTU (Connect screen, Technical details) | | not verified |
+| Scan finds the companion by service UUID or by name | | not verified |
+| Handshake under Hermes on the phone | | not verified |
+
+Capability minimums (plan D-5, firmware ver code): contacts 1, login 1, status 1, trace 1, telemetry 5. All
+`not verified` except contacts, login, status and telemetry at ver code 13 (S-01). Trace was not exercised.

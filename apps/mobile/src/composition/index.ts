@@ -1,9 +1,18 @@
+import { CompanionSession } from "../application/connection/companion-session";
 import { parseTransportMode } from "../config/transport-mode";
-import { createTransport } from "./transport";
+import { createPlatform } from "./platform";
 
 // Literal `process.env.EXPO_PUBLIC_*` access: Expo inlines it into the bundle at build time.
-const transportMode = parseTransportMode(process.env.EXPO_PUBLIC_TRANSPORT);
+const mode = parseTransportMode(process.env.EXPO_PUBLIC_TRANSPORT);
+
+const platform = createPlatform(mode);
 
 export const container = {
-  transport: createTransport(transportMode),
+  mode,
+  platform,
+  session: new CompanionSession({
+    platform: platform.ble,
+    appState: platform.appState,
+    lastCompanionStore: platform.lastCompanion,
+  }),
 };

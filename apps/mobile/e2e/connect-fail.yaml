@@ -1,0 +1,23 @@
+# FR-01 AC5: a failed connect shows the reason and Retry works.
+appId: io.github.krzysztofsikora.guardian
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Known nodes will appear here."
+- openLink: guardian://debug/scenario/connect-fail
+- extendedWaitUntil:
+    visible: "Scan for companions"
+    timeout: 10000
+- tapOn: "Scan for companions"
+- extendedWaitUntil:
+    visible: "Connect to MeshCore-companion"
+    timeout: 10000
+- tapOn: "Connect to MeshCore-companion"
+- extendedWaitUntil:
+    visible: "Connection failed"
+    timeout: 20000
+- assertVisible: "The Bluetooth link could not be opened or paired."
+- tapOn: "Retry"
+- extendedWaitUntil:
+    visible: "Connected"
+    timeout: 20000

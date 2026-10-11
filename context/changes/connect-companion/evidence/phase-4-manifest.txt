@@ -1,0 +1,8 @@
+# grep BLUETOOTH|LOCATION in generated AndroidManifest.xml
+2:  <uses-permission-sdk-23 android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="30"/>
+3:  <uses-permission-sdk-23 android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30"/>
+4:  <uses-permission android:name="android.permission.BLUETOOTH"/>
+5:  <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
+6:  <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+7:  <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" tools:targetApi="31"/>
+# Note: LOCATION entries carry maxSdkVersion=30; minSdk is 31, so they are inert. BLUETOOTH/BLUETOOTH_ADMIN are legacy (Expo/ble-plx defaults, S-10 follow-up).

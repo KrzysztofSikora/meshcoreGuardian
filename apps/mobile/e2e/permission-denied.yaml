@@ -1,0 +1,16 @@
+# FR-01 AC1/AC2, TR-13: explanation, then 'Permission required' with a way to settings; no scan.
+appId: io.github.krzysztofsikora.guardian
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Known nodes will appear here."
+- openLink: guardian://debug/scenario/permission-denied
+- extendedWaitUntil:
+    visible: "Grant access"
+    timeout: 10000
+- assertVisible: "MeshCore Guardian uses Bluetooth only.*"
+- tapOn: "Grant access"
+- assertVisible: "Permission required"
+- assertVisible: "Open settings"
+- assertNotVisible: "Scan for companions"
+- assertNotVisible: "No companions found"

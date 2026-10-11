@@ -12,6 +12,7 @@ function Navigator() {
       <Stack.Screen name="connect" options={{ title: t("connect.title") }} />
       <Stack.Screen name="node/[id]" options={{ title: t("node.title") }} />
       <Stack.Screen name="run/[id]" options={{ title: t("run.title") }} />
+      <Stack.Screen name="debug/scenario/[name]" options={{ headerShown: false }} />
       <Stack.Screen name="settings" options={{ title: t("settings.title") }} />
     </Stack>
   );
