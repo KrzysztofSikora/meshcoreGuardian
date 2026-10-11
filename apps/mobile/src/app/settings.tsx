@@ -6,7 +6,7 @@ import { container } from "../composition";
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
-  const mode = t(`transport.${container.transport.kind}`);
+  const mode = t(`transport.${container.mode}`);
   return (
     <PlaceholderScreen title={t("settings.title")} placeholder={t("settings.placeholder")}>
       <Text>{t("settings.transport", { mode })}</Text>

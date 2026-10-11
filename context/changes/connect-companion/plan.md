@@ -298,7 +298,7 @@ domain: ConnectionState, ConnectFailureReason, CompanionInfo, deriveCapabilities
 - [x] Phase 1: Domain companion model
 - [x] Phase 2: FakeTransport and handshake client
 - [x] Phase 3: Companion session (application layer) and fake platform
-- [ ] Phase 4: BLE platform, persistence, composition and bundle
+- [x] Phase 4: BLE platform, persistence, composition and bundle
 - [ ] Phase 5: Connect screen, dashboard status, scenarios route and e2e
 
 ## Human checks
@@ -314,3 +314,6 @@ domain: ConnectionState, ConnectFailureReason, CompanionInfo, deriveCapabilities
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->
+- [REVIEW] (Phase 4) Plan-review #2 open: `RnBlePlatform.connect` runs `connectToDevice` (15 s), service discovery and the TX subscription inside the session's 15 s `CONNECT_TIMEOUT`. Plan says the PIN dialog is budgeted in the 30 s device-query step, but the first encrypted access may be the notification subscription in `connect`. Code: session bound unchanged. Consequence: a slow PIN entry could read `CONNECT_TIMEOUT` on first pairing. Human check 4 (Phase 5) must note at which step the dialog appears.
+- [minor] (Phase 4) `parseLastCompanion` lives in `platform/last-companion.ts`, apart from the `expo-sqlite` store, so Vitest can import it without the native module. `zod` 4.6.5 added to `apps/mobile` (was only transitive). `BleTransport` takes a narrow `BleDeviceLike` and isolates throwing listeners (plan-review #1, transport part), with unit tests.
+- [minor] (Phase 4) Bundle check passes for `EXPO_PUBLIC_TRANSPORT=fake` and `ble` (`evidence/phase-4-bundle.txt`). Manifest has `BLUETOOTH_SCAN` (neverForLocation), `BLUETOOTH_CONNECT`, and LOCATION entries with `maxSdkVersion=30` (inert at minSdk 31).
