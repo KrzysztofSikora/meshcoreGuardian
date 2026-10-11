@@ -25,3 +25,9 @@ Rules from reviews. Binding for planning, implementing and reviewing once accept
 - Seen in: connect-companion, R3
 - Scope: `packages/meshcore-adapter/test/**`, mutation reviews
 - Status: proposed in the PR for connect-companion
+
+## Re-run mutation after the last test change and copy every survivor into `mutation.md`; never mark a mutant `strengthen` without seeing it killed
+- Why: five surviving mutants were recorded as killed, so the record hid real gaps (stale timers, listeners left on a closed client).
+- Seen in: connect-companion, R5
+- Scope: `context/changes/*/mutation.md`, all mutation targets
+- Status: proposed in the PR for connect-companion
