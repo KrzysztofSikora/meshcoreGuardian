@@ -7,7 +7,7 @@ Sources: `context/prd.md`, `context/tech-stack.md`. Order follows risk: the prot
 | ID | Issue | change-id | Type | Covers | Depends on | Size | Status |
 |----|-------|-----------|------|--------|------------|------|--------|
 | F-01 | #1 | repo-skeleton | foundation | C-02, C-03, C-09 | - | M | done |
-| S-01 | #2 | protocol-feasibility-gate | slice | FR-00 | F-01 | M | review |
+| S-01 | #2 | protocol-feasibility-gate | slice | FR-00 | F-01 | M | done |
 | S-02 | #3 | connect-companion | slice | FR-01, FR-02, FR-03 | S-01 (gate passed) | L | todo |
 | S-03 | #4 | sync-contacts | slice | FR-04 | S-02 | M | todo |
 | S-04 | #5 | run-diagnostic | slice | FR-05, FR-06, FR-09, FR-10, FR-11 | S-03 | L | todo |
@@ -47,7 +47,7 @@ Sources: `context/prd.md`, `context/tech-stack.md`. Order follows risk: the prot
 - Decided up front:
   - Hardware path → the companion (Heltec V3, BLE firmware) is reached from the **laptop over BLE**: a dev-only workspace `tools/capture` with `node-ble` (1.13.x, MIT; BlueZ over D-Bus) implementing the same `MeshTransport` interface the app will use. The companion is paired and trusted once with `bluetoothctl` (PIN) by the person; `node-ble` reuses that bond. (noble was dropped: its pairing works on Windows only, and the companion requires a PIN bond.) If `node-ble` cannot connect, fall back to `companion_radio_usb` firmware with meshcore.js `NodeJSSerialConnection` and record it as a `[REVIEW]` deviation. (user)
   - `packages/meshcore-adapter` gets `MeshTransport` and `MeshCoreConnection` (subclass of meshcore.js `Connection` over any `MeshTransport`); the capture tool and later the app both use it. (user, tech-stack)
-  - The agent may send live radio requests **only in this item**, via `pnpm capture`, which runs only when `HW_COMPANION` (BLE address or name) and `HW_REPEATER` (public key prefix) are set in `.env`. Limits per run: one handshake, one contact sync, ≤ 2 logins, ≤ 2 status, ≤ 2 telemetry requests, ≥ 60 s between requests to the same node. Gates (`test`, `e2e`) never touch the radio. (user)
+  - The agent may send live radio requests **only in this item**, via `pnpm capture`, which runs only when `HW_COMPANION` (BLE address `AA:BB:CC:DD:EE:FF`; node-ble cannot look devices up by name) and `HW_REPEATER` (public key prefix) are set in `.env`. Limits per run: one handshake, one contact sync, ≤ 2 logins, ≤ 2 status, ≤ 2 telemetry requests, ≥ 60 s between requests to the same node. Gates (`test`, `e2e`) never touch the radio. (user)
   - Each capture writes a JSON file: device info, firmware version, and every frame with direction, monotonic timestamp and hex payload. Secrets (guest password) are never written. Fixture tests decode these files with the adapter and compare against the values the capture logged. (user)
   - Gate verdict is written at the top of `docs/compatibility.md` (`PASSED` / `FAILED` + evidence). If it fails, the PR says so and later items are not started.
   - Android-specific BLE behaviour (MTU, bonding dialog, Hermes compatibility of meshcore.js) is **not** part of this item; it is a human check in S-02.
