@@ -1,5 +1,5 @@
 export interface CaptureConfig {
-  /** BLE address or advertised name of the companion. */
+  /** BLE address of the companion (AA:BB:CC:DD:EE:FF). */
   companion: string;
   /** Lower-case hex public key prefix of the one remote node the capture may contact (D-6). */
   repeaterPrefix: string;

@@ -147,7 +147,7 @@ Tool setup (done in F-01, configuration fixed here): `@stryker-mutator/core` and
 
 ### Run a hardware capture (S-01 only)
 1. Pair the companion with the laptop once: `bluetoothctl` → `scan on` → `pair <MAC>` (PIN from the companion display or default) → `trust <MAC>`.
-2. `.env`: `HW_COMPANION=<MAC or name>`, `HW_REPEATER=<public key hex prefix>`, optional `HW_GUEST_PASSWORD=` (read at runtime, never written).
+2. `.env`: `HW_COMPANION=<MAC, AA:BB:CC:DD:EE:FF>`, `HW_REPEATER=<public key hex prefix>`, optional `HW_GUEST_PASSWORD=` (read at runtime, never written).
 3. `pnpm capture --scenario handshake` (device query, app start, contact list; no LoRa TX) writes `packages/meshcore-adapter/fixtures/<fw>/handshake.json`, overwriting the previous one.
 4. `pnpm capture --scenario remote` adds a guest login, a status and a telemetry request to `HW_REPEATER` (≥ 60 s apart, one retry each when unanswered) and writes `remote.json`, or `remote-2.json` if that exists. The tool refuses a third remote capture (plan D-6). Exit codes: 0 done, 1 usage or `.env`, 2 no BLE connection (no file), 3 run aborted (file written).
 5. Review the file (no password present), commit it, run `pnpm test`.
