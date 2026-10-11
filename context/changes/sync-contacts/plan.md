@@ -273,10 +273,13 @@ Dashboard / node screen ──useStore──▶ NodesController.store { nodes, s
 - [x] Phase 3: Node repository and sync merge
 - [x] Phase 4: `MeshClient.getContacts` and the contacts script
 - [x] Phase 5: Application controller, SQLite driver and composition
-- [ ] Phase 6: Dashboard, node editing, e2e and docs
+- [x] Phase 6: Dashboard, node editing, e2e and docs
 
 ## Human checks
 <!-- Filled by /implement: one open checkbox per human check, with how to run it and evidence. -->
+- [ ] (Phase 6) Real phone, CI APK (`android-apk` artifact) + Heltec companion: connect, wait for "Contacts synced: <n>" (about 25 s for 350). Dashboard lists repeaters and room servers, chat contacts only under All contacts, scrolling 350 rows is smooth. Record sync duration, count and the largest gap between frames — run: install the CI APK, Connect companion, back to Dashboard — evidence: none (emulator run with fake transport: `evidence/phase-6-contacts-sync.png`)
+- [ ] (Phase 6) Real phone: set a label on one node, force-stop the app, reopen: the label is still there — run: node row → Label → Save label → force-stop → reopen — evidence: none (emulator: `evidence/phase-6-label-restart.png`)
+- [ ] (Phase 6) Wording: the sync failure texts and "Last heard (companion clock)" read clearly to an operator — run: read `apps/mobile/src/i18n/en.json` keys `sync.*`, `nodes.*` — evidence: none
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
@@ -288,6 +291,8 @@ Dashboard / node screen ──useStore──▶ NodesController.store { nodes, s
 - [minor] Phase 5: plan-review #2 applied: D-4's `withExclusiveTransactionAsync` is replaced by a mutex (D-19). `ExpoSqlDriver` takes a structural `ExpoDatabase`, so it is unit-tested with a stub; `open-guardian-db.ts` is the only file importing `expo-sqlite`.
 - [minor] Phase 5: plan-review #6 applied: no auto sync in the background and none on return to the foreground; no sync when storage is `"error"` (state `idle`); `CompanionSession.disconnect()` aborts running fetches itself, so a user disconnect ends a sync as `idle` and a link drop as `failed(TRANSPORT_UNAVAILABLE)`. `setLabel`/`setRole`/`pin` return `{ ok: false, reason: "STORAGE_ERROR" }` on a repository failure.
 - [minor] Phase 5: `FakeBlePlatform` gains `lastTransport` for tests; the fake script is handshake + `CONTACTS_FRAMES` ×2. The "unsupported" controller test uses verCode 0, because `contacts` is supported from verCode 1.
+- [minor] Phase 6: presenter returns catalog keys as plain strings (the application layer has no i18n types), so screens render them through `components/translate.ts` (`tr`), and `catalog.test.ts` checks that every role, reported-as and sync-failure key exists. "Reported as …" and the sync failure texts are one full key per case (`nodes.reportedAs.<role>`, `sync.failed.<reason>`) because i18next does not translate interpolated keys; it shows only once the user changed role or label.
+- [minor] Phase 6: e2e flows wait for "Known nodes will appear here." before the scenario deep link (opening it straight after launch left the app on the Dashboard), wait for "Scan for companions" instead of "Disconnected" (also on the Dashboard), and use `testID`s (`label-input`, `filter-dashboard`, `filter-all`) where a text matches several elements.
 - [FOLLOW-UP] Incremental sync with `since` = last `mostRecentLastMod`, and handling of the `0x90` contacts-full push.
 - [FOLLOW-UP] "Remove from dashboard" for pinned chat contacts (and a rule for hiding repeaters the user does not care about).
 

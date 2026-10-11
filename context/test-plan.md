@@ -133,6 +133,8 @@ Tool setup (done in F-01, configuration fixed here): `@stryker-mutator/core` and
 4. Run one flow: `pnpm e2e --flow apps/mobile/e2e/<flow>.yaml`; all: `pnpm e2e`.
 5. Keep the e2e suite under ~15 flows; push detail down to integration tests.
 
+Existing S-03 flows: `contacts-sync.yaml` (FR-04 AC1, AC2, AC4: sync after connect, Unknown role, chat contacts only under All contacts, pin to Dashboard, second sync) and `contacts-label-restart.yaml` (FR-04 AC3: label and role survive `stopApp`/`launchApp` without `clearState`).
+
 ### Run a mutation check
 1. Pick the target from *Mutation targets* (or the file your change touched in that list).
 2. `pnpm mutation --mutate packages/domain/src/policy/timeout.ts`

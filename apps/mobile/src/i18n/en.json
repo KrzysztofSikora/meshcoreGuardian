@@ -5,7 +5,12 @@
   "dashboard": {
     "title": "Dashboard",
     "placeholder": "Known nodes will appear here.",
-    "connect": "Connect companion"
+    "connect": "Connect companion",
+    "filterDashboard": "Dashboard",
+    "filterAll": "All contacts",
+    "empty": "No contacts yet",
+    "storageError": "Local storage could not be opened",
+    "syncButton": "Sync contacts"
   },
   "connect": {
     "title": "Connect",
@@ -80,5 +85,48 @@
     "trace": "Trace",
     "supported": "Supported",
     "unsupported": "Not supported by companion firmware {{version}}"
+  },
+  "roles": {
+    "repeater": "Repeater",
+    "room_server": "Room server",
+    "chat": "Chat",
+    "unknown": "Unknown"
+  },
+  "nodes": {
+    "name": "{{name}}",
+    "unnamed": "Unnamed node {{prefix}}",
+    "lastHeard": "Last heard (companion clock): {{time}}",
+    "lastHeardNone": "Last heard: not reported",
+    "notInContacts": "Not in companion contacts",
+    "reportedAs": {
+      "repeater": "Reported as Repeater",
+      "room_server": "Reported as Room server",
+      "chat": "Reported as Chat",
+      "unknown": "Reported as Unknown (type {{type}})"
+    },
+    "keyPrefix": "Key: {{prefix}}",
+    "role": "Role: {{role}}",
+    "label": "Label",
+    "saveLabel": "Save label",
+    "labelHelp": "Up to 64 characters. Empty removes the label.",
+    "labelTooLong": "The label is longer than 64 characters.",
+    "saveFailed": "Could not save. Local storage failed.",
+    "setRole": "Set role",
+    "useReportedRole": "Use reported role",
+    "addToDashboard": "Add to dashboard",
+    "notFound": "This node is not in local storage."
+  },
+  "sync": {
+    "syncing": "Syncing contacts…",
+    "done": "Contacts synced: {{count}}",
+    "partial": "Partial sync: {{received}} of {{expected}}",
+    "needConnection": "Connect a companion to sync contacts.",
+    "failed": {
+      "NO_RESPONSE": "Contact sync failed: no response from the companion (cause unknown).",
+      "TRANSPORT_UNAVAILABLE": "Contact sync failed: the Bluetooth link was lost.",
+      "UNSUPPORTED": "Contact sync failed: the companion firmware refused the command.",
+      "MALFORMED_RESPONSE": "Contact sync failed: the companion sent a reply that could not be read.",
+      "STORAGE_ERROR": "Contact sync failed: contacts could not be saved locally."
+    }
   }
 }
