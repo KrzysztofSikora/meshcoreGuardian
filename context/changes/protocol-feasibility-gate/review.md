@@ -58,7 +58,7 @@ Gates: typecheck ok, lint ok, unit tests ok (21 files, 341 tests), e2e ok (smoke
 - Fix: Add a case to the per-fixture `describe.each`: for every rx frame with code `03` or `8a`, 148 bytes and type byte `01`, expect the name field to match `^chat-\d+$` with zero padding and bytes 136–143 to be zero.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (32d9f80)
 
 ### R2: Docs still say `HW_COMPANION` may be a device name
 - Severity: minor
@@ -67,4 +67,4 @@ Gates: typecheck ok, lint ok, unit tests ok (21 files, 341 tests), e2e ok (smoke
 - Fix: Change both texts to "BLE address (AA:BB:CC:DD:EE:FF)". Leave the roadmap wording to the person, and mention the narrowing in the PR body next to the deviation.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (bcc370f)
