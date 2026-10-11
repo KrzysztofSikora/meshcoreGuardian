@@ -2,26 +2,31 @@
 # Take one roadmap item from plan to pull request without stopping for a person.
 #
 #   .claude/workflow/ship <S-01 | change-id | #issue> [--base <branch>] [--no-mutation] [--no-pr]
+#   .claude/workflow/ship <S-01 | change-id | #issue> --publish-only
 #
 # Every step is a fresh headless Claude Code session running one skill. Progress lives in the
 # artifacts (context/changes/<change-id>/), so re-running the same command resumes the item.
 # Decisions the agent made on its own are collected in the PR description for review.
+# --publish-only pushes the branch and opens or updates the PR from the existing pr-body.md,
+# without any session (use it when a run finished but publishing failed).
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 # shellcheck source=lib.sh
 source .claude/workflow/lib.sh
 
-ITEM="" BASE="" MUTATION=1 OPEN_PR=1
+ITEM="" BASE="" MUTATION=1 OPEN_PR=1 PUBLISH_ONLY=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --base) BASE=$2; shift 2 ;;
     --no-mutation) MUTATION=0; shift ;;
     --no-pr) OPEN_PR=0; shift ;;
-    -h|--help) sed -n '2,8p' "$0"; exit 0 ;;
+    --publish-only) PUBLISH_ONLY=1; shift ;;
+    -h|--help) sed -n '2,11p' "$0"; exit 0 ;;
     *) [ -z "$ITEM" ] || die "unexpected argument: $1"; ITEM=$1; shift ;;
   esac
 done
-[ -n "$ITEM" ] || die "usage: ship <S-01 | change-id | #issue> [--base <branch>] [--no-mutation] [--no-pr]"
+[ -n "$ITEM" ] || die "usage: ship <S-01 | change-id | #issue> [--base <branch>] [--no-mutation] [--no-pr] | --publish-only"
+[ "$PUBLISH_ONLY" -eq 0 ] || [ "$OPEN_PR" -eq 1 ] || die "--publish-only and --no-pr exclude each other"
 
 # ---------------------------------------------------------------------------- preflight
 # Everything that could need a person is checked here, before any work starts.
@@ -31,6 +36,10 @@ git check-ignore -q .workflow/x || die ".workflow/ must be in .gitignore (run in
 [ -z "$(git status --porcelain --untracked-files=no)" ] || die "tracked files have uncommitted changes; commit or stash first"
 IFS=$'\t' read -r CHANGE ROADMAP_ID ISSUE < <($WF resolve "$ITEM")
 [ -n "$CHANGE" ] || die "roadmap item '$ITEM' has no change-id"
+[ "$OPEN_PR" -eq 0 ] || check_remote_access
+if [ "$PUBLISH_ONLY" -eq 1 ]; then
+  git rev-parse --verify --quiet "change/$CHANGE" >/dev/null || die "no branch change/$CHANGE to publish"
+fi
 
 if [ -z "$BASE" ]; then
   BASE=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##' || true)
@@ -42,8 +51,17 @@ else
   git switch --quiet -c "change/$CHANGE" "$BASE"
 fi
 
+if [ "$PUBLISH_ONLY" -eq 1 ]; then
+  [ -s "context/changes/$CHANGE/pr-body.md" ] || die "no context/changes/$CHANGE/pr-body.md to publish"
+fi
+
 begin_run "$CHANGE" "Run summary: ship $CHANGE ($ROADMAP_ID), base $BASE"
 DRAFT_REASON=""
+
+if [ "$PUBLISH_ONLY" -eq 1 ]; then
+  publish_pr "$BASE"
+  exit 0
+fi
 
 # ---------------------------------------------------------------------------- pipeline
 

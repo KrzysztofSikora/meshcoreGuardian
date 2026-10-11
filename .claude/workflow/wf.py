@@ -10,7 +10,8 @@ artifacts in `context/` and from `.workflow/run.json`, never from chat memory.
   wf.py open-findings <change-id>            -> number of review findings still `Decision: open`
   wf.py check <step> <change-id>             -> exit 0 when the step's artifact is complete
   wf.py run start <change-id> <branch> | step <name> [<key>=<value> ...] | end
-  wf.py pr-title <change-id>                 -> first `# ` line of pr-body.md
+  wf.py pr-title <change-id>                 -> PR title from pr-body.md (see pr_title_and_body)
+  wf.py pr-body <change-id>                  -> pr-body.md without the line used as the title
   wf.py cost <session.jsonl>                 -> cost, turns and outcome of a `claude -p` session
   wf.py new-comments <in.jsonl> <out.json>   -> PR comments newer than the last agent reply; prints count
   wf.py physical-devices                     -> serials of attached Android devices that are not emulators
@@ -79,6 +80,34 @@ def roadmap_rows() -> list[dict[str, str]]:
             continue
         rows.append(dict(zip(header, cells)))
     return rows
+
+
+def pr_title_and_body(change_id: str) -> tuple[str, str]:
+    """Title and body for the PR. The title is the first `# ` line; without one, the first
+    non-empty line when it is plain text (not a heading, list, table, quote or comment);
+    otherwise a generated `wip(<change-id>): <roadmap ID>`. The line used as the title is
+    dropped from the body."""
+    lines = read_text(change_dir(change_id) / "pr-body.md").splitlines()
+    pick = next((i for i, line in enumerate(lines) if line.startswith("# ")), None)
+    if pick is not None:
+        title = lines[pick][2:].strip()
+    else:
+        pick = next((i for i, line in enumerate(lines) if line.strip()), None)
+        if pick is not None and (re.match(r"\s*(#|-|\*|\||<!--|>)", lines[pick])
+                                 or len(lines[pick].strip()) > 200):
+            pick = None
+        title = lines[pick].strip() if pick is not None else ""
+    if not title:
+        pick = None
+        try:
+            roadmap_id = resolve(change_id)[1]
+        except SystemExit:
+            roadmap_id = ""
+        title = f"wip({change_id}): {roadmap_id or change_id}"
+    body = lines if pick is None else lines[:pick] + lines[pick + 1:]
+    while body and not body[0].strip():
+        body = body[1:]
+    return title, "\n".join(body) + "\n"
 
 
 def resolve(arg: str) -> tuple[str, str, str]:
@@ -357,10 +386,9 @@ def main(argv: list[str]) -> int:
         elif sub == "end":
             run_file().unlink(missing_ok=True)
     elif cmd == "pr-title":
-        for line in read_text(change_dir(args[0]) / "pr-body.md").splitlines():
-            if line.startswith("# "):
-                print(line[2:].strip())
-                break
+        print(pr_title_and_body(args[0])[0])
+    elif cmd == "pr-body":
+        sys.stdout.write(pr_title_and_body(args[0])[1])
     elif cmd == "cost":
         result: dict = {}
         for line in read_text(Path(args[0])).splitlines():

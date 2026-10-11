@@ -163,27 +163,49 @@ write_pr_body() {
   FAILED=$failed
 }
 
+# check_remote_access: before any session, make sure the run can push its branch and open the
+# PR, so a run never does all its work and then fails at the end. Without an origin remote the
+# run ends with a local description instead, so there is nothing to check.
+check_remote_access() {
+  local url
+  url=$(git remote get-url origin 2>/dev/null) || return 0
+  git ls-remote origin >/dev/null 2>&1 \
+    || die "cannot read origin ($url). Fix git access (SSH agent or HTTPS credentials) and start again."
+  git push --dry-run --quiet origin "HEAD:refs/heads/workflow-preflight-check" >/dev/null 2>&1 \
+    || die "origin refuses a push (dry run to $url). Fix push access and start again."
+  command -v gh >/dev/null || die "gh CLI not found; it is needed to open the PR"
+  gh auth status >/dev/null 2>&1 || die "gh is not logged in; run: gh auth login"
+}
+
 # publish_pr <base>: push the branch, then create the PR or update its title and body.
 # Prints the PR URL. A draft PR means the agent did not reach a reviewable end state.
+# Uses the REST API: `gh pr edit` fails on repositories where GitHub's GraphQL still reports
+# deprecated Projects (classic) fields.
 publish_pr() {
-  local base=$1 title body draft=()
+  local base=$1 title body draft=false owner number
   title=$($WF pr-title "$CHANGE")
   body=.workflow/pr-body-$CHANGE.md
-  sed '1{/^# /d}' "context/changes/$CHANGE/pr-body.md" > "$body"
+  mkdir -p .workflow
+  $WF pr-body "$CHANGE" > "$body"
   if [ -n "$FAILED${DRAFT_REASON:-}" ] || [ "$($WF open-findings "$CHANGE")" -gt 0 ]; then
-    draft=(--draft)
+    draft=true
   fi
   if ! git remote get-url origin >/dev/null 2>&1 || ! command -v gh >/dev/null; then
     note "PR not opened (no origin remote or no gh). Description: context/changes/$CHANGE/pr-body.md"
     return 0
   fi
-  git push --quiet -u origin "$BRANCH"
-  if gh pr view "$BRANCH" --json url >/dev/null 2>&1; then
-    gh pr edit "$BRANCH" --title "$title" --body-file "$body" >/dev/null
-    [ ${#draft[@]} -gt 0 ] || gh pr ready "$BRANCH" >/dev/null 2>&1 || true
-    PR_URL=$(gh pr view "$BRANCH" --json url --jq .url)
-  else
-    PR_URL=$(gh pr create --base "$base" --head "$BRANCH" --title "$title" --body-file "$body" "${draft[@]}")
+  if ! git push --quiet -u origin "$BRANCH"; then
+    note "push of $BRANCH failed, nothing was published. Fix access, then run: .claude/workflow/ship $CHANGE --publish-only"
+    return 1
   fi
-  note "PR: $PR_URL ${draft[*]}"
+  owner=$(gh api "repos/{owner}/{repo}" --jq .owner.login)
+  number=$(gh api "repos/{owner}/{repo}/pulls?state=open&head=$owner:$BRANCH" --jq '.[0].number // empty')
+  if [ -n "$number" ]; then
+    PR_URL=$(gh api -X PATCH "repos/{owner}/{repo}/pulls/$number" -f title="$title" -F "body=@$body" --jq .html_url)
+    [ "$draft" = true ] || gh pr ready "$number" >/dev/null 2>&1 || true
+  else
+    PR_URL=$(gh api -X POST "repos/{owner}/{repo}/pulls" -f title="$title" -f head="$BRANCH" \
+      -f base="$base" -F "body=@$body" -F draft="$draft" --jq .html_url)
+  fi
+  note "PR: $PR_URL$([ "$draft" = true ] && echo " (draft)")"
 }

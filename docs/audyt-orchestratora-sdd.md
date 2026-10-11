@@ -32,6 +32,14 @@
 
 ### P1. Niezawodna publikacja PR-a (preflight, REST, zapasowy tytuł)
 
+> **✅ Wdrożono 2026-10-11.** Zakres wdrożenia:
+> - preflight `check_remote_access` (`lib.sh`), wywoływany w `ship` (gdy PR ma być otwarty) i w `address-pr`: odczyt `origin` (`git ls-remote`), push na sucho, `gh auth status`; brak dostępu zatrzymuje run przed pierwszą sesją;
+> - `publish_pr` (`lib.sh`) tworzy i aktualizuje PR przez REST (`gh api …/pulls`, POST i PATCH) zamiast `gh pr create` / `gh pr edit`; `address-pr` odpowiada komentarzem przez REST zamiast `gh pr comment`;
+> - `wf.py pr-title` / nowe `wf.py pr-body`: tytuł z pierwszej linii `# `, inaczej z pierwszej niepustej linii zwykłego tekstu, inaczej `wip(<change-id>): <ID>`; linia tytułu jest usuwana z treści;
+> - nieudany push zapisuje w `run-summary.md` polecenie `ship <ID> --publish-only`; nowa flaga `--publish-only` publikuje z istniejącego `pr-body.md` bez żadnej sesji.
+>
+> Sprawdzone testami w tymczasowym repo (lokalny origin + podstawiony `gh`): tytuły (6 przypadków, w tym S-02), nowy PR, aktualizacja istniejącego PR-a, draft, nieudany push, brak dostępu do origin, brak logowania `gh`, `--publish-only`. Preflight sprawdzony też na prawdziwym GitHubie (bez utworzenia gałęzi). Nie sprawdzono: odmowy zapisu przy push na sucho na lokalnym originie (lokalny transport nie weryfikuje uprawnień).
+
 - **Problem:** publikacja PR-a jest ostatnim krokiem runu i jedynym, którego nikt wcześniej nie sprawdza. Jej awaria marnuje cały run, bo wymaga ręcznej interwencji.
 - **Dowód [F]:**
   - **S-01:** `git push` w `publish_pr` (`lib.sh:180`) padł z `Permission denied (publickey)` dopiero po review i opisie PR-a.
@@ -218,7 +226,7 @@
 
 | # | Poprawka | Główna korzyść | Ryzyko dla jakości |
 |---|---|---|---|
-| 1 | **P1** niezawodna publikacja PR-a | run dochodzi do PR-a; 2 z 3 ostatnich runów wymagały ręcznej pomocy [F] | brak |
+| 1 | **P1** niezawodna publikacja PR-a ✅ wdrożono | run dochodzi do PR-a; 2 z 3 ostatnich runów wymagały ręcznej pomocy [F] | brak |
 | 2 | **P2** obsługa limitu użycia | brak strat i draftów przy limicie Pro [F] | brak |
 | 3 | **P8** metryki tokenów i tur | podstawa oceny wszystkich zmian | brak |
 | 4 | **P3** bramki przez runner + cache | mniej powtórzeń e2e i bramek; obiektywny wynik [H] | średnio-niskie |
@@ -231,7 +239,7 @@ Tuż za rankingiem: P10 (tani bezpiecznik), P9 (mała zmiana) i P7 (większa zmi
 ## 3. Rekomendowany zakres pierwszego etapu
 
 **Etap 1a: zmiany mechaniczne w runnerze, bez zmiany zachowania agentów.**
-- P1, P2, P5, P8, P10;
+- P1 (✅ wdrożono 2026-10-11), P2, P5, P8, P10;
 - P9 (jedna linia w `package.json` i jednorazowe wyrównanie formatowania).
 
 Pliki: `.claude/workflow/{ship,address-pr,lib.sh,config.sh,wf.py}`, `package.json`, `CLAUDE.md`.
@@ -286,4 +294,4 @@ Uzasadnienie: 1a usuwa realne awarie bez dotykania jakości i daje punkt odniesi
 
 ---
 
-**Status:** to tylko propozycja do zatwierdzenia. Nic nie zostało zaimplementowane ani zmienione.
+**Status:** P1 wdrożono 2026-10-11. Pozostałe propozycje czekają na zatwierdzenie.

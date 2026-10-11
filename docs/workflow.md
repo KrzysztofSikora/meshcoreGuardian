@@ -59,6 +59,11 @@ The rules every autonomous step follows are in `.claude/workflow/autonomy.md`.
 - **PreToolUse hook.** Denies `AskUserQuestion` ("decide and record it") and risky git
   commands. Both hooks act only in sessions started by the runner (`WORKFLOW_RUN`), so your
   own interactive sessions are unaffected.
+- **Publishing.** Before any session, `ship` and `address-pr` check that `origin` is readable, that
+  a dry-run push is accepted and that `gh` is logged in, so a run never does all its work and
+  then fails at the end. PRs are created and updated through the REST API. The title is the first
+  `# ` line of `pr-body.md`, else its first plain-text line, else `wip(<change-id>): <ID>`. If the
+  push still fails, publish later with `.claude/workflow/ship <ID> --publish-only` (no session).
 - **Draft vs ready.** The PR is a draft when a step failed, the agent got stuck, the plan
   review never reached READY, or review findings are still open. Otherwise it is ready for
   review.

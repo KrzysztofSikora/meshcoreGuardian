@@ -27,6 +27,7 @@ command -v claude >/dev/null || die "claude CLI not found"
 command -v gh >/dev/null || die "gh CLI not found"
 git check-ignore -q .workflow/x || die ".workflow/ must be in .gitignore (run install.sh)"
 [ -z "$(git status --porcelain --untracked-files=no)" ] || die "tracked files have uncommitted changes; commit or stash first"
+check_remote_access
 
 HEAD_BRANCH=$(gh pr view "$PR" --json headRefName --jq .headRefName)
 BASE=$(gh pr view "$PR" --json baseRefName --jq .baseRefName)
@@ -79,5 +80,5 @@ publish_pr "$BASE"
   echo
   echo "Run: ${FAILED:-completed}. The PR description was regenerated from the artifacts."
 } > "$DIR/reply-comment.md"
-gh pr comment "$PR" --body-file "$DIR/reply-comment.md" >/dev/null
+gh api -X POST "repos/{owner}/{repo}/issues/$PR/comments" -F "body=@$DIR/reply-comment.md" >/dev/null
 note "replied on PR #$PR"
