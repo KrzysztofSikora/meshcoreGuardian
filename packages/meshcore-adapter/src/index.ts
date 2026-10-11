@@ -22,3 +22,12 @@ export {
   type RequestKind,
   type RequestOutcome,
 } from "./fixtures/format";
+export { FakeTransport, type ScriptFrame } from "./transport/fake-transport";
+export { HANDSHAKE_FRAMES, withFirmware } from "./transport/handshake-script";
+export { MeshClient, type AbortSignalLike, type MeshClientOptions } from "./client/mesh-client";
+export {
+  AbortError,
+  HandshakeTimeoutError,
+  TransportUnavailableError,
+  type HandshakeStep,
+} from "./client/errors";
