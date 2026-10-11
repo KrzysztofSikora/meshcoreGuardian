@@ -7,6 +7,8 @@
  * - Self info (rx): the companion's position is zeroed and its name becomes `companion`.
  * - Chat contacts (rx contact or new-advert push, type 1): name → `chat-<n>`, position zeroed.
  *   Repeater, room and sensor contacts are public infrastructure adverts and stay verbatim.
+ * - RX log push (0x88, D-20): SNR and RSSI are kept, the raw over-the-air packet is dropped. It can
+ *   be any packet the companion heard, e.g. a public-channel message or a chat advert.
  */
 
 export type Direction = "tx" | "rx";
@@ -17,7 +19,8 @@ export type RedactionLabel =
   | "selfInfo.latLon"
   | "selfInfo.name"
   | "chatContact.name"
-  | "chatContact.latLon";
+  | "chatContact.latLon"
+  | "rxLog.packet";
 
 /** Per-run state: the same chat contact gets the same `chat-<n>` in every frame of a run. */
 export interface RedactionState {
@@ -37,6 +40,7 @@ const DEVICE_INFO = 13;
 const SELF_INFO = 5;
 const CONTACT = 3;
 const NEW_ADVERT = 0x8a;
+const RX_LOG = 0x88;
 
 const PUBLIC_KEY_END = 33;
 const BLE_PIN = [4, 8] as const;
@@ -47,6 +51,8 @@ const CONTACT_TYPE_AT = 33;
 const ADV_TYPE_CHAT = 1;
 const CONTACT_NAME = [100, 132] as const;
 const CONTACT_LAT_LON = [136, 144] as const;
+/** Code, SNR × 4 (int8) and RSSI (int8); the raw packet follows. */
+const RX_LOG_HEADER = 3;
 
 const ascii = (text: string) => Array.from(text, (char) => char.charCodeAt(0));
 
@@ -73,6 +79,8 @@ export function redactFrame(dir: Direction, frame: Uint8Array, state: RedactionS
       named.set(ascii(SELF_NAME), SELF_NAME_AT);
       return { bytes: named, redactions: [...redactions, "selfInfo.name"] };
     }
+  } else if (code === RX_LOG && bytes.length > RX_LOG_HEADER) {
+    return { bytes: bytes.slice(0, RX_LOG_HEADER), redactions: ["rxLog.packet"] };
   } else if (
     (code === CONTACT || code === NEW_ADVERT) &&
     bytes.length >= CONTACT_LAT_LON[1] &&

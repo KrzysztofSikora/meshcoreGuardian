@@ -119,12 +119,32 @@ describe("redactFrame (D-4)", () => {
     expect(redact("rx", self).redactions).toEqual([]);
   });
 
+  it("drops the raw packet of an RX log push and keeps SNR and RSSI (D-20)", () => {
+    const packet = [0x15, 0x4d, ...Array.from({ length: 40 }, (_, index) => index)];
+    const result = redact("rx", Uint8Array.from([0x88, 0x1f, 0x92, ...packet]));
+    expect(toHex(result.bytes)).toBe("881f92");
+    expect(result.redactions).toEqual(["rxLog.packet"]);
+    expect(decodeFrame(result.bytes)).toEqual({ kind: "other", code: 0x88, length: 3 });
+  });
+
+  it("leaves an RX log push without a packet alone", () => {
+    const result = redact("rx", Uint8Array.from([0x88, 0x1f, 0x92]));
+    expect(toHex(result.bytes)).toBe("881f92");
+    expect(result.redactions).toEqual([]);
+  });
+
+  it("does not touch a tx frame that carries the RX log code", () => {
+    const frame = Uint8Array.from([0x88, 1, 2, 3, 4]);
+    expect(toHex(redact("tx", frame).bytes)).toBe(toHex(frame));
+  });
+
   it("never changes the frame it was given", () => {
     const frames: [Direction, Uint8Array][] = [
       ["tx", sendLoginFrame("pw-LEAK-CANARY")],
       ["rx", deviceInfoFrame()],
       ["rx", selfInfoFrame()],
       ["rx", contactFrame({ type: 1 })],
+      ["rx", Uint8Array.from([0x88, 0x1f, 0x92, 0x15, 0x4d])],
     ];
     for (const [dir, frame] of frames) {
       const before = toHex(frame);
