@@ -87,7 +87,9 @@ PRs. Without them the description is left in `context/changes/<id>/pr-body.md`.
 | Variable | Default | Meaning |
 |----------|---------|---------|
 | `WORKFLOW_PERMISSION_MODE` | `auto` | Permission mode of the headless sessions. Use `acceptEdits` plus a `permissions.allow` list if auto mode is not available; `bypassPermissions` only in a disposable container. |
-| `WORKFLOW_MODEL` | – | Model for every step. |
+| `WORKFLOW_MODEL` | – | Model for every step; overrides the per-step models. |
+| `WORKFLOW_MODEL_<STEP>` | opus: `PLAN`, `PLAN_REVIEW`, `REVIEW`; sonnet: `IMPLEMENT`, `MUTATION`, `FIX_REVIEW`, `PR_BODY`, `ADDRESS_PR` | Model per step. |
+| `WORKFLOW_MODEL_RETRY` | opus | Model for a retry after an incomplete artifact; empty keeps the step's model. |
 | `WORKFLOW_STEP_BUDGET_USD` | – | Spend cap per session (API key auth). |
 | `WORKFLOW_PLAN_REVIEW_ROUNDS` | 2 | Plan review rounds before a plan-only draft PR. |
 | `WORKFLOW_REVIEW_ROUNDS` | 2 | Review / fix rounds. |

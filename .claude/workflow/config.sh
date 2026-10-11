@@ -6,8 +6,22 @@
 # mode is not available on your plan. `bypassPermissions` only inside a disposable container.
 : "${WORKFLOW_PERMISSION_MODE:=auto}"
 
-# Optional: model alias or id, and a dollar cap per step (API-key auth only).
+# Model per step (alias or id). Strong models where decisions are made or bugs are hunted,
+# cheaper ones where a written plan or list is executed and gates check the result.
+# WORKFLOW_MODEL, when set, overrides every step (and retries).
 : "${WORKFLOW_MODEL:=}"
+: "${WORKFLOW_MODEL_PLAN:=opus}"
+: "${WORKFLOW_MODEL_PLAN_REVIEW:=opus}"
+: "${WORKFLOW_MODEL_IMPLEMENT:=sonnet}"
+: "${WORKFLOW_MODEL_MUTATION:=sonnet}"
+: "${WORKFLOW_MODEL_REVIEW:=opus}"
+: "${WORKFLOW_MODEL_FIX_REVIEW:=sonnet}"
+: "${WORKFLOW_MODEL_PR_BODY:=sonnet}"
+: "${WORKFLOW_MODEL_ADDRESS_PR:=sonnet}"
+# Model for a retry of a step whose artifact was left incomplete; empty keeps the step's model.
+: "${WORKFLOW_MODEL_RETRY:=opus}"
+
+# Optional: a dollar cap per step (API-key auth only).
 : "${WORKFLOW_STEP_BUDGET_USD:=}"
 
 # Loop limits. When a limit is hit the run does not stop for a person: it opens a draft PR.

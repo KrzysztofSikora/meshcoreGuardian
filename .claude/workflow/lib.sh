@@ -33,7 +33,6 @@ begin_run() {
   CLAUDE_ARGS=(--permission-mode "$WORKFLOW_PERMISSION_MODE" --permission-prompts none
     --disallowedTools AskUserQuestion --output-format stream-json --verbose
     --append-system-prompt "Autonomous run of change '$CHANGE' on branch '$BRANCH'. Nobody will answer questions until the pull request. Follow .claude/workflow/autonomy.md.")
-  [ -z "$WORKFLOW_MODEL" ] || CLAUDE_ARGS+=(--model "$WORKFLOW_MODEL")
   [ -z "$WORKFLOW_STEP_BUDGET_USD" ] || CLAUDE_ARGS+=(--max-budget-usd "$WORKFLOW_STEP_BUDGET_USD")
 }
 
@@ -49,10 +48,19 @@ commit_docs() {
   git commit --quiet "${msg[@]}" || note "commit of $1 artifacts failed (see the hook output above)"
 }
 
+# step_model <step> <attempt (0 = first)>: the model for one session, empty for the CLI default.
+step_model() {
+  local var
+  if [ -n "$WORKFLOW_MODEL" ]; then echo "$WORKFLOW_MODEL"; return; fi
+  if [ "$2" -gt 0 ] && [ -n "$WORKFLOW_MODEL_RETRY" ]; then echo "$WORKFLOW_MODEL_RETRY"; return; fi
+  var=WORKFLOW_MODEL_$(echo "$1" | tr 'a-z-' 'A-Z_')
+  echo "${!var:-}"
+}
+
 # run_step <name> <prompt> [key=value ...]
 # One fresh headless session per attempt; retried while the step's artifact is incomplete.
 run_step() {
-  local name=$1 prompt=$2 attempt missing="" log phones
+  local name=$1 prompt=$2 attempt missing="" log phones model
   shift 2
   for attempt in $(seq 0 "$WORKFLOW_STEP_RETRIES"); do
     phones=$(phones_attached)
@@ -62,9 +70,10 @@ run_step() {
     fi
     N=$((N + 1))
     log=$(printf '%s/%02d-%s.jsonl' "$LOGS" "$N" "$name")
-    note "step $name (attempt $((attempt + 1))): $prompt"
+    model=$(step_model "$name" "$attempt")
+    note "step $name (attempt $((attempt + 1)), model ${model:-default}): $prompt"
     $WF run step "$name" "$@"
-    claude -p "$prompt" "${CLAUDE_ARGS[@]}" > "$log" 2>&1 || note "  claude exited non-zero, see $log"
+    claude -p "$prompt" "${CLAUDE_ARGS[@]}" ${model:+--model "$model"} > "$log" 2>&1 || note "  claude exited non-zero, see $log"
     note "  $($WF cost "$log")"
     if [ -f .workflow/stuck ]; then
       FAILED="$name: agent stuck: $(cat .workflow/stuck)"
