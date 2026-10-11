@@ -1,2 +1,2 @@
-// The MeshCore client abstraction arrives with S-01 (protocol feasibility gate).
-export {};
+export type { MeshTransport, Unsubscribe } from "./transport/mesh-transport";
+export { MeshCoreConnection, type LoginFailEvent } from "./connection/mesh-core-connection";

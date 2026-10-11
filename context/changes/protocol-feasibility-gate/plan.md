@@ -107,6 +107,7 @@ down:
 | D-7 | Capture timeouts (the app's 30 s cap, D-06, belongs to `MeshClient` in S-04) | Each remote request waits for the pushed reply up to `estTimeout + 5 s`, hard-capped at 45 s, so we learn the real latency. Waiting for `RESP_CODE_SENT` or `ERR` is capped at 5 s. Requests are sequential (never two in flight) | B: reuse 30 s now. Consistent with D-06, but it may cut off a late flood reply we want to observe. C: library timers (`estTimeout + 1 s`, no cap). Unbounded | Evidence-gathering tool; bounded either way; values in one constants block | cheap | agent |
 | D-8 | Capture scenarios and output names | `--scenario handshake` (device query, app start, contacts: no LoRa TX) and `--scenario remote` (handshake + guest login + status + telemetry to `HW_REPEATER`, each ≥ 60 s after the previous request to that node; a second attempt of a kind only if the first got no reply). Output `packages/meshcore-adapter/fixtures/<firmware-version>/<scenario>.json`; rerunning overwrites (git shows the diff) | B: one fixed full run. Simpler CLI, but every run transmits. C: one flag per request kind. Finer control, more ways to exceed the budget | `handshake` lets the tool be checked without airtime. The budget (1 handshake, 1 sync, ≤ 2 each of login/status/telemetry) is enforced in code per run | cheap | agent |
 | D-9 | Do decoders produce Zod-validated domain types now? | No. Decoders return adapter-level plain types (hex strings, numbers) with explicit length checks, throwing `MalformedFrameError`. Zod and domain entities come with the slices that consume them | B: add Zod and domain entities now. Earlier boundary validation, but it designs S-02/S-03/S-06 types without their ACs | Keeps S-01 to its ACs; the decoder output is the input those slices will validate | cheap | agent |
+| D-10 | Under which event name does `MeshCoreConnection` emit the login-fail push? | The numeric `Constants.PushCodes.LoginFail` (0x86), payload `{ pubKeyPrefix }`, and the frame is also emitted as `rx` like every other frame | B: the string `"LoginFail"`, as the Phase 1 contract could be read. Easier to grep, but it is the only event not keyed by its code, so callers would need two conventions | Every meshcore.js event, including `LoginSuccess`, is keyed by its numeric code; S-04 listens to both pushes the same way | cheap | agent |
 
 ## Design
 **Adapter (`packages/meshcore-adapter/src`)**
@@ -259,7 +260,7 @@ mid-run → write what was recorded, with `summary.aborted = "transport_disconne
 
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
-- [ ] Phase 1: Adapter transport and connection
+- [x] Phase 1: Adapter transport and connection
 - [ ] Phase 2: Frame decoders
 - [ ] Phase 3: Fixture format, redaction, budget and recorder
 - [ ] Phase 4: node-ble transport and capture CLI
@@ -270,6 +271,10 @@ mid-run → write what was recorded, with `summary.aborted = "transport_disconne
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
+- [minor] (Phase 1) Plan: ambient `meshcore-js.d.ts` reached through a triple-slash reference (plan-review #7). Code: typescript-eslint `recommended` forbids `/// <reference path>` (`triple-slash-reference`). Consequence: the reference in `mesh-core-connection.ts` carries a one-line `eslint-disable-next-line` with the reason; later files that import meshcore.js do the same.
+- [minor] (Phase 1) Plan: tests for the connection. Code: the adapter tsconfig has `lib: es2023` and no Node types, so `console`, `setTimeout` and `TextEncoder` do not type-check there. Consequence: tests use no Node globals (char codes instead of `TextEncoder`, `globalThis` cast for the console spy, an ordered probe event instead of a `setTimeout` flush); Node types stay out of the package so `Buffer` cannot creep into `src`.
+- [minor] (Phase 1) Plan: drop `src/index.test.ts` if superseded. Code: it still checks that `@guardian/domain` resolves through its entry point, which nothing else in the package covers. Consequence: kept.
+- [minor] (Phase 1) Plan-review #5: `emit` defers every listener through `setTimeout(0)`. The ambient type documents it, and the connection tests await events instead of expecting synchronous delivery.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->

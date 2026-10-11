@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
-    "@guardian/domain": "workspace:*"
+    "@guardian/domain": "workspace:*",
+    "@liamcottle/meshcore.js": "1.15.0"
   }
 }
