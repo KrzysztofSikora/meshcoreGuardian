@@ -22,6 +22,7 @@ const adapterFile = "packages/meshcore-adapter/src/sample.ts";
 const storageFile = "packages/storage/src/sample.ts";
 const storageTestFile = "packages/storage/test/sample.int.test.ts";
 const mobileFile = "apps/mobile/src/app/sample.tsx";
+const captureFile = "tools/capture/src/sample.ts";
 
 describe("layer rules (TR-22)", () => {
   it.each([
@@ -56,6 +57,12 @@ describe("layer rules (TR-22)", () => {
     [mobileFile, "@guardian/domain/src/diagnostics/result-code"],
     [mobileFile, "@liamcottle/meshcore.js"],
     [mobileFile, "node:sqlite"],
+    [captureFile, "@liamcottle/meshcore.js"],
+    [captureFile, "@guardian/storage"],
+    [captureFile, "@guardian/meshcore-adapter/src/decode/decode-frame"],
+    [captureFile, "react-native"],
+    [captureFile, "expo"],
+    [captureFile, "node:sqlite"],
   ])("%s may not import %s", async (file, specifier) => {
     expect(await restrictedImportErrors(file, specifier)).toHaveLength(1);
   });
@@ -71,6 +78,8 @@ describe("layer rules (TR-22)", () => {
     [mobileFile, "@guardian/domain"],
     [mobileFile, "react-native"],
     [mobileFile, "expo-router"],
+    [captureFile, "@guardian/meshcore-adapter"],
+    [captureFile, "node:fs"],
   ])("%s may import %s", async (file, specifier) => {
     expect(await restrictedImportErrors(file, specifier)).toEqual([]);
   });

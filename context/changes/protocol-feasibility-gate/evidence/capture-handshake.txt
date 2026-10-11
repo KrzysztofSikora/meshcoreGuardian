@@ -1,0 +1,11 @@
+$ pnpm --filter @guardian/capture capture --scenario handshake
+$ tsx src/main.ts --scenario handshake
+connecting to AC:A7:04:07:CE:C1 …
+device info: Heltec V3 v1.17.1-d929643 (14-Aug-2026)
+contacts: 350 received, 350 announced
+fixture: packages/meshcore-adapter/fixtures/v1.17.1-d929643/handshake.json
+scenario: handshake, target: none
+firmware: Heltec V3 v1.17.1-d929643 (14-Aug-2026), protocol 13
+frames: 3 tx, 357 rx, 0 decode errors, longest rx 148 bytes
+contacts: 350
+redactions: chatContact.latLon, chatContact.name, deviceInfo.blePin, rxLog.packet, selfInfo.latLon, selfInfo.name

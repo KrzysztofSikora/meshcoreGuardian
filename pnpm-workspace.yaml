@@ -2,6 +2,7 @@ packages:
   - apps/*
   - packages/*
   - tooling
+  - tools/*
 
 nodeLinker: hoisted
 
@@ -9,6 +10,13 @@ nodeLinker: hoisted
 # when the platform optional dependency is missing; pnpm installs that dependency itself.
 allowBuilds:
   unrs-resolver: false
+  # meshcore.js depends on serialport, but the adapter never uses its serial connection (it is
+  # imported dynamically only by NodeJSSerialConnection), so the native binding is never built.
+  "@serialport/bindings-cpp": false
+  # tools/capture: dbus-next (node-ble) uses usocket only for abstract D-Bus sockets; BlueZ's system
+  # bus is a path socket. esbuild (tsx) runs from its platform package without the install check.
+  usocket: false
+  esbuild: false
 
 # Optional peers (reanimated, worklets, gesture-handler, react-dom) would otherwise be installed at
 # their latest versions and autolinked into the native build. Native deps are added explicitly.

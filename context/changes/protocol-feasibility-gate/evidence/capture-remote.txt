@@ -1,0 +1,19 @@
+$ pnpm --filter @guardian/capture capture --scenario remote
+$ tsx src/main.ts --scenario remote
+connecting to AC:A7:04:07:CE:C1 …
+device info: Heltec V3 v1.17.1-d929643 (14-Aug-2026)
+unhandled frame: code=144 Uint8Array(1) [ 144 ]
+contacts: 350 received, 350 announced
+target: 7c73a8cd01d9 "Room K" (type 3)
+login: responded, estTimeout 3678 ms, latency 2875 ms
+status: responded, estTimeout 2694 ms, latency 1324 ms
+telemetry: responded, estTimeout 2694 ms, latency 1088 ms
+fixture: packages/meshcore-adapter/fixtures/v1.17.1-d929643/remote.json
+scenario: remote, target: 7c73a8cd01d92e24
+firmware: Heltec V3 v1.17.1-d929643 (14-Aug-2026), protocol 13
+frames: 6 tx, 373 rx, 0 decode errors, longest rx 148 bytes
+contacts: 350
+redactions: chatContact.latLon, chatContact.name, deviceInfo.blePin, rxLog.packet, selfInfo.latLon, selfInfo.name
+login: responded, estTimeout 3678 ms, latency 2875 ms
+status: responded, estTimeout 2694 ms, latency 1324 ms
+telemetry: responded, estTimeout 2694 ms, latency 1088 ms

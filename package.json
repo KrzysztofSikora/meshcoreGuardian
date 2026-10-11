@@ -11,6 +11,7 @@
     "test": "vitest run",
     "e2e": "bash scripts/e2e.sh",
     "mutation": "stryker run",
+    "capture": "pnpm --filter @guardian/capture capture",
     "format": "prettier --write ."
   },
   "devDependencies": {

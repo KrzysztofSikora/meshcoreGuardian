@@ -1,0 +1,12 @@
+# Two `pnpm capture --scenario remote` attempts on 2026-10-11 at about 12:39 and 12:40 CEST,
+# right after the first handshake run. Neither connected, so no file was written and nothing was
+# transmitted. A 45 s `bluetoothctl scan on` afterwards did not see the companion. It was
+# advertising again at 12:44:04 and the third attempt (capture-remote.txt) connected.
+$ pnpm capture --scenario remote
+connecting to AC:A7:04:07:CE:C1 …
+Connecting to the companion: no answer within 20000 ms
+(exit 2)
+$ pnpm capture --scenario remote
+connecting to AC:A7:04:07:CE:C1 …
+Connecting to the companion: no answer within 20000 ms
+(exit 2)

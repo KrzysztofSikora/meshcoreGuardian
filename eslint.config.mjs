@@ -94,6 +94,18 @@ export default defineConfig([
   layer(["packages/storage/**"], [...storageForbidden, forbid.nodeSqlite]),
   layer(["packages/storage/test/**"], storageForbidden),
   layer(["apps/mobile/**"], [forbid.deepImport, forbid.meshcoreJs, forbid.nodeSqlite]),
+  // Dev tools (tools/capture) reach meshcore.js only through the adapter.
+  layer(
+    ["tools/**"],
+    [
+      forbid.storage,
+      forbid.deepImport,
+      forbid.react,
+      forbid.expo,
+      forbid.meshcoreJs,
+      forbid.nodeSqlite,
+    ],
+  ),
   {
     // C-09: JSX children text comes from the i18n catalog, never a literal. Props are not
     // checked yet (accessibilityLabel, title): FOLLOW-UP in context/changes/repo-skeleton/plan.md.

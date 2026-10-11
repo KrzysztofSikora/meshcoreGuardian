@@ -8,7 +8,7 @@ Test levels in this repo:
 
 | Level | Tool | Where | Touches |
 |-------|------|-------|---------|
-| **unit** | Vitest | `packages/*/src/**/*.test.ts`, `apps/mobile/src/**/*.test.ts` | pure functions only |
+| **unit** | Vitest | `packages/*/src/**/*.test.ts`, `apps/mobile/src/**/*.test.ts`, `tools/*/src/**/*.test.ts` | pure functions only |
 | **integration** | Vitest | `packages/*/test/**/*.int.test.ts` | adapter ↔ `FakeTransport` with recorded fixtures; repositories ↔ real SQLite (`node:sqlite`); use-cases ↔ real adapter + storage with fake transport and clock |
 | **e2e** | Maestro on Android emulator (AVD `guardian`, API 35) | `apps/mobile/e2e/*.yaml` | app build with `EXPO_PUBLIC_TRANSPORT=fake` |
 | **hardware** | `pnpm capture` (S-01 only) and human checks | `tools/capture`, PR checklist | real Heltec companion + repeater; never a gate |
@@ -23,10 +23,10 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | TR-03 | Timeout policy wrong: cap not applied, estimate ignored, override out of range, retries exceed limit | H | M | unit | `timeoutPolicy` and `retryPolicy` tests with boundary values (estimate 0, 29 999, 30 001 ms, none; attempts 1/2/3/4) | planned (S-04) |
 | TR-04 | Two requests in flight on one companion, or cooldown bypassed — radio spam | H | M | integration | `MeshClient` with `FakeTransport` + fake clock: concurrent `runDiagnostic` → second refused; run within 60 s → refused; after 60 s → allowed | planned (S-04) |
 | TR-05 | Cancel does not stop retries, or leaves a dangling listener that resolves a later run | H | M | integration | abort during attempt 1 → no attempt 2 frame written; late reply after abort is ignored and not stored | planned (S-04) |
-| TR-06 | Frame decoding drifts from firmware (library upgrade or firmware change) | H | M | integration | fixture tests decode every file in `packages/meshcore-adapter/fixtures/` and compare with the values logged at capture time | planned (S-01) |
+| TR-06 | Frame decoding drifts from firmware (library upgrade or firmware change) | H | M | integration | fixture tests decode every file in `packages/meshcore-adapter/fixtures/` and compare with the values logged at capture time | covered (S-01) |
 | TR-07 | meshcore.js does not run under Hermes / RN (Node or Web globals) | H | M | hardware | human check in S-02: app on real phone connects and decodes contacts; recorded in PR evidence | planned (S-02) |
 | TR-08 | Response matched to the wrong request (late reply from a previous run, different node) | H | L | integration | fixture with interleaved replies; reply carrying another node's key prefix is not attributed to the current run | planned (S-04) |
-| TR-09 | Guest password leaks to SQLite, logs, fixtures or export | H | L | integration | write known password `pw-LEAK-CANARY`, then scan the SQLite file bytes, captured log output and export output: none contain it; capture tool test asserts password field is never serialised | planned (S-01, S-05, S-08) |
+| TR-09 | Guest password leaks to SQLite, logs, fixtures or export | H | L | integration | write known password `pw-LEAK-CANARY`, then scan the SQLite file bytes, captured log output and export output: none contain it; capture tool test asserts password field is never serialised | covered (S-01 capture part); planned (S-05, S-08) |
 | TR-10 | Export includes full public keys by default or omits redaction preview | M | M | unit | golden files for JSON and CSV with redaction on/off; default settings → 8 hex chars only | planned (S-08) |
 | TR-11 | Data lost on restart or on schema migration | H | L | integration | repository round-trip on file-backed `node:sqlite`; migration test applies every migration in order to a DB seeded at each earlier version and checks rows survive | planned (S-03, S-06) |
 | TR-12 | Link drop not surfaced; in-flight run hangs; reconnect needs app restart | H | M | integration + e2e | `FakeTransport.drop()` mid-request → run ends `TRANSPORT_UNAVAILABLE` within 5 s fake time; e2e `reconnect.yaml` | planned (S-02) |
@@ -40,7 +40,7 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | TR-20 | Settings accept out-of-range values | L | M | unit | Zod schema boundary tests (4/5/60/61 s; 0/1/3/4 attempts) | planned (S-09) |
 | TR-21 | Delete/clear leaves secrets or rows behind | M | L | integration | after delete: repository queries empty and `SecretStore` fake has no key | planned (S-05, S-09) |
 | TR-22 | Layer boundary violated (domain imports RN, storage imports adapter) | M | M | lint | ESLint `no-restricted-imports` + one fixture file asserting lint fails | planned (F-01) |
-| TR-23 | Live capture spams the radio or runs unintentionally | M | L | unit | capture tool refuses to start without `HW_COMPANION`/`HW_REPEATER`; request budget and 60 s spacing enforced with fake clock | planned (S-01) |
+| TR-23 | Live capture spams the radio or runs unintentionally | M | L | unit | capture tool refuses to start without `HW_COMPANION`/`HW_REPEATER`; request budget and 60 s spacing enforced with fake clock | covered (S-01) |
 | TR-24 | Large history makes lists janky | L | M | hardware | S-10 profiler trace with seeded 200 nodes / 1,000 runs | planned (S-10) |
 
 ## Not tested (and why)
@@ -74,7 +74,7 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | `packages/domain/src/diagnostics/rules.ts` | result × reason → explanation/next steps (FR-09) | 80 % | report |
 | `packages/domain/src/policy/timeout.ts`, `retry.ts`, `cooldown.ts` | radio hygiene and false NO_RESPONSE (TR-03, TR-04) | 80 % | report |
 | `packages/meshcore-adapter/src/client/mesh-client.ts` | orchestration: abort, single-flight, error → reason mapping (TR-04, TR-05, TR-08) | 80 % | report |
-| `packages/meshcore-adapter/src/decode/*.ts` | mapping library events → Zod-validated domain types (TR-06, TR-16) | 80 % | report |
+| `packages/meshcore-adapter/src/decode/*.ts` | companion frames → JSON-safe decoded records, corrections of meshcore.js misreads (TR-06, TR-16) | 80 % | report |
 | `packages/domain/src/export/redact.ts`, `packages/domain/src/export/serialize.ts` | privacy defaults (TR-09, TR-10) | 80 % | report |
 | `packages/domain/src/trend.ts` | no trend on thin data (TR-17) | 80 % | report |
 | `packages/storage/src/sync/contacts.ts` | merge rules for labels/roles and removed contacts (TR-15) | 70 % | report |
@@ -147,6 +147,8 @@ Tool setup (done in F-01, configuration fixed here): `@stryker-mutator/core` and
 
 ### Run a hardware capture (S-01 only)
 1. Pair the companion with the laptop once: `bluetoothctl` → `scan on` → `pair <MAC>` (PIN from the companion display or default) → `trust <MAC>`.
-2. `.env`: `HW_COMPANION=<MAC or name>`, `HW_REPEATER=<public key hex prefix>`, optional `HW_GUEST_PASSWORD=` (read at runtime, never written).
-3. `pnpm capture --scenario status-ok` — writes `packages/meshcore-adapter/fixtures/<fw>/status-ok.json`.
-4. Review the file (no password present), commit it, run `pnpm test`.
+2. `.env`: `HW_COMPANION=<MAC, AA:BB:CC:DD:EE:FF>`, `HW_REPEATER=<public key hex prefix>`, optional `HW_GUEST_PASSWORD=` (read at runtime, never written).
+3. `pnpm capture --scenario handshake` (device query, app start, contact list; no LoRa TX) writes `packages/meshcore-adapter/fixtures/<fw>/handshake.json`, overwriting the previous one.
+4. `pnpm capture --scenario remote` adds a guest login, a status and a telemetry request to `HW_REPEATER` (≥ 60 s apart, one retry each when unanswered) and writes `remote.json`, or `remote-2.json` if that exists. The tool refuses a third remote capture (plan D-6). Exit codes: 0 done, 1 usage or `.env`, 2 no BLE connection (no file), 3 run aborted (file written).
+5. Review the file (no password present), commit it, run `pnpm test`.
+6. After a decoder fix: `pnpm capture --redecode <fixture.json>` rewrites `decoded`/`decodeError` from the recorded hex, without BLE. This is the only allowed edit of a recorded fixture.
