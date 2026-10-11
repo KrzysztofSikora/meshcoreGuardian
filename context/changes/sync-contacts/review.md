@@ -104,7 +104,7 @@ Gates: typecheck ok, lint ok, unit tests ok (45 files, 631 tests), e2e ok (9/9 f
 - Fix: Add `companion-session.int.test.ts` cases on a connected fake session with a contacts script that stalls after `contactsStart`: (a) aborting the caller's signal rejects `fetchContacts` with `AbortError` and a following `fetchContacts` succeeds (kills `:213`, `:217-219`); (b) an already-aborted signal rejects at once without a write (kills `:212`); (c) `dispose()` during a fetch rejects it with `AbortError` (covers `:247`); (d) `fetchContacts` during `connecting` rejects with `TransportUnavailableError` (kills `:207`). Then add `companion-session.ts` to `mutation.md` with a decision for every survivor in the changed lines (the older ones may be one `accept` row pointing at connect-companion).
 - Effort: small
 - Lesson candidate: no (covered by the lesson proposed for R1)
-- Decision: open
+- Decision: fixed (60b7b40)
 
 ### R7: Controller `dispose()` test claims "unsubscribes" but does not check it; the survivor is missing from mutation.md
 - Severity: minor
@@ -113,4 +113,4 @@ Gates: typecheck ok, lint ok, unit tests ok (45 files, 631 tests), e2e ok (9/9 f
 - Fix: In the dispose test, after `dispose()` drive the session store to `connected` with `contacts` supported and assert `calls()` stays 1; add a `dispose()` call without a running sync. Update the mutation.md row.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (60b7b40)

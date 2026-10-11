@@ -9,6 +9,7 @@ Targets (changed logic files, one line of reason each):
 - `apps/mobile/src/application/nodes/presenter.ts`: sync button and list rules shown to the user
 - `packages/meshcore-adapter/src/client/mesh-client.ts`: added in review round 1 (R1): pending handler, `collectContacts` timers, `finishPending`
 - `apps/mobile/src/application/nodes/nodes-controller.ts`: added in review round 1 (R2): partial sync, error mapping, single-flight guard
+- `apps/mobile/src/application/connection/companion-session.ts`: added in review round 2 (R6): `fetchContacts` and the fetch aborts
 
 Skipped: migrations, SQL driver wiring, composition, screens, e2e flows (wiring/presentation).
 
@@ -57,6 +58,18 @@ Killed by the new tests: `clearTimeout(idleTimer)` and `clearTimeout(totalTimer)
 | `nodes-controller.ts:72,76` | Conditional | initial `wasConnected` and the abort on disconnect | accept | `CompanionSession` aborts its fetches on disconnect too (two owners, kept as a second line of defence); a FOLLOW-UP in plan.md |
 | `nodes-controller.ts:124` | Conditional / Equality | `this.abort !== abort` in `finally` | accept | only clears a handle; a stale handle at most aborts an already finished controller |
 | `nodes-controller.ts:43-45,150,158,177,187,192` | various | initial state values, optional chain, `signal` object, refresh state | accept | covered indirectly (initial state is replaced by the first load); no behaviour at stake |
+
+## Review round 2 (R6, R7), `--force` runs
+`companion-session.ts` 78.2 % -> 82.7 % (220 killed / 45 survived / 1 no coverage); `nodes-controller.ts` 89.7 % -> 90.9 % (149 / 15 / 1 timeout). Added to the targets: the file is in the test plan and the diff adds `fetchContacts` and the fetch aborts.
+Killed by the new tests: `signal?.addEventListener` and `if (signal?.aborted)` in `fetchContacts`, the `finally` listener removal, the `dispose()` fetch abort, the state check in the `:207` guard, and in the controller `this.unsubscribe()` and `this.abort?.abort()` in `dispose()`.
+
+| File:line | Mutator | Change | Decision | Note |
+|-----------|---------|--------|----------|------|
+| `companion-session.ts:207` | Conditional | `client === null` → `false` | equivalent | the state check on the same line rejects every case where the client is null; the first operand only narrows the type |
+| `companion-session.ts:213` | Object / Boolean | `{ once: true }` → `{}` / `false` | equivalent | the listener is removed in `finally`; `once` only avoids a second call of an abort on a finished controller |
+| `companion-session.ts:218` | CallExpression | `this.fetches.delete(own)` removed | accept | a finished controller stays in the set until dispose; aborting it later is a no-op |
+| `companion-session.ts:235,238` and the rest outside `fetchContacts`/`disconnect`/`dispose` | various | `reset`, scan, connect code | accept | not in this diff; covered by the connect-companion change |
+| `nodes-controller.ts:150` | OptionalChaining | `session.capabilities?.contacts` | accept | `capabilities` is non-null whenever the state is `connected` |
 
 ## Dead-weight tests
 None found. The two new sort tests could be one parametrised table if more orderings are added.
