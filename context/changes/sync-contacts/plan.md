@@ -106,6 +106,7 @@ their role and keep both across restarts. When done:
 | D-16 | How does the application reach `getContacts`? | `CompanionSession.fetchContacts({ signal })` delegates to the current `MeshClient`, and throws `TransportUnavailableError` when not connected. `NodesController` (`application/nodes/nodes-controller.ts`, Zustand vanilla store) subscribes to the session store and calls it on the transition to `connected` (D-6) | B: expose the `MeshClient` from the session. A wider surface, and any caller could start requests. C: sync inside `CompanionSession`. Mixes node storage into the connection state machine | One narrow method keeps one owner of the client and its single-flight | cheap | agent |
 | D-17 | App tests and storage | `NodesController` tests use a small in-memory `NodeRepository` double (records calls, returns the lists it was given). Merge rules are tested only in `packages/storage` on `node:sqlite` | B: let app tests import a `node:sqlite` driver. Needs a lint exception for `apps/mobile` and a deep import into storage | Lint keeps `node:sqlite` out of the app (TR-22). The merge logic has one home and one test suite | cheap | agent |
 | D-18 | Zod in storage | Add `zod` `4.6.5` (the exact version the app uses) to `packages/storage` to parse rows into domain `Node` (the tech stack puts Zod at DB → domain) | B: hand-written row checks. No new manifest entry | Not new to the app bundle; it follows the tech stack | cheap | tech-stack |
+| D-19 | How does `ExpoSqlDriver` serialise work? | One connection; a promise-chain mutex runs every call and every transaction (`BEGIN IMMEDIATE` / `COMMIT` / `ROLLBACK` by hand) one at a time. User edits wait for a running sync | B: `withExclusiveTransactionAsync` (D-4 as first written). It opens a second connection, so edits during a sync fail with `database is locked` and `PRAGMA foreign_keys` does not apply there (plan-review #2) | No lock errors, one connection, same semantics as `NodeSqlDriver`. The stub-based unit test covers the ordering | cheap | agent |
 
 ## Design
 
@@ -271,7 +272,7 @@ Dashboard / node screen ──useStore──▶ NodesController.store { nodes, s
 - [x] Phase 2: Storage foundation (driver, migrations, `devices`)
 - [x] Phase 3: Node repository and sync merge
 - [x] Phase 4: `MeshClient.getContacts` and the contacts script
-- [ ] Phase 5: Application controller, SQLite driver and composition
+- [x] Phase 5: Application controller, SQLite driver and composition
 - [ ] Phase 6: Dashboard, node editing, e2e and docs
 
 ## Human checks
@@ -284,6 +285,9 @@ Dashboard / node screen ──useStore──▶ NodesController.store { nodes, s
 - [minor] Phase 4: plan-review #1 showed the 5 s idle bound in D-11 leaves 77 ms margin over the recorded 4.9 s gap; the code uses 15 s (`CONTACTS_IDLE_TIMEOUT_MS`), D-11 text updated. Consequence: a dead link is noticed after 15 s instead of 5 s (the total cap and the abort button still apply).
 - [minor] Phase 4: plan-review #3: in `CONTACTS_FRAMES` the recorded `endOfContacts` and the derived type-4 frame get new `tMs` just after seq 35 (+49 ms, +98 ms), so the fake sync ends about 2.1 s after the write; a test asserts it.
 - [minor] Phase 4: `MeshClient.getContacts` checks `signal.aborted` and an unavailable link before writing, like the handshake steps; frames before `contactsStart` are ignored.
+- [minor] Phase 5: plan-review #2 applied: D-4's `withExclusiveTransactionAsync` is replaced by a mutex (D-19). `ExpoSqlDriver` takes a structural `ExpoDatabase`, so it is unit-tested with a stub; `open-guardian-db.ts` is the only file importing `expo-sqlite`.
+- [minor] Phase 5: plan-review #6 applied: no auto sync in the background and none on return to the foreground; no sync when storage is `"error"` (state `idle`); `CompanionSession.disconnect()` aborts running fetches itself, so a user disconnect ends a sync as `idle` and a link drop as `failed(TRANSPORT_UNAVAILABLE)`. `setLabel`/`setRole`/`pin` return `{ ok: false, reason: "STORAGE_ERROR" }` on a repository failure.
+- [minor] Phase 5: `FakeBlePlatform` gains `lastTransport` for tests; the fake script is handshake + `CONTACTS_FRAMES` ×2. The "unsupported" controller test uses verCode 0, because `contacts` is supported from verCode 1.
 - [FOLLOW-UP] Incremental sync with `since` = last `mostRecentLastMod`, and handling of the `0x90` contacts-full push.
 - [FOLLOW-UP] "Remove from dashboard" for pinned chat contacts (and a rule for hiding repeaters the user does not care about).
 

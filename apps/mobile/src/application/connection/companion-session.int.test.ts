@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { FakeTransport, HANDSHAKE_FRAMES } from "@guardian/meshcore-adapter";
+import {
+  FakeTransport,
+  HANDSHAKE_FRAMES,
+  TransportUnavailableError,
+} from "@guardian/meshcore-adapter";
 
 import { SCENARIOS, type ScenarioName } from "../../debug/scenarios";
 import { FakeBlePlatform } from "../../platform/fake/fake-ble-platform";
@@ -449,5 +453,11 @@ describe("CompanionSession", () => {
       appState.set("background");
       expect(session.getState().scan.status).toBe("scanning");
     });
+  });
+
+  it("fetchContacts rejects with TransportUnavailableError when not connected", async () => {
+    const { session } = setup("connect-ok");
+    await session.initialize();
+    await expect(session.fetchContacts()).rejects.toBeInstanceOf(TransportUnavailableError);
   });
 });

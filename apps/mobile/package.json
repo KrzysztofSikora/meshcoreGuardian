@@ -12,6 +12,7 @@
     "@expo/metro-runtime": "~57.0.16",
     "@guardian/domain": "workspace:*",
     "@guardian/meshcore-adapter": "workspace:*",
+    "@guardian/storage": "workspace:*",
     "expo": "~57.0.27",
     "expo-build-properties": "~57.0.22",
     "expo-constants": "~57.0.21",
