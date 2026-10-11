@@ -4,6 +4,7 @@ export const CONTACT_SYNC_FAILURES = [
   "UNSUPPORTED",
   "MALFORMED_RESPONSE",
   "STORAGE_ERROR",
+  "UNEXPECTED",
 ] as const;
 
 export type ContactSyncFailure = (typeof CONTACT_SYNC_FAILURES)[number];

@@ -6,6 +6,7 @@ import {
   nameText,
   nodeRowModel,
   reportedAsText,
+  reportedNameText,
   syncButton,
   syncLine,
   visibleNodes,
@@ -57,8 +58,15 @@ describe("lastHeardText", () => {
 });
 
 describe("reportedAsText", () => {
-  it("is absent while nothing was changed by the user", () => {
+  it("is absent for a known type while nothing was changed by the user", () => {
     expect(reportedAsText(node())).toBeNull();
+  });
+
+  it("shows the raw type of an untouched unknown node", () => {
+    expect(reportedAsText(node({ reportedRole: "unknown", reportedType: 4 }))).toEqual({
+      key: "nodes.reportedAs.unknown",
+      params: { type: 4 },
+    });
   });
 
   it("names the reported role once the user changed role or label", () => {
@@ -72,6 +80,20 @@ describe("reportedAsText", () => {
     expect(
       reportedAsText(node({ reportedRole: "unknown", reportedType: 4, userRole: "repeater" })),
     ).toEqual({ key: "nodes.reportedAs.unknown", params: { type: 4 } });
+  });
+});
+
+describe("reportedNameText", () => {
+  it("shows the advertised name once a label hides it", () => {
+    expect(reportedNameText(node({ userLabel: "Hilltop" }))).toEqual({
+      key: "nodes.reportedName",
+      params: { name: "Hill" },
+    });
+  });
+
+  it("is absent without a label, or when no name was reported", () => {
+    expect(reportedNameText(node())).toBeNull();
+    expect(reportedNameText(node({ userLabel: "Hilltop", reportedName: "" }))).toBeNull();
   });
 });
 

@@ -9,6 +9,7 @@ import {
   lastHeardText,
   nameText,
   reportedAsText,
+  reportedNameText,
   roleText,
 } from "../../application/nodes/presenter";
 import { formatTime } from "../../components/node-row";
@@ -49,6 +50,7 @@ function NodeDetails({ node }: { node: Node }) {
 
   const name = nameText(node);
   const reported = reportedAsText(node);
+  const reportedName = reportedNameText(node);
   const heard = lastHeardText(node, formatTime);
 
   const report = (result: Awaited<ReturnType<typeof controller.setLabel>>) => {
@@ -61,6 +63,7 @@ function NodeDetails({ node }: { node: Node }) {
       <Text style={styles.name}>{tr(t, name)}</Text>
       <Text>{t("nodes.keyPrefix", { prefix: keyPrefix(node.publicKey) })}</Text>
       <Text>{t("nodes.role", { role: tr(t, roleText(effectiveRole(node))) })}</Text>
+      {reportedName !== null && <Text>{tr(t, reportedName)}</Text>}
       {reported !== null && <Text>{tr(t, reported)}</Text>}
       <Text>{tr(t, heard)}</Text>
       {!node.inContacts && <Text>{t("nodes.notInContacts")}</Text>}

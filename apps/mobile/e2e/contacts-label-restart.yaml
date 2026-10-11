@@ -30,6 +30,7 @@ appId: io.github.krzysztofsikora.guardian
 - hideKeyboard
 - tapOn: "Save label"
 - assertVisible: "Reported as Unknown (type 4)"
+- assertVisible: "Reported name: Sensor test"
 - stopApp
 - launchApp
 - extendedWaitUntil:
@@ -38,5 +39,6 @@ appId: io.github.krzysztofsikora.guardian
 - assertNotVisible: "Contacts synced.*"
 - tapOn: "Hilltop"
 - assertVisible: "Role: Repeater"
+- assertVisible: "Reported name: Sensor test"
 - assertVisible: "Reported as Unknown (type 4)"
 - takeScreenshot: phase-6-label-restart

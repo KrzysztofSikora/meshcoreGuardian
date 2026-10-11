@@ -40,12 +40,23 @@ export function lastHeardText(node: Node, formatTime: (ms: number) => string): T
     : { key: "nodes.lastHeard", params: { time: formatTime(node.lastHeardAt) } };
 }
 
-/** "Reported as …" is shown only when the user changed the label or the role (plan D-1). */
+/**
+ * "Reported as …" is shown when the user changed the label or the role (plan D-1), and always for
+ * a type the app does not know, so the raw type is never hidden (D-5).
+ */
 export function reportedAsText(node: Node): Text | null {
-  if (node.userRole === null && node.userLabel === null) return null;
+  if (node.userRole === null && node.userLabel === null && node.reportedRole !== "unknown") {
+    return null;
+  }
   return node.reportedRole === "unknown"
     ? { key: "nodes.reportedAs.unknown", params: { type: node.reportedType } }
     : { key: `nodes.reportedAs.${node.reportedRole}` };
+}
+
+/** The advertised name a label covers; shown only while a label hides it (roadmap S-03). */
+export function reportedNameText(node: Node): Text | null {
+  if (node.userLabel === null || node.reportedName === "") return null;
+  return { key: "nodes.reportedName", params: { name: node.reportedName } };
 }
 
 export interface NodeRowModel {

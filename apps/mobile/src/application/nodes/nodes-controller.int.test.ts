@@ -1,11 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createStore } from "zustand/vanilla";
+
+import {
+  AbortError,
+  CommandRejectedError,
+  MalformedFrameError,
+  type ContactsResult,
+} from "@guardian/meshcore-adapter";
 import type { ContactReport, Node, NodeRepository, NodeRole, SyncOutcome } from "@guardian/domain";
 
 import { SCENARIOS, type ScenarioName } from "../../debug/scenarios";
 import { FakeBlePlatform, type Scenario } from "../../platform/fake/fake-ble-platform";
 import { InMemoryAppState, InMemoryLastCompanionStore } from "../../platform/fake/in-memory";
-import { CompanionSession } from "../connection/companion-session";
+import { CompanionSession, type SessionState } from "../connection/companion-session";
 import { NodesController } from "./nodes-controller";
 
 const ID = "AA:BB:CC:DD:EE:01";
@@ -197,6 +205,18 @@ describe("NodesController", () => {
     expect(contactWrites(platform)).toBe(0);
   });
 
+  it("a failing read on load sets storage error", async () => {
+    const { nodes } = setup("connect-ok", open);
+    repo.listAll = () => Promise.reject(new Error("corrupt"));
+    await nodes.load();
+    expect(nodes.getState()).toMatchObject({ storage: "error", nodes: [], loaded: true });
+  });
+
+  it("an edit with a repository that cannot open reports STORAGE_ERROR", async () => {
+    const { nodes } = setup("connect-ok", () => Promise.reject(new Error("x")));
+    expect(await nodes.setRole("k", "chat")).toEqual({ ok: false, reason: "STORAGE_ERROR" });
+  });
+
   it("load() twice reads once", async () => {
     const { nodes } = setup("connect-ok", open);
     await Promise.all([nodes.load(), nodes.load()]);
@@ -214,5 +234,93 @@ describe("NodesController", () => {
     repo.failWith = new Error("locked");
     expect(await nodes.setRole("k", "repeater")).toEqual({ ok: false, reason: "STORAGE_ERROR" });
     expect(await nodes.pin("k")).toEqual({ ok: false, reason: "STORAGE_ERROR" });
+  });
+
+  describe("with a scripted session", () => {
+    const report = (n: number): ContactReport => ({
+      publicKey: n.toString(16).padStart(64, "0"),
+      name: `Node ${n}`,
+      type: 2,
+      lastHeardAt: null,
+    });
+
+    function scripted(outcome: (options?: { signal?: AbortSignal }) => Promise<ContactsResult>) {
+      const store = createStore<SessionState>(
+        () => ({ connection: { kind: "disconnected" }, capabilities: null }) as SessionState,
+      );
+      let calls = 0;
+      const session = {
+        store,
+        fetchContacts: (options?: { signal?: AbortSignal }) => {
+          calls += 1;
+          return outcome(options);
+        },
+      };
+      const nodes = new NodesController({
+        session,
+        repository: open,
+        appState: new InMemoryAppState(),
+        clock: () => NOW,
+      });
+      return { nodes, calls: () => calls };
+    }
+
+    it("a partial sync is stored as incomplete, so no absent node is marked missing", async () => {
+      const { nodes } = scripted(async () => ({ contacts: [report(1), report(2)], expected: 3 }));
+      await nodes.sync();
+      expect(nodes.getState().sync).toEqual({ kind: "partial", at: NOW, received: 2, expected: 3 });
+      expect(repo.syncs).toHaveLength(1);
+      expect(repo.syncs[0]).toMatchObject({ complete: false, now: NOW });
+      expect(repo.syncs[0]?.reports).toHaveLength(2);
+    });
+
+    it("a rejected command ends as UNSUPPORTED", async () => {
+      const { nodes } = scripted(() => Promise.reject(new CommandRejectedError(1)));
+      await nodes.sync();
+      expect(nodes.getState().sync).toEqual({ kind: "failed", reason: "UNSUPPORTED" });
+      expect(repo.syncs).toHaveLength(0);
+    });
+
+    it("an unreadable frame ends as MALFORMED_RESPONSE", async () => {
+      const { nodes } = scripted(() => Promise.reject(new MalformedFrameError(3, 1, 10)));
+      await nodes.sync();
+      expect(nodes.getState().sync).toEqual({ kind: "failed", reason: "MALFORMED_RESPONSE" });
+    });
+
+    it("an unknown error is not reported as a lost link", async () => {
+      const { nodes } = scripted(() => Promise.reject(new Error("busy")));
+      await nodes.sync();
+      expect(nodes.getState().sync).toEqual({ kind: "failed", reason: "UNEXPECTED" });
+    });
+
+    it("dispose() ends a running sync as idle and unsubscribes", async () => {
+      let signal: AbortSignal | undefined;
+      const { nodes } = scripted(
+        (options) =>
+          new Promise((_resolve, reject) => {
+            signal = options?.signal;
+            signal?.addEventListener("abort", () => reject(new AbortError()));
+          }),
+      );
+      const running = nodes.sync();
+      await vi.advanceTimersByTimeAsync(0);
+      nodes.dispose();
+      await running;
+      expect(signal?.aborted).toBe(true);
+      expect(nodes.getState().sync).toEqual({ kind: "idle" });
+    });
+
+    it("the controller itself refuses a second sync while one runs", async () => {
+      let finish: (result: ContactsResult) => void = () => undefined;
+      const { nodes, calls } = scripted(() => new Promise((resolve) => (finish = resolve)));
+      const first = nodes.sync();
+      await vi.advanceTimersByTimeAsync(0);
+      await nodes.sync();
+      expect(calls()).toBe(1);
+      expect(nodes.getState().sync).toEqual({ kind: "syncing" });
+      finish({ contacts: [], expected: 0 });
+      await first;
+      expect(nodes.getState().sync).toEqual({ kind: "done", at: NOW, total: 0 });
+    });
   });
 });

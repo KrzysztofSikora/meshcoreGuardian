@@ -9,6 +9,7 @@
     "filterDashboard": "Dashboard",
     "filterAll": "All contacts",
     "empty": "No contacts yet",
+    "emptyDashboard": "No repeaters or room servers yet. Chat contacts are under All contacts.",
     "storageError": "Local storage could not be opened",
     "syncButton": "Sync contacts"
   },
@@ -104,6 +105,7 @@
       "chat": "Reported as Chat",
       "unknown": "Reported as Unknown (type {{type}})"
     },
+    "reportedName": "Reported name: {{name}}",
     "keyPrefix": "Key: {{prefix}}",
     "role": "Role: {{role}}",
     "label": "Label",
@@ -126,7 +128,8 @@
       "TRANSPORT_UNAVAILABLE": "Contact sync failed: the Bluetooth link was lost.",
       "UNSUPPORTED": "Contact sync failed: the companion firmware refused the command.",
       "MALFORMED_RESPONSE": "Contact sync failed: the companion sent a reply that could not be read.",
-      "STORAGE_ERROR": "Contact sync failed: contacts could not be saved locally."
+      "STORAGE_ERROR": "Contact sync failed: contacts could not be saved locally.",
+      "UNEXPECTED": "Contact sync failed (unexpected error)."
     }
   }
 }

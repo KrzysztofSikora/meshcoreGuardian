@@ -52,7 +52,7 @@ function failureFor(error: unknown): ContactSyncFailure | null {
   if (error instanceof TransportUnavailableError) return "TRANSPORT_UNAVAILABLE";
   if (error instanceof CommandRejectedError) return "UNSUPPORTED";
   if (error instanceof MalformedFrameError) return "MALFORMED_RESPONSE";
-  return "TRANSPORT_UNAVAILABLE";
+  return "UNEXPECTED"; // an unknown cause is not claimed to be a link loss
 }
 
 /**

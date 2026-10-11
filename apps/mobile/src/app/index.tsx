@@ -76,7 +76,9 @@ export default function DashboardScreen() {
         ListEmptyComponent={
           nodes.storage === "ok" ? (
             <Text>
-              {nodes.nodes.length === 0 ? t("dashboard.placeholder") : t("dashboard.empty")}
+              {nodes.nodes.length === 0
+                ? t("dashboard.placeholder")
+                : t(filter === "dashboard" ? "dashboard.emptyDashboard" : "dashboard.empty")}
             </Text>
           ) : null
         }
