@@ -340,6 +340,47 @@ describe("MeshClient.getContacts", () => {
     expect("value" in (await second)).toBe(true);
   });
 
+  it.each([10_000, 100_000])(
+    "a sync finished %i ms ago leaves no timer behind that fails the next one",
+    async (gapMs) => {
+      const t = scriptedTransport();
+      const client = new MeshClient(t.transport);
+      const first = run(client);
+      t.emit(startFrame(0));
+      t.emit(endFrame);
+      expect("value" in (await first)).toBe(true);
+      await vi.advanceTimersByTimeAsync(gapMs);
+      // The first sync's idle (15 s) and total (120 s) bounds pass while the second one runs.
+      const second = run(client);
+      t.emit(startFrame(8));
+      for (let n = 0; n < 8; n += 1) {
+        await vi.advanceTimersByTimeAsync(5_000);
+        t.emit(contact(n));
+      }
+      t.emit(endFrame);
+      const result = await second;
+      expect("value" in result && result.value.contacts).toHaveLength(8);
+    },
+  );
+
+  it("a finished sync stops handling frames: a later frame does not resolve anything twice", async () => {
+    const t = scriptedTransport();
+    const client = new MeshClient(t.transport);
+    const first = run(client);
+    t.emit(startFrame(1));
+    t.emit(contact(1));
+    t.emit(endFrame);
+    const result = await first;
+    expect("value" in result && result.value.contacts).toHaveLength(1);
+    t.emit(contact(2)); // no pending request: dropped
+    expect("value" in result && result.value.contacts).toHaveLength(1);
+    const second = run(client);
+    t.emit(startFrame(0));
+    t.emit(endFrame);
+    const next = await second;
+    expect("value" in next && next.value.contacts).toHaveLength(0);
+  });
+
   it("leaves the handshake working after a sync", async () => {
     const frames = [...HANDSHAKE_FRAMES.slice(0, 2), ...CONTACTS_FRAMES];
     const transport = FakeTransport.fromFrames([
