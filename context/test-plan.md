@@ -76,6 +76,7 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | `packages/meshcore-adapter/src/client/mesh-client.ts` | orchestration: abort, single-flight, error → reason mapping (TR-04, TR-05, TR-08) | 80 % | report |
 | `packages/meshcore-adapter/src/decode/*.ts` | companion frames → JSON-safe decoded records, corrections of meshcore.js misreads (TR-06, TR-16) | 80 % | report |
 | `packages/domain/src/export/redact.ts`, `packages/domain/src/export/serialize.ts` | privacy defaults (TR-09, TR-10) | 80 % | report |
+| `packages/domain/src/companion/capabilities.ts`, `firmware.ts` | capability/untested-firmware rules shown to the user (TR-14) | 80 % | report |
 | `packages/domain/src/trend.ts` | no trend on thin data (TR-17) | 80 % | report |
 | `packages/storage/src/sync/contacts.ts` | merge rules for labels/roles and removed contacts (TR-15) | 70 % | report |
 

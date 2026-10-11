@@ -295,7 +295,7 @@ domain: ConnectionState, ConnectFailureReason, CompanionInfo, deriveCapabilities
 
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
-- [ ] Phase 1: Domain companion model
+- [x] Phase 1: Domain companion model
 - [ ] Phase 2: FakeTransport and handshake client
 - [ ] Phase 3: Companion session (application layer) and fake platform
 - [ ] Phase 4: BLE platform, persistence, composition and bundle
