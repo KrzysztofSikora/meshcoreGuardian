@@ -4,11 +4,41 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "placeholder": "Known nodes will appear here."
+    "placeholder": "Known nodes will appear here.",
+    "connect": "Connect companion"
   },
   "connect": {
     "title": "Connect",
-    "placeholder": "Companion connection will appear here."
+    "permission": {
+      "explain": "MeshCore Guardian uses Bluetooth only to talk to your companion nearby. It does not use your location.",
+      "grant": "Grant access",
+      "required": "Permission required",
+      "requiredBody": "Bluetooth access (Nearby devices) is needed to find and talk to your companion.",
+      "openSettings": "Open settings",
+      "tryAgain": "Try again"
+    },
+    "bluetoothOff": "Bluetooth is off",
+    "bluetoothOffBody": "Turn Bluetooth on, then scan again.",
+    "bluetoothUnavailable": "Bluetooth is not available on this device",
+    "scan": "Scan for companions",
+    "scanning": "Scanning…",
+    "noneFound": "No companions found",
+    "unnamed": "Unnamed device",
+    "connectTo": "Connect to {{name}}",
+    "connectLast": "Connect to {{name}} (last used)",
+    "retry": "Retry",
+    "reconnect": "Reconnect",
+    "disconnect": "Disconnect",
+    "linkLost": "Link lost. Tap Reconnect to connect again.",
+    "untested": "Untested firmware",
+    "untestedBody": "This firmware version has not been tested with MeshCore Guardian.",
+    "capabilities": "Capabilities",
+    "technical": "Technical details",
+    "mtu": "MTU: {{mtu}}",
+    "mtuUnknown": "MTU: unknown",
+    "build": "Firmware build: {{date}}",
+    "model": "Model: {{model}}",
+    "firmware": "Firmware: {{version}}"
   },
   "node": {
     "title": "Node",
@@ -26,5 +56,28 @@
   "transport": {
     "ble": "BLE",
     "fake": "Fake (development)"
+  },
+  "connection": {
+    "disconnected": "Disconnected",
+    "connecting": "Connecting",
+    "connected": "Connected",
+    "failed": "Connection failed",
+    "reason": {
+      "CONNECT_TIMEOUT": "The companion did not accept the Bluetooth link in time.",
+      "CONNECT_ERROR": "The Bluetooth link could not be opened or paired.",
+      "HANDSHAKE_NO_RESPONSE": "Linked, but the companion did not answer the handshake.",
+      "HANDSHAKE_MALFORMED": "Linked, but the companion sent a reply that could not be read.",
+      "LINK_LOST": "The link was lost while connecting.",
+      "BLUETOOTH_OFF": "Bluetooth is off."
+    }
+  },
+  "capability": {
+    "contacts": "Contacts",
+    "login": "Login",
+    "status": "Status request",
+    "telemetry": "Telemetry request",
+    "trace": "Trace",
+    "supported": "Supported",
+    "unsupported": "Not supported by companion firmware {{version}}"
   }
 }

@@ -190,6 +190,15 @@ export class CompanionSession {
     this.set({ connection: { kind: "disconnected" }, linkLostNote: false, capabilities: null });
   }
 
+  /** Back to the first-launch state; the debug scenario route uses it between scenarios. */
+  async reset(): Promise<void> {
+    this.stopScan();
+    await this.disconnect();
+    this.lastTarget = null;
+    this.store.setState(INITIAL, true);
+    await this.initialize();
+  }
+
   async dispose(): Promise<void> {
     this.unsubscribeAppState();
     this.stopScan();

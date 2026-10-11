@@ -299,10 +299,18 @@ domain: ConnectionState, ConnectFailureReason, CompanionInfo, deriveCapabilities
 - [x] Phase 2: FakeTransport and handshake client
 - [x] Phase 3: Companion session (application layer) and fake platform
 - [x] Phase 4: BLE platform, persistence, composition and bundle
-- [ ] Phase 5: Connect screen, dashboard status, scenarios route and e2e
+- [x] Phase 5: Connect screen, dashboard status, scenarios route and e2e
 
 ## Human checks
 <!-- Filled by /implement: one open checkbox per human check, with how to run it and evidence. -->
+- [ ] (Phase 5) 1. Fresh install of the CI APK, open Connect: explanation card shown; "Grant access" → system dialog asks for "Nearby devices" only, no location prompt — run: install `android-apk` artifact, open Connect — evidence: none
+- [ ] (Phase 5) 2. Deny → "Permission required" with "Open settings"; grant in settings and return → scan available without restart — run: deny, Open settings, grant, return — evidence: none
+- [ ] (Phase 5) 3. Bluetooth off → Scan shows "Bluetooth is off", never "No companions found" — run: toggle Bluetooth off on Connect — evidence: none
+- [ ] (Phase 5) 4. Bluetooth on → Scan lists the Heltec within 10 s; Connect; note whether and at which step a pairing/PIN dialog appears (plan-review #2); screen shows Connected, firmware v1.17.1-…, Heltec V3, five capabilities, no "Untested firmware"; record MTU under Technical details (also proves meshcore.js under Hermes, TR-07) — run: Scan, Connect — evidence: screenshot by the reviewer
+- [ ] (Phase 5) 5. While connected power off the companion → "Disconnected" within ~5 s; power on, tap Reconnect → "Connected" without restart (companion may need minutes to advertise) — run: power cycle companion — evidence: none
+- [ ] (Phase 5) 6. Kill and reopen the app → Connect offers the remembered companion; nothing connects until tapped — run: force-stop, reopen — evidence: none
+- [ ] (Phase 5) 7. Read the Connect screen wording (permission text, failure reasons, capability reasons); accept or change — run: view screens; emulator screenshot `evidence/phase-5-connect-ok.png` — evidence: context/changes/connect-companion/evidence/phase-5-connect-ok.png
+- [ ] (Phase 5) 8. Fill the "Android phone" table in `docs/compatibility.md` from checks 1–6 — run: edit the file — evidence: none
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
@@ -311,6 +319,11 @@ domain: ConnectionState, ConnectFailureReason, CompanionInfo, deriveCapabilities
 
 - [minor] (Phase 3) Plan lists no startup method on `CompanionSession`; added `initialize()` (loads the remembered companion and the permission/adapter state) and `connect(id, name?)`. `refreshPermission()` also reads the adapter state.
 - [minor] (Phase 3) Added a `"silent"` fake attempt (silences every recorded tx code) so the integration test can reach `HANDSHAKE_NO_RESPONSE` without patching the platform.
+
+- [minor] (Phase 5) Added `CompanionSession.reset()` (plan lists no reset) for the debug scenario route; covered by an integration test.
+- [minor] (Phase 5) Maestro drops a deep link sent right after `launchApp`, so each scenario flow first asserts the Dashboard text, then `openLink` (as `smoke.yaml` does). Screenshot is taken by name (Maestro refuses paths outside its output folder) and copied to `evidence/`.
+- [minor] (Phase 5) Android `Button` shows its title in capitals; Maestro still matches the original text. `Object.hasOwn` replaced by `hasOwnProperty.call` in `scenarios.ts` (Hermes-safe).
+- [minor] (Phase 5) Permission "asked" is screen-local state: "denied" before the first request shows the explanation card; "blocked" or "denied" after a request shows "Permission required".
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->

@@ -250,4 +250,14 @@ describe("CompanionSession", () => {
     await done;
     expect(session.getState().connection).toEqual({ kind: "disconnected" });
   });
+
+  it("reset returns to the first-launch state", async () => {
+    const { session } = await connectOk();
+    expect(session.getState().connection.kind).toBe("connected");
+    await session.reset();
+    const state = session.getState();
+    expect(state.connection).toEqual({ kind: "disconnected" });
+    expect(state.capabilities).toBeNull();
+    expect(state.scan).toEqual({ status: "idle", devices: [] });
+  });
 });

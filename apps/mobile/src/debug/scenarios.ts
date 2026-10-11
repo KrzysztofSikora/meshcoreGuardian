@@ -25,5 +25,5 @@ export const SCENARIOS = {
 export type ScenarioName = keyof typeof SCENARIOS;
 
 export function isScenarioName(value: string): value is ScenarioName {
-  return Object.hasOwn(SCENARIOS, value);
+  return Object.prototype.hasOwnProperty.call(SCENARIOS, value);
 }
