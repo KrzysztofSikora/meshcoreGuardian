@@ -13,7 +13,7 @@ Skipped as wiring or presentation: BLE platform, persistence, composition, scree
 | capabilities.ts | 100% | 100% (25 / 0 / 0) |
 | firmware.ts | 92.9% | 92.9% (13 / 1 / 0) |
 | companion-session.ts | 68.3% (155 / 61 / 11) | 80.2% (182 / 44 / 1) |
-| mesh-client.ts | 67.4% (64 / 27 / 4) | 80.0% (76 / 17 / 0) after review R3 |
+| mesh-client.ts | 67.4% (64 / 27 / 4) | 86.3% (82 killed / 11 survived / 2 no coverage, `--force`) after review R3, R5 |
 
 ## Mutants
 | File:line | Mutator | Change | Decision | Note / test added |
@@ -31,9 +31,11 @@ Skipped as wiring or presentation: BLE platform, persistence, composition, scree
 | session:225, 233 | abort after link/handshake | equivalent | handshake itself rejects with `AbortError` on abort |
 | session:247, 257, 267, 273 | stale-client and `ABORTED` guards | accept | outcome identical in the paths the fake can produce; needs a raced platform double |
 | mesh-client:64-66 | send-only view for the library | accept | library never calls close/onFrame/onDisconnect for encoding |
-| mesh-client:89-90 | unreachable kind guard | equivalent | `step` already filters by kind |
-| mesh-client:101,107,111-114,152,157-159 | busy guard, unsubscribe, close, abort listener | strengthen | close, unsubscribe, listener-release and guard tests; abort helper now respects event type |
-| mesh-client:126,129 | closed fast path, swallowed rejection | accept | `write` on a closed transport raises the same error |
+| mesh-client:89-90 | unreachable kind guard (survived + 2 no coverage) | equivalent | `step` already filters by kind |
+| mesh-client:101,107,111,113,152,157-159,169 | busy guard, close flag, unsubscribe, timer and abort-listener cleanup | strengthen | killed; review R5: close() refuses a handshake and detaches both transport listeners; a finished or aborted step's timer cannot fail a later step |
+| mesh-client:114 | `disconnectListeners.clear()` in `close()` | equivalent | the transport listener is already unsubscribed on line 113, so no listener can be called afterwards |
+| mesh-client:126 | closed fast path | accept | `write` on a closed transport raises the same error |
+| mesh-client:129 | swallowed rejection on `reply` | accept | only prevents an unhandled-rejection warning; no observable state |
 | mesh-client:132-133 | `send` failing with a non-transport error | strengthen | review R3: hand-written transport rejects with a plain `Error` → `TransportUnavailableError` at once |
 | mesh-client:175,184 | late/foreign frames | strengthen | review R3: hand-written transport pushes an `ok` frame and stray frames; ignored |
 | mesh-client:180 | non-malformed decode error rethrown | accept | `decodeFrame` only throws `MalformedFrameError` for any input |

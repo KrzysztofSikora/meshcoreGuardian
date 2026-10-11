@@ -221,8 +221,10 @@ class StubTransport implements MeshTransport {
     this.frameListeners.add(callback);
     return () => void this.frameListeners.delete(callback);
   }
-  onDisconnect() {
-    return () => undefined;
+  disconnectListeners = new Set<() => void>();
+  onDisconnect(callback: () => void) {
+    this.disconnectListeners.add(callback);
+    return () => void this.disconnectListeners.delete(callback);
   }
   async close(): Promise<void> {}
 }
@@ -274,7 +276,63 @@ describe("MeshClient with a hand-written transport (R3)", () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(await outcome).toMatchObject({ error: expect.any(MalformedFrameError) });
   });
+
+  it("a finished step's timer does not fail the next step (R5)", async () => {
+    const [deviceInfo, selfInfo] = handshakeReplies();
+    const transport = new StubTransport(async (frame, t) => {
+      if (frame[0] === DEVICE_QUERY) t.push(deviceInfo!);
+      else if (frame[0] === APP_START) setTimeout(() => t.push(selfInfo!), 500);
+    });
+    const client = new MeshClient(transport, {
+      deviceQueryTimeoutMs: 100,
+      appStartTimeoutMs: 1000,
+    });
+    const outcome = settle(client.handshake());
+    await vi.advanceTimersByTimeAsync(600);
+    expect(await outcome).toHaveProperty("value");
+  });
+
+  it("an aborted step leaves no timer that fails a later handshake (R5)", async () => {
+    const [deviceInfo, selfInfo] = handshakeReplies();
+    let replyLate = false;
+    const transport = new StubTransport(async (frame, t) => {
+      if (frame[0] === DEVICE_QUERY && replyLate) setTimeout(() => t.push(deviceInfo!), 70);
+      else if (frame[0] === APP_START) t.push(selfInfo!);
+    });
+    const client = new MeshClient(transport, {
+      deviceQueryTimeoutMs: 100,
+      appStartTimeoutMs: 1000,
+    });
+    const controller = abortable();
+    const first = settle(client.handshake({ signal: controller.signal }));
+    await vi.advanceTimersByTimeAsync(0);
+    controller.abort();
+    expect(await first).toMatchObject({ error: expect.any(AbortError) });
+    await vi.advanceTimersByTimeAsync(50);
+    replyLate = true;
+    const second = settle(client.handshake());
+    // The aborted step's timer would fire at 100 ms; the new step's reply arrives at 120 ms.
+    await vi.advanceTimersByTimeAsync(90);
+    expect(await second).toHaveProperty("value");
+  });
+
+  it("after close() nothing reaches the client and a handshake is refused (R5)", async () => {
+    const transport = new StubTransport(async () => undefined);
+    const client = new MeshClient(transport);
+    const onDisconnect = vi.fn();
+    client.onDisconnect(onDisconnect);
+    await client.close();
+    expect(transport.frameListeners.size).toBe(0);
+    expect(transport.disconnectListeners.size).toBe(0);
+    await expect(client.handshake()).rejects.toBeInstanceOf(TransportUnavailableError);
+    expect(transport.writes).toHaveLength(0);
+    expect(onDisconnect).not.toHaveBeenCalled();
+  });
 });
+
+function handshakeReplies(): Uint8Array[] {
+  return HANDSHAKE_FRAMES.filter((f) => f.dir === "rx").map((f) => hex(f.hex));
+}
 
 function hex(value: string): Uint8Array {
   return Uint8Array.from(value.match(/../g) ?? [], (byte) => parseInt(byte, 16));
