@@ -125,6 +125,21 @@ describe("committed fixtures", () => {
       }
     });
 
+    it("holds chat contacts only as chat-<n> with no position (D-4)", () => {
+      const contacts = fixture.frames.filter(
+        (frame) =>
+          frame.dir === "rx" &&
+          (frame.hex.startsWith("03") || frame.hex.startsWith("8a")) &&
+          frame.hex.length === 148 * 2 &&
+          frame.hex.slice(66, 68) === "01",
+      );
+      for (const frame of contacts) {
+        const name = String.fromCharCode(...fromHex(frame.hex.slice(200, 264)));
+        expect(name, `frame ${frame.seq} name`).toMatch(/^chat-\d+\0*$/);
+        expect(frame.hex.slice(272, 288), `frame ${frame.seq} lat/lon`).toBe("0".repeat(16));
+      }
+    });
+
     it("holds no raw over-the-air packet from an RX log push (D-20)", () => {
       for (const frame of fixture.frames.filter((frame) => frame.dir === "rx")) {
         if (frame.hex.startsWith(RX_LOG)) expect(frame.hex, `frame ${frame.seq}`).toHaveLength(6);
