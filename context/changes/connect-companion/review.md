@@ -116,4 +116,4 @@ R1-R4 are fixed; see the notes under each finding. One new finding (R5).
 - Fix: add `StubTransport` cases in `mesh-client.int.test.ts` for 158/169 (short device-query timeout plus a slow app-start reply resolves; abort, then a second handshake is not failed by the old timer) and 113/114 (after `close()`, a pushed frame and a disconnect reach nobody). Or record 111/113/114 as `accept` with a reason. Correct the score row to `76 / 17 / 2` (or the new numbers after the re-run).
 - Effort: small
 - Lesson candidate: Re-run mutation after the last test change and copy every survivor's line into `mutation.md`; never mark a mutant `strengthen` without seeing it killed.
-- Decision: open
+- Decision: fixed (1717c76) + lesson proposed
