@@ -269,7 +269,7 @@ Dashboard / node screen ──useStore──▶ NodesController.store { nodes, s
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
 - [x] Phase 1: Domain node model
 - [x] Phase 2: Storage foundation (driver, migrations, `devices`)
-- [ ] Phase 3: Node repository and sync merge
+- [x] Phase 3: Node repository and sync merge
 - [ ] Phase 4: `MeshClient.getContacts` and the contacts script
 - [ ] Phase 5: Application controller, SQLite driver and composition
 - [ ] Phase 6: Dashboard, node editing, e2e and docs
@@ -280,7 +280,7 @@ Dashboard / node screen ──useStore──▶ NodesController.store { nodes, s
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
 - [minor] Phase 2: plan says `openTestDb` keeps existing tests valid; code shows migrating needs an async driver, so `openTestDb` is now async and the three existing `open-test-db` tests `await` it (assertions unchanged). Consequence: later storage tests use `await openTestDb()`.
-- [minor] Phase 2: `zod` 4.6.5 is declared in `packages/storage/package.json` and `pnpm-lock.yaml`, but `packages/storage/node_modules/zod` was not linked by `pnpm install`; phase 3 (first use) must confirm it resolves.
+- [minor] Phase 2: `zod` 4.6.5 is declared in `packages/storage/package.json`; no per-package link exists (hoisted linker) but it resolves from the root `node_modules`. Confirmed in phase 3 (typecheck and tests pass).
 - [FOLLOW-UP] Incremental sync with `since` = last `mostRecentLastMod`, and handling of the `0x90` contacts-full push.
 - [FOLLOW-UP] "Remove from dashboard" for pinned chat contacts (and a rule for hiding repeaters the user does not care about).
 
