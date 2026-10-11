@@ -267,7 +267,7 @@ Dashboard / node screen ──useStore──▶ NodesController.store { nodes, s
 
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
-- [ ] Phase 1: Domain node model
+- [x] Phase 1: Domain node model
 - [ ] Phase 2: Storage foundation (driver, migrations, `devices`)
 - [ ] Phase 3: Node repository and sync merge
 - [ ] Phase 4: `MeshClient.getContacts` and the contacts script
