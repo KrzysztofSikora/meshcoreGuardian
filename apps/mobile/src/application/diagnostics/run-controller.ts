@@ -55,6 +55,8 @@ const INITIAL: RunState = {
   storage: "ok",
 };
 
+type CompanionInfo = DiagnosticRun["companion"];
+
 const BUSY_TEXT: Text = { key: "diagnostic.refusal.busy" };
 
 /**
@@ -137,13 +139,18 @@ export class RunController {
     this.set({ refusal: null, last: null });
     try {
       const session = this.ports.session.store.getState();
+      // Read now: a link drop during the run clears the live state before `finish` runs (R1).
+      const companion =
+        session.connection.kind === "connected" ? session.connection.companion : null;
       const plan =
-        session.connection.kind === "connected" && session.capabilities !== null
+        companion !== null && session.capabilities !== null
           ? planChecks(session.capabilities)
           : null;
-      if (plan === null) return await this.finishPreflight(publicKey, startedAt, "NOT_CONNECTED");
+      if (plan === null) {
+        return await this.finishPreflight(publicKey, startedAt, companion, "NOT_CONNECTED");
+      }
       if ("unsupported" in plan) {
-        return await this.finishPreflight(publicKey, startedAt, "CAPABILITY_MISSING", [
+        return await this.finishPreflight(publicKey, startedAt, companion, "CAPABILITY_MISSING", [
           plan.unsupported,
         ]);
       }
@@ -166,9 +173,9 @@ export class RunController {
         if (error instanceof BusyError) return this.refuse(publicKey, BUSY_TEXT);
         if (error instanceof CooldownError) return this.refuse(publicKey, cooldownText(error));
         if (error instanceof TransportUnavailableError) {
-          return await this.finishPreflight(publicKey, startedAt, "NOT_CONNECTED");
+          return await this.finishPreflight(publicKey, startedAt, companion, "NOT_CONNECTED");
         }
-        return await this.finishPreflight(publicKey, startedAt, "UNEXPECTED_ERROR");
+        return await this.finishPreflight(publicKey, startedAt, companion, "UNEXPECTED_ERROR");
       }
       const completed =
         outcomes.length === plan.run.length && outcomes.every((outcome) => continuesAfter(outcome));
@@ -176,7 +183,13 @@ export class RunController {
       const checks = completed ? [...outcomes, ...plan.skipped] : outcomes;
       const cancelled =
         abort.signal.aborted || checks.some((outcome) => outcome.reason === "CANCELLED");
-      await this.finish(publicKey, startedAt, checks, classifyRun(checks, { cancelled }));
+      await this.finish(
+        publicKey,
+        startedAt,
+        companion,
+        checks,
+        classifyRun(checks, { cancelled }),
+      );
     } finally {
       this.abort = null;
       this.running = false;
@@ -187,12 +200,14 @@ export class RunController {
   private finishPreflight(
     publicKey: string,
     startedAt: number,
+    companion: CompanionInfo | null,
     preflight: Preflight,
     checks: CheckOutcome[] = [],
   ): Promise<void> {
     return this.finish(
       publicKey,
       startedAt,
+      companion,
       checks,
       classifyRun(checks, { cancelled: false, preflight }),
     );
@@ -201,21 +216,18 @@ export class RunController {
   private async finish(
     publicKey: string,
     startedAt: number,
+    companion: CompanionInfo | null,
     checks: CheckOutcome[],
     classification: ReturnType<typeof classifyRun>,
   ): Promise<void> {
     const finishedAt = this.ports.clock();
-    const session = this.ports.session.store.getState();
-    const companion =
-      session.connection.kind === "connected"
-        ? session.connection.companion
-        : { publicKey: "", name: "", firmwareVersion: "" };
+    const identity = companion ?? { publicKey: "", name: "", firmwareVersion: "" };
     const run: DiagnosticRun = {
       nodePublicKey: publicKey,
       companion: {
-        publicKey: companion.publicKey,
-        name: companion.name,
-        firmwareVersion: companion.firmwareVersion,
+        publicKey: identity.publicKey,
+        name: identity.name,
+        firmwareVersion: identity.firmwareVersion,
       },
       startedAt,
       finishedAt,

@@ -214,6 +214,8 @@ describe("RunController", () => {
       result: "TRANSPORT_UNAVAILABLE",
       reason: "LINK_LOST",
     });
+    expect(runs.saved[0]!.companion.name).not.toBe("");
+    expect(runs.saved[0]!.companion.publicKey).toHaveLength(64);
   });
 
   it("silence on every attempt is NO_RESPONSE with exactly the allowed attempts", async () => {
