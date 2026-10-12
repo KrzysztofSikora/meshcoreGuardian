@@ -271,7 +271,7 @@ request (AC6).
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
 - [x] Phase 1: Domain geometry and ranking
 - [x] Phase 2: Decode, store and load path, position and sync origin
-- [ ] Phase 3: Nearest repeater card on the Dashboard
+- [x] Phase 3: Nearest repeater card on the Dashboard
 - [ ] Phase 4: Fake scenario and e2e
 
 ## Human checks
@@ -284,6 +284,8 @@ request (AC6).
 - [minor] Plan-review 3: builders in `presenter.test.ts`, `catalog.test.ts`, `node.test.ts`, storage tests and the controller test got `pathHops: null, position: null`; `capabilities.test.ts`, `check.test.ts` and `handshake-script.int.test.ts` needed no change (typecheck green).
 - [minor] Phase 2: `NodesController.sync` decides `TRANSPORT_UNAVAILABLE` itself when the session is not connected at the start (after the repository step, as before), instead of calling `fetchContacts`, which would have failed the same way; the `scripted` test session now starts connected. `migrate.int.test.ts` asserted version `2` after migrating from 1; it now asserts `MIGRATIONS.length`, and a v2→v3 test was added. Test frame builders (`contactFrame`, `selfInfoFrame`) take optional lat/lon.
 - [FOLLOW-UP] Plan-review 5: S-08 export must leave out or redact the companion position (`contact_sync_origin`) and node positions by default and list them in the preview.
+
+- [minor] Phase 3: the "other nearby" compass word is a nested `Text` in the distance line's params (`NearestText`), resolved in the card; the card reuses `runButton` (already covered by presenter tests) so no separate disabled-reason test was added. The card renders nothing until the node list is loaded.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->

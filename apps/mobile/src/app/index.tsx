@@ -11,6 +11,7 @@ import {
   type NodeFilter,
 } from "../application/nodes/presenter";
 import { ConnectionStatus } from "../components/connection-status";
+import { NearestRepeaterCard } from "../components/nearest-repeater-card";
 import { NodeRow } from "../components/node-row";
 import { tr } from "../components/translate";
 import { statusOf } from "../application/diagnostics/presenter";
@@ -79,6 +80,7 @@ export default function DashboardScreen() {
       <FlatList
         style={styles.list}
         data={rows}
+        ListHeaderComponent={<NearestRepeaterCard />}
         keyExtractor={(node) => node.publicKey}
         renderItem={({ item }) => <NodeRow node={item} status={statusOf(runState.latest[item.publicKey], now)} />}
         ListEmptyComponent={

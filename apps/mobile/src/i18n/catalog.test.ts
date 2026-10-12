@@ -1,5 +1,6 @@
 import {
   CAPABILITIES,
+  COMPASS_POINTS,
   CONNECT_FAILURE_REASONS,
   CONTACT_SYNC_FAILURES,
   NODE_ROLES,
@@ -10,6 +11,7 @@ import {
 import { describe, expect, it } from "vitest";
 
 import { statusText } from "../application/diagnostics/presenter";
+import { nearestCard } from "../application/nodes/nearest-presenter";
 import { reportedAsText, roleText, syncLine } from "../application/nodes/presenter";
 import { tr } from "../components/translate";
 import en from "./en.json";
@@ -106,6 +108,50 @@ describe("en catalog", () => {
   ] as StatusKind[])("resolves the status text for %s", (kind) => {
     const text = statusText({ kind, ageMs: 120_000 });
     expect(i18n.exists(text.key, { count: 2 }), text.key).toBe(true);
+  });
+
+  it.each(COMPASS_POINTS)("has a compass word for %s", (point) => {
+    expect(en.nearest.compass[point].trim()).not.toBe("");
+  });
+
+  it("resolves every text the nearest card can produce", () => {
+    const node = (publicKey: string, pathHops: number | null, position: { lat: number; lon: number } | null) => ({
+      publicKey,
+      reportedName: publicKey,
+      reportedRole: "repeater" as const,
+      reportedType: 2,
+      userLabel: null,
+      userRole: null,
+      lastHeardAt: null,
+      pathHops,
+      position,
+      inContacts: true,
+      dashboardPinned: true,
+      createdAt: 0,
+      syncedAt: 1,
+    });
+    const origin = { companionPublicKey: "c", position: { lat: 50, lon: 20 }, at: 1 };
+    const cards = [
+      nearestCard([], null, String),
+      nearestCard([node("a", 0, { lat: 50, lon: 20 }), node("b", 1, null), node("c", 3, { lat: 51, lon: 20 })], origin, String),
+      nearestCard([node("a", null, null)], { ...origin, position: null }, String),
+    ];
+    for (const card of cards) {
+      const texts =
+        card.kind === "empty"
+          ? [card.text, card.syncHint]
+          : [card.asOf, ...[card.nearest, ...card.others].flatMap((c) => [c.name, c.path, c.position, c.lastHeard])];
+      for (const text of texts) {
+        if (text === null) continue;
+        expect(i18n.exists(text.key, { count: 2 }), text.key).toBe(true);
+      }
+    }
+  });
+
+  it("never claims range, presence or reachability in the nearest texts (FR-21 AC4)", () => {
+    for (const value of values(en.nearest)) {
+      expect(value).not.toMatch(/\b(in range|online|reachable|available)\b/i);
+    }
   });
 
   it("never says offline, down or dead (a timeout is NO_RESPONSE, not a verdict)", () => {
