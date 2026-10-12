@@ -11,7 +11,7 @@ Sources: `context/prd.md`, `context/tech-stack.md`. Order follows risk: the prot
 | S-02 | #3 | connect-companion | slice | FR-01, FR-02, FR-03 | S-01 (gate passed) | L | done |
 | S-03 | #4 | sync-contacts | slice | FR-04 | S-02 | M | done |
 | S-04 | #5 | run-diagnostic | slice | FR-05, FR-06, FR-09, FR-10, FR-11 | S-03 | L | done |
-| S-11 | #18 | nearest-repeater | slice | FR-21 | S-04 | M | todo |
+| S-11 | #18 | nearest-repeater | slice | FR-21 | S-04 | M | planned |
 | S-05 | #6 | guest-password | slice | FR-14, FR-05 AC2 | S-04 | S | todo |
 | S-06 | #7 | node-details-telemetry | slice | FR-07, FR-08 | S-04 | M | todo |
 | S-07 | #8 | battery-history | slice | FR-12 | S-06 | M | todo |
