@@ -58,6 +58,7 @@ const INITIAL: RunState = {
 type CompanionInfo = DiagnosticRun["companion"];
 
 const BUSY_TEXT: Text = { key: "diagnostic.refusal.busy" };
+const SYNCING_TEXT: Text = { key: "diagnostic.refusal.syncing" };
 
 /**
  * Starts, cancels and stores diagnostic runs (plan D-12 to D-16). A run starts only from `start`
@@ -170,7 +171,9 @@ export class RunController {
             this.set({ active: { publicKey, step: check, attempt, of, startedAt } }),
         });
       } catch (error) {
-        if (error instanceof BusyError) return this.refuse(publicKey, BUSY_TEXT);
+        if (error instanceof BusyError) {
+          return this.refuse(publicKey, error.activity === "contacts" ? SYNCING_TEXT : BUSY_TEXT);
+        }
         if (error instanceof CooldownError) return this.refuse(publicKey, cooldownText(error));
         if (error instanceof TransportUnavailableError) {
           return await this.finishPreflight(publicKey, startedAt, companion, "NOT_CONNECTED");

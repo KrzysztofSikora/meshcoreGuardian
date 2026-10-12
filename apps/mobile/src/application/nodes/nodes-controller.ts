@@ -9,6 +9,7 @@ import {
 } from "@guardian/domain";
 import {
   AbortError,
+  BusyError,
   CommandRejectedError,
   ContactsTimeoutError,
   MalformedFrameError,
@@ -48,6 +49,7 @@ const INITIAL: NodesState = {
 
 function failureFor(error: unknown): ContactSyncFailure | null {
   if (error instanceof AbortError) return null;
+  if (error instanceof BusyError) return "BUSY";
   if (error instanceof ContactsTimeoutError) return "NO_RESPONSE";
   if (error instanceof TransportUnavailableError) return "TRANSPORT_UNAVAILABLE";
   if (error instanceof CommandRejectedError) return "UNSUPPORTED";

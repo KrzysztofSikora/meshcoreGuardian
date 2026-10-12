@@ -131,6 +131,7 @@
       "UNSUPPORTED": "Contact sync failed: the companion firmware refused the command.",
       "MALFORMED_RESPONSE": "Contact sync failed: the companion sent a reply that could not be read.",
       "STORAGE_ERROR": "Contact sync failed: contacts could not be saved locally.",
+      "BUSY": "Contact sync not started: a diagnostic is running. Sync again after it ends.",
       "UNEXPECTED": "Contact sync failed (unexpected error)."
     }
   },
@@ -144,6 +145,7 @@
     "cooldown": "Available again in {{seconds}} s",
     "refusal": {
       "busy": "A check is already running",
+      "syncing": "Contacts are syncing. Try again in a moment.",
       "cooldown": "This node was checked a moment ago. Available again in {{seconds}} s."
     },
     "notice": {

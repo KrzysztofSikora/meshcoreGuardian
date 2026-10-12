@@ -461,8 +461,17 @@ describe("RunController with a failing session", () => {
     });
     await controller.start(ROOM_K);
     expect(runs.saved).toHaveLength(0);
-    expect(controller.getState().refusal?.text.key).toBe("diagnostic.refusal.busy");
+    expect(controller.getState().refusal?.text.key).toBe("diagnostic.refusal.syncing");
     expect(controller.getState().active).toBeNull();
+  });
+
+  it("a client that is running another diagnostic says a check is running", async () => {
+    const { BusyError } = await import("@guardian/meshcore-adapter");
+    const { controller } = stub(async () => {
+      throw new BusyError("diagnostic");
+    });
+    await controller.start(ROOM_K);
+    expect(controller.getState().refusal?.text.key).toBe("diagnostic.refusal.busy");
   });
 
   it("a cooldown held by the client is a refusal with its remaining seconds", async () => {
