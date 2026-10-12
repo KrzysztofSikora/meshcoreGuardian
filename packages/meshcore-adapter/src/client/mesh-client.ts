@@ -1,18 +1,37 @@
 // eslint-disable-next-line @typescript-eslint/triple-slash-reference -- the ambient declaration must travel with the source to consumers
 /// <reference path="../types/timers.d.ts" />
-import { contactLastHeard, type CompanionInfo, type ContactReport } from "@guardian/domain";
+import {
+  attemptTimeout,
+  contactLastHeard,
+  continuesAfter,
+  cooldownRemainingAt,
+  shouldRetry,
+  assertAttempts,
+  type CheckEvidence,
+  type CheckKind,
+  type CheckOutcome,
+  type CompanionInfo,
+  type ContactReport,
+  type DiagnosticPolicy,
+  type ReasonCode,
+  type ResultCode,
+} from "@guardian/domain";
 
 import { COMPANION_PROTOCOL_VERSION, MeshCoreConnection } from "../connection/mesh-core-connection";
 import { decodeFrame, type DecodedFrame } from "../decode/decode-frame";
 import { MalformedFrameError } from "../decode/errors";
 import type { MeshTransport, Unsubscribe } from "../transport/mesh-transport";
 
+import { RemoteRequestLedger } from "./request-ledger";
 import {
   AbortError,
+  BusyError,
   CommandRejectedError,
+  CooldownError,
   ContactsTimeoutError,
   HandshakeTimeoutError,
   TransportUnavailableError,
+  type BusyActivity,
   type HandshakeStep,
 } from "./errors";
 
@@ -26,6 +45,17 @@ export const APP_START_TIMEOUT_MS = 5_000;
 export const CONTACTS_START_TIMEOUT_MS = 5_000;
 export const CONTACTS_IDLE_TIMEOUT_MS = 15_000;
 export const CONTACTS_TOTAL_TIMEOUT_MS = 120_000;
+/** Plan D-5: the companion confirms a remote request with `sent` within ~200 ms in every capture. */
+export const SENT_TIMEOUT_MS = 5_000;
+
+const KEY_PREFIX_HEX = 12;
+/** Reply push codes per check (login success and fail share a check). */
+const REPLY_CODES: Record<CheckKind, readonly number[]> = {
+  login: [0x85, 0x86],
+  status: [0x87],
+  telemetry: [0x8b],
+};
+const MALFORMED_HEX_BYTES = 64;
 
 /** The part of `AbortSignal` we use; the adapter compiles without DOM or Node types. A real signal fits. */
 export interface AbortSignalLike {
@@ -40,6 +70,27 @@ export interface MeshClientOptions {
   contactsStartTimeoutMs?: number;
   contactsIdleTimeoutMs?: number;
   contactsTotalTimeoutMs?: number;
+  sentTimeoutMs?: number;
+  /** Shared across clients of a session so a reconnect cannot bypass the cooldown (plan D-7). */
+  ledger?: RemoteRequestLedger;
+  now?: () => number;
+}
+
+export interface CheckProgress {
+  check: CheckKind;
+  attempt: number;
+  of: number;
+}
+
+export interface RunChecksRequest {
+  /** The target node, 64 hex characters. */
+  publicKey: string;
+  checks: readonly CheckKind[];
+  password: string;
+  policy: DiagnosticPolicy;
+  signal?: AbortSignalLike;
+  /** Fires before each write. */
+  onProgress?: (progress: CheckProgress) => void;
 }
 
 export interface ContactsResult {
@@ -53,6 +104,8 @@ interface Pending {
   onFrame: (frame: DecodedFrame) => void;
   reject: (error: Error) => void;
   cleanup: () => void;
+  /** Decides whether a malformed frame concerns this request; without it, any malformed frame fails it. */
+  onMalformed?: ((frame: Uint8Array) => void) | undefined;
 }
 
 /**
@@ -69,8 +122,11 @@ export class MeshClient {
   private readonly contactsStartTimeoutMs: number;
   private readonly contactsIdleTimeoutMs: number;
   private readonly contactsTotalTimeoutMs: number;
+  private readonly sentTimeoutMs: number;
+  private readonly ledger: RemoteRequestLedger;
+  private readonly now: () => number;
   private pending: Pending | null = null;
-  private busy = false;
+  private busy: BusyActivity | null = null;
   private unavailable = false;
 
   constructor(
@@ -82,6 +138,9 @@ export class MeshClient {
     this.contactsStartTimeoutMs = options.contactsStartTimeoutMs ?? CONTACTS_START_TIMEOUT_MS;
     this.contactsIdleTimeoutMs = options.contactsIdleTimeoutMs ?? CONTACTS_IDLE_TIMEOUT_MS;
     this.contactsTotalTimeoutMs = options.contactsTotalTimeoutMs ?? CONTACTS_TOTAL_TIMEOUT_MS;
+    this.sentTimeoutMs = options.sentTimeoutMs ?? SENT_TIMEOUT_MS;
+    this.ledger = options.ledger ?? new RemoteRequestLedger();
+    this.now = options.now ?? Date.now;
     // The library only encodes: it gets a send-only view so it never parses (or throws on) rx.
     this.connection = new MeshCoreConnection({
       write: (frame) => transport.write(frame),
@@ -97,8 +156,8 @@ export class MeshClient {
 
   /** Device query, then app start. No retry: the caller decides (plan D-4). */
   async handshake({ signal }: { signal?: AbortSignalLike } = {}): Promise<CompanionInfo> {
-    if (this.busy) throw new Error("busy");
-    this.busy = true;
+    if (this.busy !== null) throw new BusyError(this.busy);
+    this.busy = "handshake";
     try {
       const device = await this.step(
         "deviceQuery",
@@ -122,7 +181,7 @@ export class MeshClient {
         buildDate: device.buildDate,
       };
     } finally {
-      this.busy = false;
+      this.busy = null;
     }
   }
 
@@ -132,10 +191,10 @@ export class MeshClient {
    * Frames of other kinds are ignored and do not reset the idle bound. No retry.
    */
   async getContacts({ signal }: { signal?: AbortSignalLike } = {}): Promise<ContactsResult> {
-    if (this.busy) throw new Error("busy");
+    if (this.busy !== null) throw new BusyError(this.busy);
     if (signal?.aborted) throw new AbortError();
     if (this.unavailable) throw new TransportUnavailableError();
-    this.busy = true;
+    this.busy = "contacts";
     try {
       const reply = this.collectContacts(signal);
       reply.catch(() => undefined); // rejected during `write`, before we return it
@@ -148,8 +207,157 @@ export class MeshClient {
       }
       return await reply;
     } finally {
-      this.busy = false;
+      this.busy = null;
     }
+  }
+
+  /**
+   * Remote checks against one node, in order, on this companion link (plan D-2, D-10). Resolves
+   * with one outcome per executed check and stops after the first that did not reply, a rejected
+   * login, or an abort. Throws only `BusyError`, `CooldownError` (nothing was sent) or
+   * `TransportUnavailableError` (the client is closed). A silent attempt is repeated up to
+   * `policy.attempts` times; every other outcome is evidence and is never retried (D-6).
+   */
+  async runChecks(request: RunChecksRequest): Promise<CheckOutcome[]> {
+    if (this.busy !== null) throw new BusyError(this.busy);
+    assertAttempts(request.policy.attempts);
+    attemptTimeout({ estimateMs: null, overrideMs: request.policy.overrideMs }); // rejects a bad override
+    if (this.unavailable) throw new TransportUnavailableError();
+    const remaining = cooldownRemainingAt(this.ledger.lastAt(request.publicKey), this.now());
+    if (remaining > 0) throw new CooldownError(remaining);
+    this.busy = "diagnostic";
+    const outcomes: CheckOutcome[] = [];
+    try {
+      for (const kind of request.checks) {
+        if (request.signal?.aborted) break;
+        const outcome = this.unavailable
+          ? emptyOutcome(kind, "TRANSPORT_UNAVAILABLE", "LINK_LOST")
+          : await this.runCheck(kind, request);
+        outcomes.push(outcome);
+        if (!continuesAfter(outcome)) break;
+      }
+      return outcomes;
+    } finally {
+      this.busy = null;
+    }
+  }
+
+  private runCheck(kind: CheckKind, request: RunChecksRequest): Promise<CheckOutcome> {
+    const { signal, policy } = request;
+    const prefix = request.publicKey.slice(0, KEY_PREFIX_HEX).toLowerCase();
+    const key = hexToBytes(request.publicKey);
+    const startedAt = this.now();
+    return new Promise<CheckOutcome>((resolve) => {
+      let attempts = 0;
+      let phase: "sent" | "reply" = "sent";
+      let timeout: { ms: number; source: "estimate" | "default" | "override" } | null = null;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+
+      const finish = (
+        result: ResultCode,
+        reason: ReasonCode,
+        evidence: CheckEvidence | null = null,
+      ) => {
+        this.finishPending();
+        resolve({
+          kind,
+          result,
+          reason,
+          attempts,
+          timeoutMs: timeout?.ms ?? null,
+          timeoutSource: timeout?.source ?? null,
+          startedAt,
+          durationMs: this.now() - startedAt,
+          evidence,
+        });
+      };
+      const arm = (ms: number, onTimeout: () => void) => {
+        clearTimeout(timer);
+        timer = setTimeout(onTimeout, ms);
+      };
+      const write = (): Promise<void> => {
+        if (kind === "login") return this.connection.sendCommandSendLogin(key, request.password);
+        if (kind === "status") return this.connection.sendCommandSendStatusReq(key);
+        return this.connection.sendCommandSendTelemetryReq(key);
+      };
+      const attempt = () => {
+        attempts += 1;
+        phase = "sent";
+        request.onProgress?.({ check: kind, attempt: attempts, of: policy.attempts });
+        arm(this.sentTimeoutMs, () => finish("TRANSPORT_UNAVAILABLE", "COMPANION_NO_ACK"));
+        this.ledger.record(request.publicKey, this.now());
+        write().catch(() => finish("TRANSPORT_UNAVAILABLE", "LINK_LOST"));
+      };
+
+      this.setPending(
+        (error) => {
+          if (error instanceof AbortError) finish("NOT_TESTED", "CANCELLED");
+          else if (error instanceof TransportUnavailableError) {
+            finish("TRANSPORT_UNAVAILABLE", "LINK_LOST");
+          } else finish("NOT_TESTED", "UNEXPECTED_ERROR");
+        },
+        signal,
+        () => clearTimeout(timer),
+        (frame) => {
+          if (frame.kind === "err" && phase === "sent") {
+            finish("UNSUPPORTED", "COMMAND_REJECTED", {
+              kind: "rejected",
+              code: frame.code ?? null,
+            });
+          } else if (frame.kind === "sent" && phase === "sent") {
+            phase = "reply";
+            timeout = attemptTimeout({
+              estimateMs: frame.estTimeoutMs,
+              overrideMs: policy.overrideMs,
+            });
+            arm(timeout.ms, () => {
+              if (shouldRetry("NO_REPLY", attempts, policy.attempts)) attempt();
+              else finish("NO_RESPONSE", "NO_REPLY");
+            });
+          } else if (kind === "login" && frame.kind === "loginFail" && frame.keyPrefix === prefix) {
+            finish("RESPONDED", "LOGIN_REJECTED");
+          } else if (
+            kind === "login" &&
+            frame.kind === "loginSuccess" &&
+            frame.keyPrefix === prefix
+          ) {
+            finish("RESPONDED", "ALL_CHECKS_REPLIED", {
+              kind: "login",
+              permissions: frame.permissions,
+              aclPermissions: frame.aclPermissions ?? null,
+              firmwareLevel: frame.firmwareLevel ?? null,
+            });
+          } else if (
+            kind === "status" &&
+            frame.kind === "statusResponse" &&
+            frame.keyPrefix === prefix
+          ) {
+            finish("RESPONDED", "ALL_CHECKS_REPLIED", { kind: "status", ...frame.stats });
+          } else if (
+            kind === "telemetry" &&
+            frame.kind === "telemetryResponse" &&
+            frame.keyPrefix === prefix
+          ) {
+            finish("RESPONDED", "ALL_CHECKS_REPLIED", {
+              kind: "telemetry",
+              values: frame.values,
+              lppHex: frame.lppHex,
+            });
+          }
+        },
+        (raw) => {
+          // Plan D-9: only a frame the check is waiting for can fail it.
+          if (raw[0] === undefined || !REPLY_CODES[kind].includes(raw[0])) return;
+          finish("UNSUPPORTED", "MALFORMED_RESPONSE", {
+            kind: "malformed",
+            code: raw[0],
+            length: raw.length,
+            hex: bytesToHex(raw.subarray(0, MALFORMED_HEX_BYTES)),
+          });
+        },
+      );
+      attempt();
+    });
   }
 
   onDisconnect(callback: () => void): Unsubscribe {
@@ -262,12 +470,14 @@ export class MeshClient {
     signal: AbortSignalLike | undefined,
     clean: () => void,
     onFrame: (frame: DecodedFrame) => void,
+    onMalformed?: (frame: Uint8Array) => void,
   ): void {
     const onAbort = () => this.failPending(new AbortError());
     signal?.addEventListener("abort", onAbort);
     this.pending = {
       onFrame,
       reject,
+      onMalformed,
       cleanup: () => {
         clean();
         signal?.removeEventListener("abort", onAbort);
@@ -296,8 +506,9 @@ export class MeshClient {
     try {
       decoded = decodeFrame(frame);
     } catch (error) {
-      if (error instanceof MalformedFrameError) this.failPending(error);
-      else throw error;
+      if (!(error instanceof MalformedFrameError)) throw error;
+      if (pending.onMalformed === undefined) this.failPending(error);
+      else pending.onMalformed(frame);
       return;
     }
     pending.onFrame(decoded);
@@ -308,4 +519,26 @@ export class MeshClient {
     this.failPending(new TransportUnavailableError());
     for (const listener of [...this.disconnectListeners]) listener();
   }
+}
+
+function emptyOutcome(kind: CheckKind, result: ResultCode, reason: ReasonCode): CheckOutcome {
+  return {
+    kind,
+    result,
+    reason,
+    attempts: 0,
+    timeoutMs: null,
+    timeoutSource: null,
+    startedAt: null,
+    durationMs: null,
+    evidence: null,
+  };
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  return Uint8Array.from(hex.match(/../g) ?? [], (pair) => parseInt(pair, 16));
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }

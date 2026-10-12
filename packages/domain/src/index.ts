@@ -1,5 +1,38 @@
 export { RESULT_CODES, isResultCode } from "./diagnostics/result-code";
 export type { ResultCode } from "./diagnostics/result-code";
+export { REASONS_BY_RESULT, isReasonFor } from "./diagnostics/reason-code";
+export type { ReasonCode, ReasonsOf } from "./diagnostics/reason-code";
+export { CHECK_KINDS, continuesAfter, planChecks } from "./diagnostics/check";
+export type { CheckEvidence, CheckKind, CheckOutcome, CheckPlan } from "./diagnostics/check";
+export { classifyRun } from "./diagnostics/classify";
+export type {
+  ClassifyContext,
+  Limitation,
+  Preflight,
+  RunClassification,
+} from "./diagnostics/classify";
+export { RULES, ruleFor } from "./diagnostics/rules";
+export type { Key, Rule } from "./diagnostics/rules";
+export type { DiagnosticRun, DiagnosticRunRepository, RunCompanion } from "./diagnostics/run";
+export { ageBucket, lastRunStatus } from "./diagnostics/status";
+export type { AgeBucket, RunStatus, StatusKind } from "./diagnostics/status";
+export {
+  OVERRIDE_RANGE_MS,
+  TIMEOUT_CAP_MS,
+  TIMEOUT_DEFAULT_MS,
+  TIMEOUT_FLOOR_MS,
+  TIMEOUT_MARGIN,
+  attemptTimeout,
+} from "./policy/timeout";
+export type { TimeoutSource } from "./policy/timeout";
+export {
+  ATTEMPTS_RANGE,
+  DEFAULT_DIAGNOSTIC_POLICY,
+  assertAttempts,
+  shouldRetry,
+} from "./policy/retry";
+export type { DiagnosticPolicy } from "./policy/retry";
+export { COOLDOWN_MS, cooldownRemaining, cooldownRemainingAt } from "./policy/cooldown";
 export type { CompanionInfo } from "./companion/companion";
 export {
   CAPABILITIES,

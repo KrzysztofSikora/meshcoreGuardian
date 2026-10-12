@@ -1,6 +1,8 @@
 # Mutation targets for the CI `mutation-report` job (scripts/mutation-changed.sh).
 # One glob per line, mirroring context/test-plan.md *Mutation targets*; keep both in sync.
 packages/domain/src/diagnostics/classify.ts
+packages/domain/src/diagnostics/check.ts
+apps/mobile/src/application/diagnostics/run-controller.ts
 packages/domain/src/diagnostics/rules.ts
 packages/domain/src/policy/timeout.ts
 packages/domain/src/policy/retry.ts

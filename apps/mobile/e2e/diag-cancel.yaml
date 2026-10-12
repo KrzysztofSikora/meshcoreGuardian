@@ -1,0 +1,19 @@
+# FR-05 AC1, AC3: Cancel during attempt 1 stops the run; it is stored as cancelled.
+appId: io.github.krzysztofsikora.guardian
+---
+- runFlow:
+    file: lib/connect-diag.yaml
+    env:
+      SCENARIO: diag-no-reply
+- tapOn: "Run diagnostic"
+- tapOn: "Run diagnostic"
+- extendedWaitUntil:
+    visible: "Step: Login · Attempt 1 of 2"
+    timeout: 20000
+- takeScreenshot: diag-cancel-progress
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    visible: "Check cancelled"
+    timeout: 10000
+- back
+- assertVisible: "Last test cancelled"

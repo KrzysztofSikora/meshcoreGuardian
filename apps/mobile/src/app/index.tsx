@@ -1,4 +1,4 @@
-import { Link } from "expo-router";
+import { Link, useIsFocused } from "expo-router";
 import { useEffect, useState } from "react";
 import { Button, FlatList, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -13,18 +13,26 @@ import {
 import { ConnectionStatus } from "../components/connection-status";
 import { NodeRow } from "../components/node-row";
 import { tr } from "../components/translate";
+import { statusOf } from "../application/diagnostics/presenter";
+import { useNow } from "../components/use-now";
 import { container } from "../composition";
 
-const { nodes: controller, session } = container;
+const { nodes: controller, session, runs } = container;
+
+/** Relative ages ("2 minutes ago") are recomputed this often while the dashboard is in front. */
+const STATUS_REFRESH_MS = 30_000;
 
 export default function DashboardScreen() {
   const { t } = useTranslation();
   const session$ = useStore(session.store);
   const nodes = useStore(controller.store);
+  const runState = useStore(runs.store);
+  const now = useNow(useIsFocused(), STATUS_REFRESH_MS);
   const [filter, setFilter] = useState<NodeFilter>("dashboard");
 
   useEffect(() => {
     void controller.load();
+    void runs.load();
   }, []);
 
   const rows = visibleNodes(nodes.nodes, filter);
@@ -72,7 +80,7 @@ export default function DashboardScreen() {
         style={styles.list}
         data={rows}
         keyExtractor={(node) => node.publicKey}
-        renderItem={({ item }) => <NodeRow node={item} />}
+        renderItem={({ item }) => <NodeRow node={item} status={statusOf(runState.latest[item.publicKey], now)} />}
         ListEmptyComponent={
           nodes.storage === "ok" ? (
             <Text>

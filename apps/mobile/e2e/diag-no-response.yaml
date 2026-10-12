@@ -1,0 +1,23 @@
+# FR-06 AC3, FR-09 AC3, TR-01: silence is NO_RESPONSE with the cause unknown, never offline.
+appId: io.github.krzysztofsikora.guardian
+---
+- runFlow:
+    file: lib/connect-diag.yaml
+    env:
+      SCENARIO: diag-no-reply
+- tapOn: "Run diagnostic"
+- tapOn: "Run diagnostic"
+- extendedWaitUntil:
+    visible: "No response — cause unknown"
+    timeout: 90000
+- takeScreenshot: diag-no-response-card
+- tapOn: "View details"
+- scrollUntilVisible:
+    element: "Possible causes. None of them is confirmed."
+- scrollUntilVisible:
+    element: ".*No usable radio path to the node right now."
+- assertNotVisible: ".*[Oo]ffline.*"
+- takeScreenshot: diag-no-response-details
+- back
+- back
+- assertVisible: "No reply in last test"

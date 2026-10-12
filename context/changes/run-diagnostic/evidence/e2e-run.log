@@ -1,0 +1,24 @@
+$ bash scripts/e2e.sh
+e2e: using device emulator-5554 (sdk_gphone64_x86_64)
+Performing Streamed Install
+Success
+
+Waiting for flows to complete...
+[Passed] diag-malformed (41s)
+[Passed] diag-cancel (40s)
+[Passed] diag-no-response (56s)
+[Passed] diag-unsupported (38s)
+[Passed] bluetooth-off (5s)
+[Passed] diag-responded (47s)
+[Passed] smoke (3s)
+[Passed] diag-transport-drop (38s)
+[Passed] contacts-sync (58s)
+[Passed] connect-ok (10s)
+[Passed] contacts-label-restart (50s)
+[Passed] permission-denied (7s)
+[Passed] connect-fail (11s)
+[Passed] reconnect (14s)
+[Passed] unsupported-capability (9s)
+
+15/15 Flows Passed in 7m 7s
+

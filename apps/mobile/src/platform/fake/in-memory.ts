@@ -1,5 +1,6 @@
 import type { Unsubscribe } from "@guardian/meshcore-adapter";
 
+import type { AirtimeNoticeStore } from "../../application/diagnostics/ports";
 import type {
   AppStatePort,
   LastCompanion,
@@ -34,5 +35,17 @@ export class InMemoryLastCompanionStore implements LastCompanionStore {
 
   async save(value: LastCompanion): Promise<void> {
     this.value = value;
+  }
+}
+
+export class InMemoryAirtimeNoticeStore implements AirtimeNoticeStore {
+  constructor(private value = false) {}
+
+  async seen(): Promise<boolean> {
+    return this.value;
+  }
+
+  async markSeen(): Promise<void> {
+    this.value = true;
   }
 }

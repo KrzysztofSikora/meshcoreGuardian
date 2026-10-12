@@ -4,6 +4,7 @@ import { createStore } from "zustand/vanilla";
 
 import {
   AbortError,
+  BusyError,
   CommandRejectedError,
   MalformedFrameError,
   type ContactsResult,
@@ -279,6 +280,12 @@ describe("NodesController", () => {
       await nodes.sync();
       expect(nodes.getState().sync).toEqual({ kind: "failed", reason: "UNSUPPORTED" });
       expect(repo.syncs).toHaveLength(0);
+    });
+
+    it("a sync refused because a diagnostic is running ends as BUSY", async () => {
+      const { nodes } = scripted(() => Promise.reject(new BusyError("diagnostic")));
+      await nodes.sync();
+      expect(nodes.getState().sync).toEqual({ kind: "failed", reason: "BUSY" });
     });
 
     it("an unreadable frame ends as MALFORMED_RESPONSE", async () => {

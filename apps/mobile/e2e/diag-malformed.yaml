@@ -1,0 +1,16 @@
+# FR-06 AC4: a reply that cannot be read is shown as such, with the raw bytes.
+appId: io.github.krzysztofsikora.guardian
+---
+- runFlow:
+    file: lib/connect-diag.yaml
+    env:
+      SCENARIO: diag-malformed
+- tapOn: "Run diagnostic"
+- tapOn: "Run diagnostic"
+- extendedWaitUntil:
+    visible: "A reply arrived but could not be read."
+    timeout: 60000
+- takeScreenshot: diag-malformed-card
+- tapOn: "View details"
+- assertVisible: "Reply could not be read"
+- assertVisible: "Raw reply .*"

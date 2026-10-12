@@ -1,0 +1,29 @@
+# Shared start of the diagnostic flows: connect to the fake companion running ${SCENARIO} and open
+# Room K, the node the recorded remote exchanges belong to.
+appId: io.github.krzysztofsikora.guardian
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Known nodes will appear here."
+    timeout: 30000
+- openLink: guardian://debug/scenario/${SCENARIO}
+- extendedWaitUntil:
+    visible: "Scan for companions"
+    timeout: 10000
+- tapOn: "Scan for companions"
+- extendedWaitUntil:
+    visible: "Connect to MeshCore-companion"
+    timeout: 10000
+- tapOn: "Connect to MeshCore-companion"
+- extendedWaitUntil:
+    visible: "Connected"
+    timeout: 20000
+- back
+- extendedWaitUntil:
+    visible: "Contacts synced: 32"
+    timeout: 30000
+- scrollUntilVisible:
+    element: "Room K"
+- tapOn: "Room K"
+- assertVisible: "Diagnostic"

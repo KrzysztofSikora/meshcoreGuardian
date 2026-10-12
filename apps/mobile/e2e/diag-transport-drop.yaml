@@ -1,0 +1,16 @@
+# FR-06 AC2: a lost link is a transport error with reconnect advice.
+appId: io.github.krzysztofsikora.guardian
+---
+- runFlow:
+    file: lib/connect-diag.yaml
+    env:
+      SCENARIO: diag-drop
+- tapOn: "Run diagnostic"
+- tapOn: "Run diagnostic"
+- extendedWaitUntil:
+    visible: "Transport error"
+    timeout: 60000
+- takeScreenshot: diag-transport-drop-card
+- tapOn: "View details"
+- scrollUntilVisible:
+    element: ".*Reconnect to the companion, then run the diagnostic again."

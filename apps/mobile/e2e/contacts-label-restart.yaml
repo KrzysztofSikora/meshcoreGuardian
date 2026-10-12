@@ -33,9 +33,10 @@ appId: io.github.krzysztofsikora.guardian
 - assertVisible: "Reported name: Sensor test"
 - stopApp
 - launchApp
-- extendedWaitUntil:
-    visible: "Hilltop"
-    timeout: 15000
+# Each row now carries a status line, so the node may sit below the fold.
+- scrollUntilVisible:
+    element: "Hilltop"
+    timeout: 30000
 - assertNotVisible: "Contacts synced.*"
 - tapOn: "Hilltop"
 - assertVisible: "Role: Repeater"

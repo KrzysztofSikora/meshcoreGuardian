@@ -4,6 +4,7 @@ export const CONTACT_SYNC_FAILURES = [
   "UNSUPPORTED",
   "MALFORMED_RESPONSE",
   "STORAGE_ERROR",
+  "BUSY",
   "UNEXPECTED",
 ] as const;
 

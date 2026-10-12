@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   AbortError,
+  CooldownError,
   FakeTransport,
   HANDSHAKE_FRAMES,
   TransportUnavailableError,
@@ -15,6 +16,8 @@ import { InMemoryAppState, InMemoryLastCompanionStore } from "../../platform/fak
 import { CompanionSession, type SessionState } from "./companion-session";
 
 const ID = "AA:BB:CC:DD:EE:01";
+const KEY = "7c73a8cd01d92e249bf6ed13af3f60499260e408c674ad5e11a44000d87acc28";
+const POLICY = { attempts: 1, overrideMs: null };
 
 function setup(name: ScenarioName) {
   const platform = new FakeBlePlatform(SCENARIOS[name]);
@@ -541,5 +544,50 @@ describe("CompanionSession", () => {
     const { session } = setup("connect-ok");
     await session.initialize();
     await expect(session.fetchContacts()).rejects.toBeInstanceOf(TransportUnavailableError);
+  });
+
+  it("runChecks rejects with TransportUnavailableError when not connected", async () => {
+    const { session } = setup("connect-ok");
+    await session.initialize();
+    await expect(
+      session.runChecks({ publicKey: KEY, checks: ["login"], password: "", policy: POLICY }),
+    ).rejects.toBeInstanceOf(TransportUnavailableError);
+  });
+
+  describe("runChecks", () => {
+    it("a user disconnect ends the run as cancelled, with no further write", async () => {
+      const { session } = await connectOk();
+      const running = session.runChecks({
+        publicKey: KEY,
+        checks: ["login", "status"],
+        password: "",
+        policy: POLICY,
+      });
+      await vi.advanceTimersByTimeAsync(100);
+      await session.disconnect();
+      await vi.runAllTimersAsync();
+      const outcomes = await running;
+      expect(outcomes).toHaveLength(1);
+      expect(outcomes[0]).toMatchObject({ result: "NOT_TESTED", reason: "CANCELLED" });
+    });
+
+    it("the cooldown survives a reconnect (FR-10 AC2)", async () => {
+      const { session } = await connectOk();
+      const first = session.runChecks({
+        publicKey: KEY,
+        checks: ["login"],
+        password: "",
+        policy: POLICY,
+      });
+      await vi.runAllTimersAsync();
+      await first;
+      await session.disconnect();
+      const done = session.connect(ID);
+      await vi.runAllTimersAsync();
+      await done;
+      await expect(
+        session.runChecks({ publicKey: KEY, checks: ["login"], password: "", policy: POLICY }),
+      ).rejects.toBeInstanceOf(CooldownError);
+    });
   });
 });
