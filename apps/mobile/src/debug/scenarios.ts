@@ -20,6 +20,15 @@ export const SCENARIOS = {
     ...base,
     attempts: [{ firmware: { verCode: 4, version: "v1.4.0" } }],
   },
+  // Diagnostics against Room K (plan D-17). Cancel uses `diag-no-reply`.
+  "diag-ok": { ...base, attempts: [{ diagnostic: {} }] },
+  "diag-no-reply": { ...base, attempts: [{ diagnostic: { login: "no-reply" } }] },
+  "diag-drop": { ...base, attempts: [{ diagnostic: {}, dropAfterRemoteWrites: 1 }, "ok"] },
+  "diag-unsupported": {
+    ...base,
+    attempts: [{ diagnostic: { login: "err" }, firmware: { verCode: 4, version: "v1.4.0" } }],
+  },
+  "diag-malformed": { ...base, attempts: [{ diagnostic: { login: "malformed" } }] },
 } satisfies Record<string, Scenario>;
 
 export type ScenarioName = keyof typeof SCENARIOS;

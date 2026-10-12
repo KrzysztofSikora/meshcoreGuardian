@@ -1,0 +1,16 @@
+# FR-06 AC4: the companion refuses the request on old firmware; the result is Unsupported.
+appId: io.github.krzysztofsikora.guardian
+---
+- runFlow:
+    file: lib/connect-diag.yaml
+    env:
+      SCENARIO: diag-unsupported
+- tapOn: "Run diagnostic"
+- tapOn: "Run diagnostic"
+- extendedWaitUntil:
+    visible: "Unsupported"
+    timeout: 60000
+- takeScreenshot: diag-unsupported-card
+- tapOn: "View details"
+- assertVisible: "Refused by the companion"
+- assertVisible: "Refused with code 2"

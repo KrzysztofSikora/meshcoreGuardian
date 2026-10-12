@@ -353,16 +353,24 @@ Dashboard rows ─▶ RunController.store.latest[publicKey] ─▶ lastRunStatus
 - [x] Phase 3: Storage for runs and checks
 - [x] Phase 4: `MeshClient.runChecks` and remote scripts
 - [x] Phase 5: Application use case, catalog and composition
-- [ ] Phase 6: Screens, fake scenarios, e2e and docs
+- [x] Phase 6: Screens, fake scenarios, e2e and docs
 
 ## Human checks
 <!-- Filled by /implement: one open checkbox per human check, with how to run it and evidence. -->
+- [ ] (Phase 6) On a phone with the CI APK (`android-apk` artifact) connected to the real companion: open a repeater or room server, tap **Run diagnostic**, accept the airtime notice, and check that it ends "Responded" with a battery voltage that matches the node; note the per-check timeouts shown on the run screen for `docs/compatibility.md` — run: install the CI APK, Connect, open the node — evidence: none (emulator reference: `evidence/diag-responded-details.png`)
+- [ ] (Phase 6) Same phone: start a run and tap **Cancel** during "Attempt 1 of 2"; the result reads "Check cancelled" and the button counts down to re-enable — run: as above, tap Cancel while the step line is shown — evidence: none (emulator reference: `evidence/diag-cancel-progress.png`)
+- [ ] (Phase 6) Read the run screen texts for `RESPONDED` and `NO_RESPONSE`: are explanation, possible causes and next steps clear, and do they avoid claiming a cause? — run: look at the screenshots — evidence: `context/changes/run-diagnostic/evidence/diag-responded-details.png`, `diag-no-response-details.png`
+- [ ] (Phase 6) With TalkBack on, the Dashboard row reads the status words (e.g. "Responded 2 minutes ago"), not only the glyph — run: Settings > Accessibility > TalkBack, focus a node row on the Dashboard after a run — evidence: none
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
 - [minor] (Phase 4) D-10 says `runChecks` throws only `BusyError`, `CooldownError` or `TransportUnavailableError`. The code also throws `RangeError` for attempts outside 1–3 or an override outside 5–60 s, before any write (a programming error; S-09 validates input first). An already-aborted signal resolves with `[]` instead of throwing; `classifyRun` with `cancelled: true` handles it.
 
 - [minor] (Phase 5) D-13 says a race with a missing `status` capability stores `UNSUPPORTED`/`CAPABILITY_MISSING`. The controller also stores the unsupported `status` check in that run, so the run screen can list it; `classifyRun` with a preflight ignores it, so result and reason are unchanged. A run in flight does not count as busy while the airtime notice waits for a decision.
+
+- [minor] (Phase 6) The plan has `diag-drop` drop "right after the status write" and `diag-unsupported` use login `err`, with the details listing telemetry as unsupported. By D-3/`classifyRun`, a login reply followed by a link loss is `RESPONDED`, not "Transport error"; and a run that stops at the login `err` hides the skipped telemetry check (D-2). So `diag-drop` drops right after the login write (`dropAfterRemoteWrites: 1`), and `diag-unsupported` asserts "Refused by the companion" and "Refused with code 2" instead of a telemetry line. `diag-malformed` truncates the login push (not the status push) for the same reason; the fake attempt field is named `dropAfterRemoteWrites`.
+- [minor] (Phase 6) `contacts-label-restart.yaml` now scrolls to "Hilltop": the status line added to every Dashboard row pushed the node below the fold. The assertion is unchanged. Flows that need a connected companion share `e2e/lib/connect-diag.yaml` (a subfolder, so Maestro does not run it alone); the suite is 15 flows.
+- [minor] (Phase 6) The progress step and "Attempt n of m" are asserted only in `diag-cancel`: in the OK scenario the replay takes ~5 s and Maestro could miss a step. The countdown re-render uses a 1 s `useSyncExternalStore` clock (`components/use-now.ts`), because the lint rules forbid `Date.now()` in render and `setState` in effects.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->

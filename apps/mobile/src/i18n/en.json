@@ -53,7 +53,9 @@
   },
   "run": {
     "title": "Diagnostic run",
-    "placeholder": "Diagnostic results will appear here."
+    "placeholder": "Diagnostic results will appear here.",
+    "bullet": "• {{text}}",
+    "notFound": "This run is not stored on this phone."
   },
   "settings": {
     "title": "Settings",
@@ -133,6 +135,7 @@
     }
   },
   "diagnostic": {
+    "heading": "Diagnostic",
     "run": "Run diagnostic",
     "cancel": "Cancel",
     "viewDetails": "View details",

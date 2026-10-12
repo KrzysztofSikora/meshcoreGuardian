@@ -1,0 +1,27 @@
+# FR-05 AC1, FR-06 AC1, FR-09 AC2, FR-10 AC2/AC5, FR-11: airtime notice, a run that answers, details, countdown, dashboard status.
+appId: io.github.krzysztofsikora.guardian
+---
+- runFlow:
+    file: lib/connect-diag.yaml
+    env:
+      SCENARIO: diag-ok
+- assertVisible: "Not tested"
+- tapOn: "Run diagnostic"
+- assertVisible: "Shared airtime"
+- tapOn: "Run diagnostic"
+- extendedWaitUntil:
+    visible: "Responded"
+    timeout: 60000
+- takeScreenshot: diag-responded-card
+- tapOn: "View details"
+- assertVisible: "Checks performed"
+- assertVisible: "Login"
+- assertVisible: "Status"
+- assertVisible: "Telemetry"
+- assertVisible: "Battery: 3.35 V"
+- assertVisible: 'Signal of last hop \(RSSI\): .*'
+- takeScreenshot: diag-responded-details
+- back
+- assertVisible: "Available again in .* s"
+- back
+- assertVisible: "Responded just now"

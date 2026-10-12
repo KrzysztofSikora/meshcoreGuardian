@@ -18,25 +18,25 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 
 | ID | Risk | Impact | Likelihood | Level | Test(s) | Status |
 |----|------|--------|------------|-------|---------|--------|
-| TR-01 | A timeout, or any no-reply path, is shown as "offline/down" (brief's main honesty risk) | H | M | unit + e2e | domain: every path to `NO_RESPONSE` maps to the "cause unknown" text; catalog test forbids "offline", "down", "dead" (any case) in `en.json`; e2e `no-response.yaml` asserts the visible text | planned (S-04) |
-| TR-02 | Result classification wrong: partial reply classified `NO_RESPONSE`; disconnect classified `NO_RESPONSE`; malformed classified `RESPONDED` | H | M | unit | table-driven test over all check-outcome combinations → overall result + reasons (best-evidence rule, S-04) | planned (S-04) |
-| TR-03 | Timeout policy wrong: cap not applied, estimate ignored, override out of range, retries exceed limit | H | M | unit | `timeoutPolicy` and `retryPolicy` tests with boundary values (estimate 0, 29 999, 30 001 ms, none; attempts 1/2/3/4) | planned (S-04) |
-| TR-04 | Two requests in flight on one companion, or cooldown bypassed — radio spam | H | M | integration | `MeshClient` with `FakeTransport` + fake clock: concurrent `runDiagnostic` → second refused; run within 60 s → refused; after 60 s → allowed | planned (S-04) |
-| TR-05 | Cancel does not stop retries, or leaves a dangling listener that resolves a later run | H | M | integration | abort during attempt 1 → no attempt 2 frame written; late reply after abort is ignored and not stored | planned (S-04) |
+| TR-01 | A timeout, or any no-reply path, is shown as "offline/down" (brief's main honesty risk) | H | M | unit + e2e | domain: every path to `NO_RESPONSE` maps to the "cause unknown" text; catalog test forbids "offline", "down", "dead" (any case) in `en.json`; e2e `diag-no-response.yaml` asserts the visible text | covered (S-04) |
+| TR-02 | Result classification wrong: partial reply classified `NO_RESPONSE`; disconnect classified `NO_RESPONSE`; malformed classified `RESPONDED` | H | M | unit | table-driven test over all check-outcome combinations → overall result + reasons (best-evidence rule, S-04) | covered (S-04) |
+| TR-03 | Timeout policy wrong: cap not applied, estimate ignored, override out of range, retries exceed limit | H | M | unit | `timeoutPolicy` and `retryPolicy` tests with boundary values (estimate 0, 29 999, 30 001 ms, none; attempts 1/2/3/4) | covered (S-04) |
+| TR-04 | Two requests in flight on one companion, or cooldown bypassed — radio spam | H | M | integration | `MeshClient` with `FakeTransport` + fake clock: concurrent `runDiagnostic` → second refused; run within 60 s → refused; after 60 s → allowed | covered (S-04) |
+| TR-05 | Cancel does not stop retries, or leaves a dangling listener that resolves a later run | H | M | integration | abort during attempt 1 → no attempt 2 frame written; late reply after abort is ignored and not stored | covered (S-04) |
 | TR-06 | Frame decoding drifts from firmware (library upgrade or firmware change) | H | M | integration | fixture tests decode every file in `packages/meshcore-adapter/fixtures/` and compare with the values logged at capture time | covered (S-01) |
 | TR-07 | meshcore.js does not run under Hermes / RN (Node or Web globals) | H | M | hardware | human check in S-02: app on real phone connects and decodes contacts; recorded in PR evidence | planned (S-02 human check) |
-| TR-08 | Response matched to the wrong request (late reply from a previous run, different node) | H | L | integration | fixture with interleaved replies; reply carrying another node's key prefix is not attributed to the current run | planned (S-04) |
+| TR-08 | Response matched to the wrong request (late reply from a previous run, different node) | H | L | integration | fixture with interleaved replies; reply carrying another node's key prefix is not attributed to the current run | covered (S-04) |
 | TR-09 | Guest password leaks to SQLite, logs, fixtures or export | H | L | integration | write known password `pw-LEAK-CANARY`, then scan the SQLite file bytes, captured log output and export output: none contain it; capture tool test asserts password field is never serialised | covered (S-01 capture part); planned (S-05, S-08) |
 | TR-10 | Export includes full public keys by default or omits redaction preview | M | M | unit | golden files for JSON and CSV with redaction on/off; default settings → 8 hex chars only | planned (S-08) |
 | TR-11 | Data lost on restart or on schema migration | H | L | integration | repository round-trip on file-backed `node:sqlite`; migration test applies every migration in order to a DB seeded at each earlier version and checks rows survive | covered S-03 (migration, restart round-trip); S-06 planned |
 | TR-12 | Link drop not surfaced; in-flight run hangs; reconnect needs app restart | H | M | integration + e2e | `FakeTransport.drop()` mid-request → run ends `TRANSPORT_UNAVAILABLE` within 5 s fake time; e2e `reconnect.yaml` | covered (S-02) |
 | TR-13 | Permission denied / Bluetooth off shown as "no devices found" | M | M | e2e | `permission-denied.yaml`, `bluetooth-off.yaml` with fake transport scripted states | covered (S-02) |
-| TR-14 | Unsupported capability still callable or unlabelled | M | M | unit + e2e | capability → enabled-actions mapping; e2e asserts disabled button and reason text | covered (S-02: mapping + reason text); S-04 adds the disabled-button e2e |
+| TR-14 | Unsupported capability still callable or unlabelled | M | M | unit + e2e | capability → enabled-actions mapping; e2e asserts disabled button and reason text | covered (S-02: mapping + reason text); S-04: `runButton` unit tests and the `diag-unsupported.yaml` e2e |
 | TR-15 | Contact sync duplicates nodes, overwrites user label/role, or deletes history of removed contacts | M | M | integration | sync twice → one row per key; user label kept over protocol name; contact missing from companion → node kept with flag | covered (S-03) |
 | TR-16 | Telemetry shown without unit, 0 instead of N/A, RSSI/SNR presented as end-to-end | M | M | unit | mapping tests from decoded telemetry → domain samples; presenter tests for N/A and "last hop" labels | planned (S-06) |
 | TR-17 | Trend or prediction shown on too little data | M | L | unit | trend rule: 4 samples / 23 h → "Not enough data"; 5 samples / 24 h → trend; no API returns a prediction | planned (S-07) |
-| TR-18 | Background BLE activity or automatic remote requests | M | L | integration | use-case tests: app-state `background` → transport receives no writes; no timer schedules a run | covered (S-02); S-04 adds the request side |
-| TR-19 | Status relies on colour only; missing accessibility labels | M | M | e2e + hardware | Maestro asserts accessibility labels on status chips; S-10 audit with contrast checker and 200 % font scale | planned (S-04, S-10) |
+| TR-18 | Background BLE activity or automatic remote requests | M | L | integration | use-case tests: app-state `background` → transport receives no writes; no timer schedules a run | covered (S-02, S-04: no write without a tap, none in the background) |
+| TR-19 | Status relies on colour only; missing accessibility labels | M | M | e2e + hardware | Maestro asserts accessibility labels on status chips; S-10 audit with contrast checker and 200 % font scale | covered for the run status (S-04: e2e asserts the status words); S-10 audits the rest |
 | TR-20 | Settings accept out-of-range values | L | M | unit | Zod schema boundary tests (4/5/60/61 s; 0/1/3/4 attempts) | planned (S-09) |
 | TR-21 | Delete/clear leaves secrets or rows behind | M | L | integration | after delete: repository queries empty and `SecretStore` fake has no key | planned (S-05, S-09) |
 | TR-22 | Layer boundary violated (domain imports RN, storage imports adapter) | M | M | lint | ESLint `no-restricted-imports` + one fixture file asserting lint fails | planned (F-01) |
@@ -71,6 +71,8 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | Module | Why | Target score | CI (report / break at N%) |
 |--------|-----|--------------|---------------------------|
 | `packages/domain/src/diagnostics/classify.ts` | best-evidence rule decides what the user is told (TR-01, TR-02) | 80 % | report |
+| `packages/domain/src/diagnostics/check.ts` | check planning and the rule that stops a run (D-2) | 80 % | report |
+| `apps/mobile/src/application/diagnostics/run-controller.ts` | start, cancel, refusals and the stored result (FR-05, FR-10) | 80 % | report |
 | `packages/domain/src/diagnostics/rules.ts` | result × reason → explanation/next steps (FR-09) | 80 % | report |
 | `packages/domain/src/policy/timeout.ts`, `retry.ts`, `cooldown.ts` | radio hygiene and false NO_RESPONSE (TR-03, TR-04) | 80 % | report |
 | `packages/meshcore-adapter/src/client/mesh-client.ts` | orchestration: abort, single-flight, error → reason mapping (TR-04, TR-05, TR-08) | 80 % | report |
@@ -131,7 +133,8 @@ Tool setup (done in F-01, configuration fixed here): `@stryker-mutator/core` and
 2. Create `apps/mobile/e2e/<flow>.yaml`: `appId`, `clearState`, `openLink: guardian://debug/scenario/<name>`, then taps and `assertVisible` on text or `id` (accessibility label).
 3. Assert user-visible outcomes only (text, enabled/disabled, labels). Never assert colours.
 4. Run one flow: `pnpm e2e --flow apps/mobile/e2e/<flow>.yaml`; all: `pnpm e2e`.
-5. Keep the e2e suite under ~15 flows; push detail down to integration tests.
+5. Keep the e2e suite under ~15 flows; push detail down to integration tests. Flows that need a connected companion share `apps/mobile/e2e/lib/connect-diag.yaml` (`runFlow` with `env: SCENARIO`); it sits in a subfolder so Maestro does not run it alone.
+6. The diagnostic flows (S-04) are `diag-responded`, `diag-no-response`, `diag-transport-drop`, `diag-unsupported`, `diag-malformed` and `diag-cancel`: 15 flows in all.
 
 Existing S-03 flows: `contacts-sync.yaml` (FR-04 AC1, AC2, AC4: sync after connect, Unknown role, chat contacts only under All contacts, pin to Dashboard, second sync) and `contacts-label-restart.yaml` (FR-04 AC3: label and role survive `stopApp`/`launchApp` without `clearState`).
 

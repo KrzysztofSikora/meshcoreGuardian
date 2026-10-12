@@ -1,8 +1,11 @@
 import {
   CONTACTS_FRAMES,
+  DIAG_CONTACTS_FRAMES,
   FakeTransport,
   HANDSHAKE_FRAMES,
+  remoteScript,
   withFirmware,
+  type RemoteScriptSpec,
 } from "@guardian/meshcore-adapter";
 
 import type {
@@ -20,7 +23,14 @@ export type Attempt =
   | "connect-timeout"
   | "silent"
   | { dropAfterMs: number }
-  | { firmware: { verCode: number; version: string } };
+  | { firmware: { verCode: number; version: string } }
+  | {
+      /** Remote exchanges for Room K (plan D-17), on top of the usual handshake and contacts. */
+      diagnostic: RemoteScriptSpec;
+      firmware?: { verCode: number; version: string };
+      /** Drops the link right after this many remote requests were written. */
+      dropAfterRemoteWrites?: number;
+    };
 
 export interface Scenario {
   permission: PermissionStatus;
@@ -101,17 +111,29 @@ export class FakeBlePlatform implements BlePlatform {
     this.attemptIndex += 1;
     if (attempt === "connect-error") throw new Error("Fake connect error");
     if (attempt === "connect-timeout") return abortReject(signal);
+    const firmware =
+      typeof attempt === "object" && "firmware" in attempt ? attempt.firmware : undefined;
     const handshake =
-      typeof attempt === "object" && "firmware" in attempt
-        ? withFirmware(HANDSHAKE_FRAMES, attempt.firmware)
-        : HANDSHAKE_FRAMES;
+      firmware === undefined ? HANDSHAKE_FRAMES : withFirmware(HANDSHAKE_FRAMES, firmware);
+    const diagnostic =
+      typeof attempt === "object" && "diagnostic" in attempt ? attempt : undefined;
     // Two syncs per connection: the automatic one and one tap on "Sync contacts" (plan D-12).
-    const frames = [...handshake, ...CONTACTS_FRAMES, ...CONTACTS_FRAMES];
+    // The remote script is there twice: a retry writes the same request again (plan D-17).
+    const contacts = diagnostic === undefined ? CONTACTS_FRAMES : DIAG_CONTACTS_FRAMES;
+    const remote =
+      diagnostic === undefined
+        ? []
+        : [...remoteScript(diagnostic.diagnostic), ...remoteScript(diagnostic.diagnostic)];
+    const frames = [...handshake, ...contacts, ...contacts, ...remote];
     const transport = FakeTransport.fromFrames(frames);
     this.lastTransport = transport;
     if (attempt === "silent") {
       for (const frame of frames)
         if (frame.dir === "tx") transport.silence(parseInt(frame.hex.slice(0, 2), 16));
+    }
+    if (diagnostic?.dropAfterRemoteWrites !== undefined) {
+      const before = [...handshake, ...contacts].filter((frame) => frame.dir === "tx").length;
+      transport.dropAfterWrites(before + diagnostic.dropAfterRemoteWrites);
     }
     if (typeof attempt === "object" && "dropAfterMs" in attempt) {
       setTimeout(() => transport.drop(), attempt.dropAfterMs);
