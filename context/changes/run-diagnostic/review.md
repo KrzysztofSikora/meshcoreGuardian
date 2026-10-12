@@ -1,7 +1,17 @@
 # Review: run-diagnostic
 
-Verdict: APPROVE WITH FOLLOW-UPS
-Gates: typecheck ok, lint ok, unit tests ok (952/952), e2e ok (15/15), mutation run-controller.ts ok (96.1 %, 8 survivors, round 2 run) · Round: 4
+Verdict: APPROVE
+Gates: typecheck ok, lint ok, unit tests ok (953/953), e2e ok (15/15), mutation run-controller.ts ok (96.57 %, 197 killed / 7 survived) · Round: 5
+
+Round 5: re-checked R6 against 6b2faef. The new test "an appState change to active leaves the run
+in flight alone" sends `appState.set("active")` during a run and asserts a `NO_RESPONSE` result
+that is not `CANCELLED`. A fresh `pnpm mutation --mutate
+apps/mobile/src/application/diagnostics/run-controller.ts --force` kills the line 78 `if (true)`
+mutant; the 7 survivors left (lines 110, 159, 186, 220, 261, 296, 299) all have a decision in
+`mutation.md` at the right line. Small slip, not a finding: the `mutation.md` row gives
+190 killed where Stryker reports 197; the score (96.6 %) and survivor count match. All gates
+re-run: typecheck, lint, unit tests (953/953) and e2e (15/15 on `guardian`) pass. R1-R6 are fixed.
+No new findings.
 
 Round 4: still no code change since round 2. The only commits after round 3 are ff60181 (this
 file) and abb41a5 (`pr-body.md`); `git diff --stat 62c69e0 HEAD` lists only those two docs. R6 is
@@ -66,7 +76,7 @@ in code or in the plan. One new finding (R6). Round 1 text is kept below for the
 | Correctness | ok | round 2: companion identity kept on a link drop; background cancels a run in flight; busy texts name the activity |
 | Design | ok | layers respected: classification and policy in domain, orchestration in `MeshClient`, storage behind a port |
 | Safety | ok | password only passed through, never stored or logged; stored rows parsed with Zod |
-| Tests | concern | round 2: every fix has a test, but `mutation.md` was not refreshed after the fixes and one new survivor has no decision (R6) |
+| Tests | ok | round 5: every fix has a test; `mutation.md` refreshed and every `run-controller.ts` survivor has a plausible decision (R6 fixed) |
 | Simplicity | ok | small focused modules; `run.limitations` now used by the presenter |
 | Plan fidelity | ok | round 2: D-19 and two `[REVIEW]` deviations added; *Review response* covers plan-review #2-#4; fixes logged as `[minor]` |
 | Agent decisions | ok | D-1 lives in `REASONS_BY_RESULT`, D-8 in one migration; both swappable as claimed. Mutation `equivalent`/`accept` decisions checked and plausible |
