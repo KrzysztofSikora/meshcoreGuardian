@@ -87,7 +87,7 @@ Round 1 (gates then: e2e 16/17): R1 blocker, R2 major, R3 minor. Round 2 re-chec
 - Fix: use the shown node's own sync time, `formatTime(nearest.node.syncedAt)`, for `asOf` (keep `null` when `origin` is `null`), and assert it in the R2 presenter test. Alternative: keep `origin.at` and change the text to "Path as of the last contact sync that reported it".
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (63fe281)
 
 ### R5: Decision D-1 does not mention the new `path_companion_key` column
 - Severity: minor
@@ -96,4 +96,4 @@ Round 1 (gates then: e2e 16/17): R1 blocker, R2 major, R3 minor. Round 2 re-chec
 - Fix: add `path_companion_key TEXT` (nullable, 64 hex, the companion that gave `path_hops`, filter key for the ranking) to D-1's chosen option. Mark line 297 as superseded by R2.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (plan.md D-1 row and superseded note updated, no code)
