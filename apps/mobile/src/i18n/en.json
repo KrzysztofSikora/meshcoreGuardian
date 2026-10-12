@@ -131,5 +131,279 @@
       "STORAGE_ERROR": "Contact sync failed: contacts could not be saved locally.",
       "UNEXPECTED": "Contact sync failed (unexpected error)."
     }
+  },
+  "diagnostic": {
+    "run": "Run diagnostic",
+    "cancel": "Cancel",
+    "viewDetails": "View details",
+    "needConnection": "Connect a companion to run a diagnostic",
+    "notInContacts": "This node is not in the companion's contacts",
+    "cooldown": "Available again in {{seconds}} s",
+    "refusal": {
+      "busy": "A check is already running",
+      "cooldown": "This node was checked a moment ago. Available again in {{seconds}} s."
+    },
+    "notice": {
+      "title": "Shared airtime",
+      "body": "Checks use shared LoRa airtime and reach other nodes on the mesh. Run them only when you need them.",
+      "notNow": "Not now"
+    },
+    "notSaved": "This result could not be saved locally.",
+    "progress": {
+      "start": {
+        "login": "Step: Login",
+        "status": "Step: Status",
+        "telemetry": "Step: Telemetry"
+      },
+      "login": "Step: Login · Attempt {{attempt}} of {{of}}",
+      "status": "Step: Status · Attempt {{attempt}} of {{of}}",
+      "telemetry": "Step: Telemetry · Attempt {{attempt}} of {{of}}"
+    },
+    "check": {
+      "login": "Login",
+      "status": "Status",
+      "telemetry": "Telemetry"
+    },
+    "outcome": {
+      "ALL_CHECKS_REPLIED": "Replied",
+      "PARTIAL_REPLY": "Replied",
+      "LOGIN_REJECTED": "Replied, guest login rejected",
+      "NO_REPLY": "No response — cause unknown",
+      "NOT_CONNECTED": "Not sent: no companion connected",
+      "LINK_LOST": "Transport error: link lost",
+      "COMPANION_NO_ACK": "Transport error: the companion did not confirm the request",
+      "CAPABILITY_MISSING": "Not supported by the companion firmware",
+      "COMMAND_REJECTED": "Refused by the companion",
+      "MALFORMED_RESPONSE": "Reply could not be read",
+      "CANCELLED": "Cancelled",
+      "UNEXPECTED_ERROR": "Could not be completed"
+    },
+    "attempts_one": "{{count}} attempt",
+    "attempts_other": "{{count}} attempts",
+    "timeout": {
+      "estimate": "Waited {{seconds}} s (companion estimate)",
+      "default": "Waited {{seconds}} s (default)",
+      "override": "Waited {{seconds}} s (your setting)"
+    },
+    "evidence": {
+      "login": {
+        "permissions": "Permissions: {{value}}",
+        "firmwareLevel": "Node firmware level: {{value}}"
+      },
+      "status": {
+        "battery": "Battery: {{volts}} V",
+        "uptime": "Uptime: {{seconds}} s",
+        "noiseFloor": "Noise floor: {{dbm}} dBm",
+        "lastRssi": "Signal of last hop (RSSI): {{dbm}} dBm",
+        "lastSnr": "Signal-to-noise of last hop: {{db}} dB",
+        "packets": "Packets: {{received}} received, {{sent}} sent",
+        "queue": "Transmit queue: {{count}}"
+      },
+      "telemetry": {
+        "none": "No telemetry values",
+        "value": "Channel {{channel}}, type {{type}}: {{value}}"
+      },
+      "malformed": "Raw reply (code {{code}}, {{length}} bytes): {{hex}}",
+      "rejected": {
+        "unknown": "Refused without a code",
+        "code": "Refused with code {{code}}"
+      }
+    },
+    "facts": {
+      "duration": "Duration: {{seconds}} s",
+      "companion": "Companion: {{name}} ({{version}})",
+      "attempts": "Requests sent: {{used}} (up to {{per}} per check)"
+    },
+    "section": {
+      "checks": "Checks performed",
+      "limitations": "Limitations",
+      "causes": "Possible causes",
+      "nextSteps": "Next steps"
+    },
+    "status": {
+      "not_tested": "Not tested",
+      "no_reply": "No reply in last test",
+      "transport_error": "Transport error in last test",
+      "unsupported": "Unsupported in last test",
+      "cancelled": "Last test cancelled",
+      "incomplete": "Last test incomplete",
+      "responded": {
+        "now": "Responded just now",
+        "minute_one": "Responded {{count}} minute ago",
+        "minute_other": "Responded {{count}} minutes ago",
+        "hour_one": "Responded {{count}} hour ago",
+        "hour_other": "Responded {{count}} hours ago",
+        "day_one": "Responded {{count}} day ago",
+        "day_other": "Responded {{count}} days ago"
+      }
+    },
+    "rule": {
+      "RESPONDED": {
+        "ALL_CHECKS_REPLIED": {
+          "summary": "Responded",
+          "explanation": "The node answered every check that was sent.",
+          "nextSteps": {
+            "review": "Review the evidence below."
+          }
+        },
+        "PARTIAL_REPLY": {
+          "summary": "Responded",
+          "explanation": "The node answered at least one check. Others did not get a reply.",
+          "causesNote": "Possible causes. None of them is confirmed.",
+          "causes": {
+            "route": "The path to the node is marginal, so some replies were lost.",
+            "congestion": "The channel was busy while the later check was sent."
+          },
+          "nextSteps": {
+            "retry": "Run the diagnostic again later to see whether the missing check answers."
+          },
+          "limitations": {
+            "unanswered": "Some checks got no reply, so their data is missing."
+          }
+        },
+        "LOGIN_REJECTED": {
+          "summary": "Responded, login rejected",
+          "explanation": "The node answered and rejected the guest login. Status and telemetry were not requested.",
+          "causes": {
+            "password": "The guest password is not the one the node expects.",
+            "permissions": "The node does not allow guest access."
+          },
+          "nextSteps": {
+            "credentials": "Check the guest password set on the node.",
+            "other": "A node that accepts guest access can be tested without a password."
+          },
+          "limitations": {
+            "noSession": "Without a session, no status or telemetry was read."
+          }
+        }
+      },
+      "NO_RESPONSE": {
+        "NO_REPLY": {
+          "summary": "No response — cause unknown",
+          "explanation": "The companion sent the request, but no reply came back within the wait time. This does not tell whether the node is working.",
+          "causesNote": "Possible causes. None of them is confirmed.",
+          "causes": {
+            "route": "No usable radio path to the node right now.",
+            "congestion": "The channel was busy or the reply was lost on the way.",
+            "device": "The node itself did not handle the request."
+          },
+          "nextSteps": {
+            "wait": "Wait a few minutes and run the diagnostic again.",
+            "closer": "Move the companion closer to the node or to a repeater on the path."
+          },
+          "limitations": {
+            "unknownCause": "A missing reply cannot be told apart from a lost one."
+          }
+        }
+      },
+      "TRANSPORT_UNAVAILABLE": {
+        "NOT_CONNECTED": {
+          "summary": "Transport error",
+          "explanation": "No companion was connected, so nothing was sent.",
+          "nextSteps": {
+            "connect": "Connect a companion, then run the diagnostic again."
+          }
+        },
+        "LINK_LOST": {
+          "summary": "Transport error",
+          "explanation": "The Bluetooth link to the companion was lost during the run.",
+          "causesNote": "Possible causes. None of them is confirmed.",
+          "causes": {
+            "range": "The phone moved out of Bluetooth range.",
+            "companion": "The companion restarted or switched Bluetooth off."
+          },
+          "nextSteps": {
+            "reconnect": "Reconnect to the companion, then run the diagnostic again."
+          },
+          "limitations": {
+            "notSent": "Requests after the loss were not sent."
+          }
+        },
+        "COMPANION_NO_ACK": {
+          "summary": "Transport error",
+          "explanation": "The companion did not confirm the request, so it may never have been sent.",
+          "causesNote": "Possible causes. None of them is confirmed.",
+          "causes": {
+            "companion": "The companion is busy or in a bad state."
+          },
+          "nextSteps": {
+            "reconnect": "Reconnect to the companion, then run the diagnostic again."
+          },
+          "limitations": {
+            "notSent": "The request may not have reached the radio."
+          }
+        }
+      },
+      "UNSUPPORTED": {
+        "CAPABILITY_MISSING": {
+          "summary": "Unsupported",
+          "explanation": "The companion firmware does not support the status request.",
+          "nextSteps": {
+            "update": "Update the companion firmware."
+          },
+          "limitations": {
+            "firmware": "Checks the firmware lacks were not sent."
+          }
+        },
+        "COMMAND_REJECTED": {
+          "summary": "Unsupported",
+          "explanation": "The companion refused the request.",
+          "causesNote": "Possible causes. None of them is confirmed.",
+          "causes": {
+            "firmware": "The firmware does not handle this request.",
+            "contact": "The node is not in the companion's contacts."
+          },
+          "nextSteps": {
+            "sync": "Sync contacts, then try again.",
+            "update": "Update the companion firmware."
+          },
+          "limitations": {
+            "rejected": "The node was never asked."
+          }
+        },
+        "MALFORMED_RESPONSE": {
+          "summary": "Unsupported",
+          "explanation": "A reply arrived but could not be read.",
+          "causesNote": "Possible causes. None of them is confirmed.",
+          "causes": {
+            "firmware": "The firmware sends a format this app does not know.",
+            "corrupt": "The reply was damaged on the way."
+          },
+          "nextSteps": {
+            "retry": "Run the diagnostic again.",
+            "report": "If it repeats, report the firmware version and the raw bytes shown below."
+          },
+          "limitations": {
+            "unreadable": "The reply is shown as raw bytes only."
+          }
+        }
+      },
+      "NOT_TESTED": {
+        "CANCELLED": {
+          "summary": "Check cancelled",
+          "explanation": "You cancelled the check. No further requests were sent.",
+          "nextSteps": {
+            "again": "Run the diagnostic again when ready."
+          }
+        },
+        "UNEXPECTED_ERROR": {
+          "summary": "The check could not be completed",
+          "explanation": "Something unexpected stopped the run. No conclusion about the node can be drawn.",
+          "nextSteps": {
+            "again": "Run the diagnostic again."
+          },
+          "limitations": {
+            "unknown": "The cause of the failure is not known."
+          }
+        }
+      },
+      "unknown": {
+        "summary": "Result not recognised",
+        "explanation": "This run has a result the app does not know.",
+        "nextSteps": {
+          "again": "Run the diagnostic again."
+        }
+      }
+    }
   }
 }

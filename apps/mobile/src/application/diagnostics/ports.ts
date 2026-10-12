@@ -1,0 +1,31 @@
+import type { CheckOutcome, DiagnosticPolicy, DiagnosticRunRepository } from "@guardian/domain";
+import type { RunChecksRequest } from "@guardian/meshcore-adapter";
+import type { StoreApi } from "zustand/vanilla";
+
+import type { SessionState } from "../connection/companion-session";
+import type { AppStatePort } from "../connection/ports";
+
+/** The "airtime is shared" notice shows once; this remembers that it was accepted (plan D-14). */
+export interface AirtimeNoticeStore {
+  seen(): Promise<boolean>;
+  markSeen(): Promise<void>;
+}
+
+/** The guest password for a node. Empty until S-05 stores real ones (plan D-16). */
+export type GuestPasswordSource = (publicKey: string) => Promise<string>;
+
+/** What the controller needs from the session; it never sees the `MeshClient` (plan D-10). */
+export interface RunSession {
+  store: StoreApi<SessionState>;
+  runChecks(request: RunChecksRequest): Promise<CheckOutcome[]>;
+}
+
+export interface RunPorts {
+  session: RunSession;
+  repository: () => Promise<DiagnosticRunRepository>;
+  appState: AppStatePort;
+  notice: AirtimeNoticeStore;
+  password: GuestPasswordSource;
+  policy: () => DiagnosticPolicy;
+  clock: () => number;
+}

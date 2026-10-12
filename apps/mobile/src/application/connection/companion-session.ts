@@ -2,6 +2,7 @@ import {
   deriveCapabilities,
   isTestedFirmware,
   type Capabilities,
+  type CheckOutcome,
   type ConnectFailureReason,
   type ConnectionState,
 } from "@guardian/domain";
@@ -11,6 +12,8 @@ import {
   HandshakeTimeoutError,
   MalformedFrameError,
   MeshClient,
+  RemoteRequestLedger,
+  type RunChecksRequest,
   TransportUnavailableError,
 } from "@guardian/meshcore-adapter";
 import { createStore, type StoreApi } from "zustand/vanilla";
@@ -84,6 +87,8 @@ export class CompanionSession {
   private attempt: { id: string; abort: AbortController } | null = null;
   private client: MeshClient | null = null;
   private readonly fetches = new Set<AbortController>();
+  /** One ledger for the whole session, so a reconnect cannot bypass the cooldown (plan D-7). */
+  private readonly ledger = new RemoteRequestLedger();
   private lastTarget: LastCompanion | null = null;
   private readonly unsubscribeAppState: () => void;
 
@@ -220,6 +225,28 @@ export class CompanionSession {
     }
   }
 
+  /**
+   * One diagnostic run on the current link (plan D-10). A user disconnect aborts it like a cancel;
+   * `TransportUnavailableError` when not connected.
+   */
+  async runChecks(request: RunChecksRequest): Promise<CheckOutcome[]> {
+    const client = this.client;
+    if (client === null || this.getState().connection.kind !== "connected") {
+      throw new TransportUnavailableError();
+    }
+    const own = new AbortController();
+    const onAbort = () => own.abort();
+    if (request.signal?.aborted) own.abort();
+    request.signal?.addEventListener("abort", onAbort);
+    this.fetches.add(own);
+    try {
+      return await client.runChecks({ ...request, signal: own.signal });
+    } finally {
+      this.fetches.delete(own);
+      request.signal?.removeEventListener("abort", onAbort);
+    }
+  }
+
   async disconnect(): Promise<void> {
     const attempt = this.attempt;
     this.attempt = null;
@@ -267,7 +294,7 @@ export class CompanionSession {
       await link.transport.close().catch(() => undefined);
       return;
     }
-    const client = new MeshClient(link.transport);
+    const client = new MeshClient(link.transport, { ledger: this.ledger });
     this.client = client;
     client.onDisconnect(() => this.onLinkDropped(client));
     const companion = await client.handshake({ signal: abort.signal });

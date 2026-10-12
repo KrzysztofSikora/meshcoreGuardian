@@ -3,10 +3,15 @@ import {
   CONNECT_FAILURE_REASONS,
   CONTACT_SYNC_FAILURES,
   NODE_ROLES,
+  REASONS_BY_RESULT,
+  RULES,
+  type StatusKind,
 } from "@guardian/domain";
 import { describe, expect, it } from "vitest";
 
+import { statusText } from "../application/diagnostics/presenter";
 import { reportedAsText, roleText, syncLine } from "../application/nodes/presenter";
+import { tr } from "../components/translate";
 import en from "./en.json";
 import { i18n } from "./index";
 
@@ -57,6 +62,48 @@ describe("en catalog", () => {
   it.each(CONTACT_SYNC_FAILURES)("has a sync failure text for %s", (reason) => {
     const line = syncLine({ kind: "failed", reason });
     expect(i18n.exists(line?.key ?? "")).toBe(true);
+  });
+
+  it("has every rule text the table points at (FR-09 AC1)", () => {
+    for (const byReason of Object.values(RULES)) {
+      for (const rule of Object.values(byReason)) {
+        const keys = [
+          rule.summary,
+          rule.explanation,
+          ...(rule.causesNote === null ? [] : [rule.causesNote]),
+          ...rule.causes,
+          ...rule.nextSteps,
+          ...rule.limitations,
+        ];
+        for (const key of keys) expect(i18n.exists(key), key).toBe(true);
+      }
+    }
+  });
+
+  it("has a check outcome text for every reason", () => {
+    for (const reasons of Object.values(REASONS_BY_RESULT)) {
+      for (const reason of reasons)
+        expect(i18n.exists(`diagnostic.outcome.${reason}`), reason).toBe(true);
+    }
+  });
+
+  it("says 'No response — cause unknown' for a missing reply (TR-01)", () => {
+    expect(tr(i18n.t, { key: RULES.NO_RESPONSE.NO_REPLY.summary })).toBe(
+      "No response — cause unknown",
+    );
+  });
+
+  it.each([
+    "not_tested",
+    "responded",
+    "no_reply",
+    "transport_error",
+    "unsupported",
+    "cancelled",
+    "incomplete",
+  ] as StatusKind[])("resolves the status text for %s", (kind) => {
+    const text = statusText({ kind, ageMs: 120_000 });
+    expect(i18n.exists(text.key, { count: 2 }), text.key).toBe(true);
   });
 
   it("never says offline, down or dead (a timeout is NO_RESPONSE, not a verdict)", () => {

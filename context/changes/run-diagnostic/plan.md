@@ -352,7 +352,7 @@ Dashboard rows ─▶ RunController.store.latest[publicKey] ─▶ lastRunStatus
 - [x] Phase 2: Classification, rule table and status line
 - [x] Phase 3: Storage for runs and checks
 - [x] Phase 4: `MeshClient.runChecks` and remote scripts
-- [ ] Phase 5: Application use case, catalog and composition
+- [x] Phase 5: Application use case, catalog and composition
 - [ ] Phase 6: Screens, fake scenarios, e2e and docs
 
 ## Human checks
@@ -361,6 +361,8 @@ Dashboard rows ─▶ RunController.store.latest[publicKey] ─▶ lastRunStatus
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
 - [minor] (Phase 4) D-10 says `runChecks` throws only `BusyError`, `CooldownError` or `TransportUnavailableError`. The code also throws `RangeError` for attempts outside 1–3 or an override outside 5–60 s, before any write (a programming error; S-09 validates input first). An already-aborted signal resolves with `[]` instead of throwing; `classifyRun` with `cancelled: true` handles it.
+
+- [minor] (Phase 5) D-13 says a race with a missing `status` capability stores `UNSUPPORTED`/`CAPABILITY_MISSING`. The controller also stores the unsupported `status` check in that run, so the run screen can list it; `classifyRun` with a preflight ignores it, so result and reason are unchanged. A run in flight does not count as busy while the airtime notice waits for a decision.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->
