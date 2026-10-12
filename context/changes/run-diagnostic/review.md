@@ -178,5 +178,5 @@ in code or in the plan. One new finding (R6). Round 1 text is kept below for the
   line numbers in `mutation.md`, recording line 110 as `equivalent`.
 - Effort: small
 - Lesson candidate: no (covered by the proposed lesson "Re-run mutation after the last test change and copy every survivor into `mutation.md`")
-- Decision: open
+- Decision: fixed (6b2faef)
 
