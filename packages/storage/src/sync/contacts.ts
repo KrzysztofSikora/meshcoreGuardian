@@ -1,4 +1,9 @@
-import { roleFromContactType, type ContactReport, type SyncOutcome } from "@guardian/domain";
+import {
+  roleFromContactType,
+  type ContactReport,
+  type GeoPoint,
+  type SyncOutcome,
+} from "@guardian/domain";
 
 import type { SqlDriver } from "../driver";
 
@@ -10,7 +15,11 @@ import type { SqlDriver } from "../driver";
 export async function applyContactSync(
   driver: SqlDriver,
   reports: readonly ContactReport[],
-  opts: { complete: boolean; now: number },
+  opts: {
+    complete: boolean;
+    now: number;
+    origin: { companionPublicKey: string; position: GeoPoint | null };
+  },
 ): Promise<SyncOutcome> {
   return driver.transaction(async (tx) => {
     const keys = JSON.stringify(reports.map((r) => r.publicKey));
@@ -23,18 +32,48 @@ export async function applyContactSync(
     for (const r of reports) {
       await tx.run(
         `INSERT INTO devices
-           (public_key, reported_name, reported_role, reported_type, last_heard_at, in_contacts, created_at, synced_at)
-         VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+           (public_key, reported_name, reported_role, reported_type, last_heard_at, path_hops, adv_lat, adv_lon, in_contacts, created_at, synced_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
          ON CONFLICT(public_key) DO UPDATE SET
            reported_name = excluded.reported_name,
            reported_role = excluded.reported_role,
            reported_type = excluded.reported_type,
            last_heard_at = excluded.last_heard_at,
+           path_hops = excluded.path_hops,
+           adv_lat = excluded.adv_lat,
+           adv_lon = excluded.adv_lon,
            in_contacts = 1,
            synced_at = excluded.synced_at`,
-        [r.publicKey, r.name, roleFromContactType(r.type), r.type, r.lastHeardAt, opts.now, opts.now],
+        [
+          r.publicKey,
+          r.name,
+          roleFromContactType(r.type),
+          r.type,
+          r.lastHeardAt,
+          r.pathHops,
+          r.position?.lat ?? null,
+          r.position?.lon ?? null,
+          opts.now,
+          opts.now,
+        ],
       );
     }
+
+    await tx.run(
+      `INSERT INTO contact_sync_origin (id, companion_public_key, companion_lat, companion_lon, synced_at)
+       VALUES (1, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         companion_public_key = excluded.companion_public_key,
+         companion_lat = excluded.companion_lat,
+         companion_lon = excluded.companion_lon,
+         synced_at = excluded.synced_at`,
+      [
+        opts.origin.companionPublicKey,
+        opts.origin.position?.lat ?? null,
+        opts.origin.position?.lon ?? null,
+        opts.now,
+      ],
+    );
 
     let markedMissing = 0;
     if (opts.complete && reports.length > 0) {

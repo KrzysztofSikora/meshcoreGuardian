@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createStore } from "zustand/vanilla";
+import { createStore, type StoreApi } from "zustand/vanilla";
 
 import {
   AbortError,
@@ -9,7 +9,14 @@ import {
   MalformedFrameError,
   type ContactsResult,
 } from "@guardian/meshcore-adapter";
-import type { ContactReport, Node, NodeRepository, NodeRole, SyncOutcome } from "@guardian/domain";
+import type {
+  ContactReport,
+  Node,
+  NodeRepository,
+  NodeRole,
+  SyncOrigin,
+  SyncOutcome,
+} from "@guardian/domain";
 
 import { SCENARIOS, type ScenarioName } from "../../debug/scenarios";
 import { FakeBlePlatform, type Scenario } from "../../platform/fake/fake-ble-platform";
@@ -22,22 +29,32 @@ const NOW = 1_800_000_000_000;
 
 /** Records calls and returns what it was given; the merge rules are tested in packages/storage. */
 class MemoryRepository implements NodeRepository {
-  syncs: { reports: readonly ContactReport[]; complete: boolean; now: number }[] = [];
+  syncs: {
+    reports: readonly ContactReport[];
+    complete: boolean;
+    now: number;
+    origin: SyncOrigin extends infer O ? Omit<O & object, "at"> : never;
+  }[] = [];
+  stored: SyncOrigin | null = null;
   reads = 0;
   failWith: Error | null = null;
   nodes: Node[] = [];
 
   async applySync(
     reports: readonly ContactReport[],
-    opts: { complete: boolean; now: number },
+    opts: Parameters<NodeRepository["applySync"]>[1],
   ): Promise<SyncOutcome> {
     if (this.failWith !== null) throw this.failWith;
     this.syncs.push({ reports, ...opts });
+    this.stored = { ...opts.origin, at: opts.now };
     return { added: reports.length, updated: 0, markedMissing: 0 };
   }
   async listAll(): Promise<Node[]> {
     this.reads += 1;
     return this.nodes;
+  }
+  async syncOrigin(): Promise<SyncOrigin | null> {
+    return this.stored;
   }
   async get(publicKey: string): Promise<Node | null> {
     return this.nodes.find((node) => node.publicKey === publicKey) ?? null;
@@ -98,6 +115,12 @@ describe("NodesController", () => {
     expect(repo.syncs[0]).toMatchObject({ complete: true, now: NOW });
     expect(repo.syncs[0]?.reports).toHaveLength(31);
     expect(contactWrites(platform)).toBe(1);
+    // AC6: a sync asks the radio for contacts and nothing else.
+    expect(platform.lastTransport?.writtenFrames.map((frame) => frame[0])).toEqual([
+      0x16, 0x01, 0x04,
+    ]);
+    expect(repo.syncs[0]?.origin.companionPublicKey).toMatch(/^[0-9a-f]{64}$/);
+    expect(nodes.getState().origin).toMatchObject({ at: NOW });
   });
 
   it("a store update without a new connection does not sync again; a reconnect does", async () => {
@@ -247,9 +270,23 @@ describe("NodesController", () => {
       position: null,
     });
 
+    const COMPANION = {
+      publicKey: "c".repeat(64),
+      name: "companion",
+      model: "Heltec V3",
+      firmwareVersion: "v1.17.1",
+      firmwareVerCode: 13,
+      buildDate: "11 Oct 2026",
+      position: { lat: 50.06, lon: 19.94 },
+    };
+
     function scripted(outcome: (options?: { signal?: AbortSignal }) => Promise<ContactsResult>) {
       const store = createStore<SessionState>(
-        () => ({ connection: { kind: "disconnected" }, capabilities: null }) as SessionState,
+        () =>
+          ({
+            connection: { kind: "connected", companion: COMPANION },
+            capabilities: null,
+          }) as SessionState,
       );
       let calls = 0;
       const session = {
@@ -275,6 +312,34 @@ describe("NodesController", () => {
       expect(repo.syncs).toHaveLength(1);
       expect(repo.syncs[0]).toMatchObject({ complete: false, now: NOW });
       expect(repo.syncs[0]?.reports).toHaveLength(2);
+    });
+
+    it("stores the companion captured at the start, also when the link drops during the fetch", async () => {
+      const dropLink: { store?: StoreApi<SessionState> } = {};
+      const handle = scripted(async () => {
+        dropLink.store?.setState({ connection: { kind: "disconnected" } });
+        return { contacts: [report(1)], expected: 1 };
+      });
+      dropLink.store = handle.store;
+      await handle.nodes.sync();
+      expect(repo.syncs[0]?.origin).toEqual({
+        companionPublicKey: COMPANION.publicKey,
+        position: COMPANION.position,
+      });
+      expect(handle.nodes.getState().origin).toEqual({
+        companionPublicKey: COMPANION.publicKey,
+        position: COMPANION.position,
+        at: NOW,
+      });
+    });
+
+    it("a sync while disconnected ends as TRANSPORT_UNAVAILABLE without fetching or storing", async () => {
+      const { nodes, store, calls } = scripted(async () => ({ contacts: [], expected: 0 }));
+      store.setState({ connection: { kind: "disconnected" } });
+      await nodes.sync();
+      expect(nodes.getState().sync).toEqual({ kind: "failed", reason: "TRANSPORT_UNAVAILABLE" });
+      expect(calls()).toBe(0);
+      expect(repo.syncs).toHaveLength(0);
     });
 
     it("a rejected command ends as UNSUPPORTED", async () => {

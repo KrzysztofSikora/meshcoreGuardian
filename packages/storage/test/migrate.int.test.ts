@@ -65,9 +65,7 @@ describe("migrateToLatest", () => {
     await expect(migrateToLatest(testDb.driver, broken)).rejects.toThrow();
 
     expect(await version(testDb)).toBe(MIGRATIONS.length);
-    const half = await testDb.driver.all(
-      "SELECT name FROM sqlite_master WHERE name = 'half'",
-    );
+    const half = await testDb.driver.all("SELECT name FROM sqlite_master WHERE name = 'half'");
     expect(half).toHaveLength(0);
   });
 
@@ -100,7 +98,7 @@ describe("migrateToLatest", () => {
     const result = await migrateToLatest(testDb.driver);
 
     expect(result).toEqual({ from: 1, to: MIGRATIONS.length });
-    expect(await version(testDb)).toBe(2);
+    expect(await version(testDb)).toBe(MIGRATIONS.length);
     const keys = await testDb.driver.all<{ public_key: string }>(
       "SELECT public_key FROM devices ORDER BY id",
     );
@@ -125,5 +123,39 @@ describe("migrateToLatest", () => {
     await expect(insert(null, "gateway")).rejects.toThrow();
     await expect(insert(null, "repeater", "short")).rejects.toThrow();
     await expect(insert("😀".repeat(64), "repeater")).resolves.toEqual({ changes: 1 });
+  });
+
+  it("migrates a version 2 database to 3 and keeps its devices with unknown path and position", async () => {
+    testDb = await openTestDb({ migrate: 2 });
+    await insertDevice(testDb, "a".repeat(64));
+
+    const result = await migrateToLatest(testDb.driver);
+
+    expect(result).toEqual({ from: 2, to: 3 });
+    const rows = await testDb.driver.all<Record<string, unknown>>(
+      "SELECT public_key, path_hops, adv_lat, adv_lon FROM devices",
+    );
+    expect(rows).toEqual([
+      { public_key: "a".repeat(64), path_hops: null, adv_lat: null, adv_lon: null },
+    ]);
+    expect(await testDb.driver.all("SELECT * FROM contact_sync_origin")).toEqual([]);
+  });
+
+  it("enforces the CHECK constraints of path and position", async () => {
+    testDb = await openTestDb();
+    const set = (column: string, value: number) =>
+      testDb!.driver.run(`UPDATE devices SET ${column} = ?`, [value]);
+    await insertDevice(testDb, "a".repeat(64));
+
+    await expect(set("path_hops", 64)).rejects.toThrow();
+    await expect(set("path_hops", -1)).rejects.toThrow();
+    await expect(set("adv_lat", 90.5)).rejects.toThrow();
+    await expect(set("adv_lon", -180.5)).rejects.toThrow();
+    await expect(set("path_hops", 63)).resolves.toEqual({ changes: 1 });
+    await expect(
+      testDb.driver.run(
+        "INSERT INTO contact_sync_origin (id, companion_public_key, synced_at) VALUES (2, 'k', 1)",
+      ),
+    ).rejects.toThrow();
   });
 });
