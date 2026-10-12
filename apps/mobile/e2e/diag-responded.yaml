@@ -24,4 +24,5 @@ appId: io.github.krzysztofsikora.guardian
 - back
 - assertVisible: "Available again in .* s"
 - back
-- assertVisible: "Responded just now"
+- scrollUntilVisible:
+    element: "Responded just now"
