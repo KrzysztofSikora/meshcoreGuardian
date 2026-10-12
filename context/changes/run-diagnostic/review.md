@@ -1,7 +1,15 @@
 # Review: run-diagnostic
 
 Verdict: APPROVE WITH FOLLOW-UPS
-Gates: typecheck ok, lint ok, unit tests ok (952/952), e2e ok (15/15), mutation run-controller.ts ok (96.1 %, 8 survivors, round 2 run) · Round: 3
+Gates: typecheck ok, lint ok, unit tests ok (952/952), e2e ok (15/15), mutation run-controller.ts ok (96.1 %, 8 survivors, round 2 run) · Round: 4
+
+Round 4: still no code change since round 2. The only commits after round 3 are ff60181 (this
+file) and abb41a5 (`pr-body.md`); `git diff --stat 62c69e0 HEAD` lists only those two docs. R6 is
+still in the code: `run-controller.int.test.ts` sends only `appState.set("background")` (lines 183,
+211, 688), and `mutation.md` still shows 96.3 % with 7 survivors for `run-controller.ts`. All
+gates were re-run in this round: typecheck, lint and unit tests (952/952) pass, and e2e passes
+15/15 on the `guardian` emulator. Mutation was not re-run because `run-controller.ts` has not
+changed. R1-R5 stay fixed. No new findings.
 
 Round 3: no code changed since round 2 (HEAD 5128015 only touches this file). Fix-review round 2
 was interrupted during its mutation run (exit 144) and left no commits, so R6 is still in the code:
