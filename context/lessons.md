@@ -55,3 +55,15 @@ Rules from reviews. Binding for planning, implementing and reviewing once accept
 - Seen in: run-diagnostic, R2
 - Scope: `context/changes/*/plan.md`
 - Status: proposed in the PR for run-diagnostic
+
+## When a filter narrows data to "the last operation", test a partial last operation from the same source, not only one from a different source
+- Why: a filter on the last sync time hid every repeater a partial sync from the same companion did not report, and the card claimed there were none.
+- Seen in: nearest-repeater, R2
+- Scope: `packages/domain/**`, `apps/mobile/src/application/**`
+- Status: proposed in the PR for nearest-repeater
+
+## When a change adds height above a shared list, grep every e2e flow for assertions on that list's rows and run the full suite before committing the phase
+- Why: one flow was missed and the e2e gate failed at review.
+- Seen in: nearest-repeater, R1
+- Scope: `apps/mobile/e2e/**`, `apps/mobile/src/app/**`
+- Status: proposed in the PR for nearest-repeater
