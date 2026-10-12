@@ -203,6 +203,20 @@ describe("RunController", () => {
     expect(controller.getState().active).toBeNull();
   });
 
+  it("moving to the background cancels the run in flight and sends nothing more (NFR-07)", async () => {
+    const { session, controller, platform, appState, runs } = setup([{ login: "no-reply" }]);
+    await connect(session);
+    const done = controller.start(ROOM_K);
+    await vi.advanceTimersByTimeAsync(1_000);
+    appState.set("background");
+    await vi.runAllTimersAsync();
+    await done;
+
+    expect(writesOf(platform, 0x1a)).toBe(1);
+    expect(writesOf(platform, 0x1b)).toBe(0);
+    expect(runs.saved[0]).toMatchObject({ result: "NOT_TESTED", reason: "CANCELLED" });
+  });
+
   it("a dropped link is stored as TRANSPORT_UNAVAILABLE, not as no response (FR-06 AC2)", async () => {
     const { session, controller, platform, runs } = setup([{}]);
     await connect(session);

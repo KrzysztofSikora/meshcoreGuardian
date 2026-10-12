@@ -72,7 +72,12 @@ export class RunController {
   private running = false;
   private abort: AbortController | null = null;
 
-  constructor(private readonly ports: RunPorts) {}
+  constructor(private readonly ports: RunPorts) {
+    // No BLE activity in the background (NFR-07): a run in flight ends as cancelled (R4).
+    ports.appState.onChange((state) => {
+      if (state === "background") this.cancel();
+    });
+  }
 
   getState(): RunState {
     return this.store.getState();
