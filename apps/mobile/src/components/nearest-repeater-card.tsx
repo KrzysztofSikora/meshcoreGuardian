@@ -1,5 +1,5 @@
 import { cooldownRemaining } from "@guardian/domain";
-import { Link, useRouter } from "expo-router";
+import { Link, useIsFocused, useRouter } from "expo-router";
 import { useState } from "react";
 import { Button, Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -43,7 +43,7 @@ export function NearestRepeaterCard() {
   const connection = useStore(session.store);
   const runState = useStore(runs.store);
   const [open, setOpen] = useState(false);
-  const now = useNow(true, COUNTDOWN_TICK_MS);
+  const now = useNow(useIsFocused(), COUNTDOWN_TICK_MS);
 
   if (!nodes.loaded || nodes.storage !== "ok") return null;
   const card = nearestCard(nodes.nodes, nodes.origin, formatTime);
