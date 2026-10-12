@@ -76,16 +76,39 @@ describe("migrateToLatest", () => {
     await insertDevice(testDb, "a".repeat(64));
     const next = [
       ...MIGRATIONS,
-      { version: 2, name: "extra", sql: "ALTER TABLE devices ADD COLUMN extra TEXT;" },
+      {
+        version: MIGRATIONS.length + 1,
+        name: "extra",
+        sql: "ALTER TABLE devices ADD COLUMN extra TEXT;",
+      },
     ];
 
     await migrateToLatest(testDb.driver, next);
 
-    expect(await version(testDb)).toBe(2);
+    expect(await version(testDb)).toBe(MIGRATIONS.length + 1);
     const rows = await testDb.driver.all<{ public_key: string; extra: string | null }>(
       "SELECT public_key, extra FROM devices",
     );
     expect(rows).toEqual([{ public_key: "a".repeat(64), extra: null }]);
+  });
+
+  it("migrates a version 1 database to 2 and keeps its devices", async () => {
+    testDb = await openTestDb({ migrate: 1 });
+    await insertDevice(testDb, "a".repeat(64));
+    await insertDevice(testDb, "b".repeat(64));
+
+    const result = await migrateToLatest(testDb.driver);
+
+    expect(result).toEqual({ from: 1, to: MIGRATIONS.length });
+    expect(await version(testDb)).toBe(2);
+    const keys = await testDb.driver.all<{ public_key: string }>(
+      "SELECT public_key FROM devices ORDER BY id",
+    );
+    expect(keys.map((k) => k.public_key)).toEqual(["a".repeat(64), "b".repeat(64)]);
+    const tables = await testDb.driver.all<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'diagnostic_%' ORDER BY name",
+    );
+    expect(tables.map((t) => t.name)).toEqual(["diagnostic_checks", "diagnostic_runs"]);
   });
 
   it("enforces the CHECK constraints of devices", async () => {
