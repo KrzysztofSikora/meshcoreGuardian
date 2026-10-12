@@ -10,13 +10,14 @@ Sources: `context/prd.md`, `context/tech-stack.md`. Order follows risk: the prot
 | S-01 | #2 | protocol-feasibility-gate | slice | FR-00 | F-01 | M | done |
 | S-02 | #3 | connect-companion | slice | FR-01, FR-02, FR-03 | S-01 (gate passed) | L | done |
 | S-03 | #4 | sync-contacts | slice | FR-04 | S-02 | M | done |
-| S-04 | #5 | run-diagnostic | slice | FR-05, FR-06, FR-09, FR-10, FR-11 | S-03 | L | review |
+| S-04 | #5 | run-diagnostic | slice | FR-05, FR-06, FR-09, FR-10, FR-11 | S-03 | L | done |
+| S-11 | #18 | nearest-repeater | slice | FR-21 | S-04 | M | todo |
 | S-05 | #6 | guest-password | slice | FR-14, FR-05 AC2 | S-04 | S | todo |
 | S-06 | #7 | node-details-telemetry | slice | FR-07, FR-08 | S-04 | M | todo |
 | S-07 | #8 | battery-history | slice | FR-12 | S-06 | M | todo |
 | S-08 | #9 | export-report | slice | FR-13 | S-06 | M | todo |
 | S-09 | #10 | settings | slice | FR-15 | S-04 | M | todo |
-| S-10 | #11 | pilot-release | slice | FR-20, NFR-05, NFR-06 | S-05 … S-09 | M | todo |
+| S-10 | #11 | pilot-release | slice | FR-20, NFR-05, NFR-06 | S-05 … S-09, S-11 | M | todo |
 
 ## Items
 
@@ -90,6 +91,20 @@ Sources: `context/prd.md`, `context/tech-stack.md`. Order follows risk: the prot
   - Rule table (result × reason → explanation, next steps, limitations) is a typed constant in `packages/domain`; texts are i18n keys.
 - Size: L
 
+### S-11 Nearest repeater (`nearest-repeater`)
+- Goal: the Dashboard opens with a card naming the nearest repeater and a Run diagnostic button, so the operator never searches the contact list for it. Priority: next after S-04 (user, 2026-10-12).
+- Covers: FR-21.
+- Depends on: S-04
+- Acceptance: PRD FR-21 AC1–AC6; domain unit tests for ranking, distance (great-circle) and 8-point compass direction; e2e on the fake transport: card shows the expected repeater, "Other nearby" lists the next ones, Run diagnostic from the card starts a run; screenshots of the card with and without positions.
+- Unknowns: whether `out_path_len` and advertised positions are reported as expected by real firmware (`UNVERIFIED`; human check with the CI APK).
+- Decided up front:
+  - Data comes only from contact sync (`out_path_len` via `decodePathLen`, `advLat`/`advLon`) and the companion's self info (`lat`/`lon`); no phone location permission, no extra radio request. (user)
+  - Candidates: contacts in the companion's list whose effective role is repeater. Ranking: known hop count ascending (unknown path last), then distance ascending (unknown last), then last heard newest. (user)
+  - A position of exactly 0,0 counts as not advertised.
+  - The card shows one repeater; "Other nearby" shows up to 5 next candidates.
+  - Path and position are stored per node on each sync (new migration); they are "as of the last sync", not live.
+- Size: M
+
 ### S-05 Guest password (`guest-password`)
 - Goal: per-node optional guest password, stored only in secure storage and used by the login check.
 - Covers: FR-14, FR-05 AC2.
@@ -138,7 +153,7 @@ Sources: `context/prd.md`, `context/tech-stack.md`. Order follows risk: the prot
 ### S-10 Pilot release (`pilot-release`)
 - Goal: a signed AAB on the Play internal testing track and the non-functional checks for the pilot.
 - Covers: FR-20, NFR-05, NFR-06 (verification), Success criteria (definition of done).
-- Depends on: S-05, S-06, S-07, S-08, S-09
+- Depends on: S-05, S-06, S-07, S-08, S-09, S-11
 - Acceptance: PRD FR-20 AC1–AC2; accessibility audit (contrast, labels, 200 % font) recorded; profiler trace with 200 nodes / 1,000 runs; licenses screen including meshcore.js MIT notice; privacy policy text in `docs/privacy-policy.md`.
 - Unknowns: Play Console account readiness (R-05).
 - Decided up front: EAS Build `production` profile → AAB; upload to Play is a human step (credentials never in the repo).

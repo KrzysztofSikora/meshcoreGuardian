@@ -50,6 +50,7 @@ understand what to test next." A missing reply never proves a node is offline.
 - **US-12** As an operator, I can run a multi-attempt test and see a success ratio with its sample size. (B-24) — P1
 - **US-13** As an operator, I can request a route trace when the firmware supports it. (B-22) — P1
 - **US-14** As an operator, I can set a local reminder to run a manual check. (B-25) — P1
+- **US-15** As an operator, I open the app and immediately see which repeater is nearest, and can test it without searching the contact list. (B-31)
 
 ## Functional requirements
 
@@ -159,12 +160,20 @@ understand what to test next." A missing reply never proves a node is offline.
 ### FR-19 Local reminders  (Could, P1, covers US-14, B-25)
 - AC1: Given a reminder set for a node, When due, Then a local notification asks the user to run a check; no check runs automatically.
 
+### FR-21 Nearest repeater  (Must, covers US-15, B-31)
+- AC1: Given synced contacts, When the Dashboard opens, Then a "Nearest repeater" card above the list names one repeater chosen by the app, with its hop distance, its distance and compass direction from the companion's position, and its last-heard time, and offers Run diagnostic on the card.
+- AC2: Given several repeaters, When the app picks the nearest, Then it ranks by known hop count (direct first, unknown path last), then by distance from the companion (unknown last), then by most recent last-heard; the card links to the next few candidates ("Other nearby").
+- AC3: Given a repeater or the companion without an advertised position, When shown, Then the distance reads "Position not advertised" (or "Companion position not set") instead of a number; Given an unknown path, Then the hop line reads "Path unknown".
+- AC4: Given the card, When shown, Then the hop count and position are labelled as the companion's last known path and the node's advertised position, never as "in range now" or "online".
+- AC5: Given no repeater in the companion's contacts, When the Dashboard opens, Then the card says so and points to Sync contacts.
+- AC6: Given the feature, When used, Then it needs no phone location permission and sends no radio request; it uses only data from contact sync and the companion's self info.
+
 ### FR-20 Pilot release  (Must, covers B-26)
 - AC1: Given a release build, When produced, Then it is a signed AAB uploadable to the Play internal testing track.
 - AC2: Given the release, When published, Then a privacy policy describing local-only data is available at a public URL.
 
 ## Data model (conceptual)
-- **Node** (`devices`): id; public key (hex, unique); label (user text, optional, ≤ 64 chars); role (repeater | room_server | chat | unknown; source: protocol or user); battery profile (none | li_ion_1s | lifepo4_1s | custom + thresholds, P1); created at; last tested at.
+- **Node** (`devices`): id; public key (hex, unique); label (user text, optional, ≤ 64 chars); role (repeater | room_server | chat | unknown; source: protocol or user); last known path (hop count, or unknown) and advertised position (lat/lon, nullable), both as of the last contact sync; battery profile (none | li_ion_1s | lifepo4_1s | custom + thresholds, P1); created at; last tested at.
 - **Diagnostic run**: id; node id; companion identity (public key / name / firmware version); started at; finished at; duration ms; attempts used / allowed; timeout per attempt ms and its source (estimate | default | override); result code (`RESPONDED` | `NO_RESPONSE` | `UNSUPPORTED` | `TRANSPORT_UNAVAILABLE` | `NOT_TESTED`); reason code; limitations (list of codes); raw summary (structured, no secrets).
 - **Telemetry sample**: id; node id; run id; measured at; voltage V (nullable); uptime s (nullable); RSSI dBm (nullable) and SNR dB (nullable) with the packet/hop they belong to; other values with unit; source command.
 - **Settings**: key → value (timeout override, attempts, redaction default, airtime notice seen).
@@ -243,6 +252,7 @@ several companions at once; guaranteed delivery or "online" claims.
 | B-28 §14 malformed response distinct | US-05 | FR-06 AC4 | A-05 |
 | B-29 §3 pilot success criteria | – | Success criteria | measured in pilot, not in CI |
 | B-30 §15 business validation | – | – | outside the app (NG-03) |
+| B-31 user request 2026-10-12: see the nearest repeater without searching | US-15 | FR-21 | not a map (NG maps) |
 
 ## Open questions
 - Q-01 Firmware versions and protocol revision to support — pinned by FR-00.
