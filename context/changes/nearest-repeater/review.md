@@ -49,7 +49,7 @@ Gates: typecheck ok, lint ok, unit tests ok, e2e fail (16/17, `diag-responded` f
 - Fix: replace the last `assertVisible` with `scrollUntilVisible: { element: "Responded just now" }`, as in `diag-cancel.yaml`. Then run `pnpm e2e` again.
 - Effort: small
 - Lesson candidate: When a change adds height above a shared list, grep every e2e flow for assertions on that list's rows and run the full suite before the commit
-- Decision: open
+- Decision: fixed (981e981) + lesson proposed
 
 ### R2: A partial sync hides repeaters that are still in the contacts, and can claim there are none
 - Severity: major
@@ -58,7 +58,7 @@ Gates: typecheck ok, lint ok, unit tests ok, e2e fail (16/17, `diag-responded` f
 - Fix: A (honest, plan-review's alternative): store the companion per node (`path_companion_key`, nullable, in `0003_nearest.sql` since it is not released) written by `applyContactSync`, and filter `node.pathCompanionKey === origin.companionPublicKey` instead of `syncedAt === origin.at`. B (cheaper, no schema): keep the filter but only when the last sync was partial **and** from a different companion than the rows (needs the previous companion key anyway), or: when the filter leaves nothing but unfiltered contact repeaters exist, show a different empty text ("The last contact sync was incomplete. Use Sync contacts to update the list.") instead of "No repeater in the companion's contacts". Add a domain/presenter test for a same-companion partial sync either way.
 - Effort: medium
 - Lesson candidate: When a filter narrows data to "the last operation", test the case where the last operation was partial and the same source, not only a different source
-- Decision: open
+- Decision: fixed (d75247f) + lesson proposed
 
 ### R3: The card's one-second clock keeps running while the Dashboard is not focused
 - Severity: minor
@@ -67,4 +67,4 @@ Gates: typecheck ok, lint ok, unit tests ok, e2e fail (16/17, `diag-responded` f
 - Fix: `useNow(useIsFocused(), COUNTDOWN_TICK_MS)` like the screen it sits on.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (78f2358)
