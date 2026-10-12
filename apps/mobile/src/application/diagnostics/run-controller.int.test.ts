@@ -217,6 +217,22 @@ describe("RunController", () => {
     expect(runs.saved[0]).toMatchObject({ result: "NOT_TESTED", reason: "CANCELLED" });
   });
 
+  it("an appState change to active leaves the run in flight alone", async () => {
+    const { session, controller, appState, runs } = setup([
+      { login: "no-reply" },
+      { login: "no-reply" },
+    ]);
+    await connect(session);
+    const done = controller.start(ROOM_K);
+    await vi.advanceTimersByTimeAsync(1_000);
+    appState.set("active");
+    await vi.runAllTimersAsync();
+    await done;
+
+    expect(runs.saved[0]).toMatchObject({ result: "NO_RESPONSE" });
+    expect(runs.saved[0]!.reason).not.toBe("CANCELLED");
+  });
+
   it("a dropped link is stored as TRANSPORT_UNAVAILABLE, not as no response (FR-06 AC2)", async () => {
     const { session, controller, platform, runs } = setup([{}]);
     await connect(session);

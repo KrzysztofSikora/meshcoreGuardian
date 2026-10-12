@@ -11,7 +11,7 @@ Targets: the test-plan mutation targets the diff touches, run one file at a time
 | `packages/domain/src/policy/timeout.ts` | attempt timeout | 89.1% | 89.1% (41 / 5 / 0 / 0) |
 | `packages/domain/src/policy/retry.ts` | retry rule | 96.3% | 96.3% (26 / 1 / 0 / 0) |
 | `packages/domain/src/policy/cooldown.ts` | per-node cooldown | 100% | 100% (17 / 0 / 0 / 0) |
-| `apps/mobile/src/application/diagnostics/run-controller.ts` | start, cancel, refusals, stored result | 73.0% | 96.3% (182 / 7 / 0 / 0) |
+| `apps/mobile/src/application/diagnostics/run-controller.ts` | start, cancel, refusals, stored result | 73.0% | 96.6% (190 / 7 / 0 / 0) |
 | `packages/meshcore-adapter/src/client/mesh-client.ts` | single-flight, abort, error mapping | 87.8% | 94.3% (362 / 17 / 5 / 0) |
 | `apps/mobile/src/application/connection/companion-session.ts` | `runChecks`, shared ledger | 81.5% | 82.5% (241 / 50 / 1 / 0) |
 
@@ -35,19 +35,21 @@ the end.
 | run-controller.ts:50,55 | Boolean / String | initial `loaded`, `storage` | strengthen | "starts with nothing loaded…" |
 | run-controller.ts:96-107,118-119 | Conditional / Boolean | `running` flag not set or not released; busy check in `confirmNotice` | strengthen | "a second start while the first waits…", "a start while the airtime notice check is pending…", "a run started from the notice also blocks a second start". The client's own single-flight used to hide these |
 | run-controller.ts:102 (no coverage) | Boolean | unreadable notice flag treated as seen | strengthen | "treats an unreadable notice flag as not seen" |
+| run-controller.ts:110 | Arrow | `seen().catch(() => false)` → `() => undefined` | equivalent | both are falsy, so `!(await …)` takes the same branch |
+| run-controller.ts:78 | Conditional | `if (state === "background") this.cancel()` → `if (true)` | strengthen | "an appState change to active leaves the run in flight alone" (R6) |
 | run-controller.ts:102 | Arrow | `markSeen().catch(() => undefined)` | strengthen | "runs even if the notice cannot be remembered" |
 | run-controller.ts:115 | Conditional / Logical | `confirmNotice` guards | strengthen | "confirmNotice without a notice…", "…in the background keeps the notice…" |
 | run-controller.ts:130 | OptionalChaining | `cancel()` with no run | strengthen | "cancel with no run in flight does nothing" |
 | run-controller.ts:141 | Logical / Conditional | connected `&&` capabilities known | strengthen | "%s is NOT_CONNECTED" (two states) |
 | run-controller.ts:168-169 (no coverage) | Block / String | `TransportUnavailableError` mapped to NOT_CONNECTED | strengthen | "a link that is gone when the run starts is NOT_CONNECTED" |
 | run-controller.ts:174-178 | Conditional / Method | skipped checks appended after an early stop; cancel from outcomes | strengthen | "keeps the skipped check only for a run that went through", "does not keep the skipped check when fewer checks ran", "a cancelled check in the outcomes…" |
-| run-controller.ts:146 | String | `"CAPABILITY_MISSING"` preflight → `""` | equivalent | an empty preflight falls through to the normal classification, which gives the same UNSUPPORTED/CAPABILITY_MISSING for the same single check. The test now also asserts the stored check |
-| run-controller.ts:171 | String | `"UNEXPECTED_ERROR"` preflight → `""` | equivalent | the same fall-through gives NOT_TESTED/UNEXPECTED_ERROR for no checks |
-| run-controller.ts:197 | Boolean | `cancelled: false` → `true` in `finishPreflight` | equivalent | `classifyRun` tests the preflight before `cancelled` |
+| run-controller.ts:159 | String | `"CAPABILITY_MISSING"` preflight → `""` | equivalent | an empty preflight falls through to the normal classification, which gives the same UNSUPPORTED/CAPABILITY_MISSING for the same single check. The test now also asserts the stored check |
+| run-controller.ts:186 | String | `"UNEXPECTED_ERROR"` preflight → `""` | equivalent | the same fall-through gives NOT_TESTED/UNEXPECTED_ERROR for no checks |
+| run-controller.ts:220 | Boolean | `cancelled: false` → `true` in `finishPreflight` | equivalent | `classifyRun` tests the preflight before `cancelled` |
 | run-controller.ts:212 | Object / String | fallback companion when not connected | strengthen | "without a connection…" asserts the empty companion |
 | run-controller.ts:231 | Conditional | stored run keeps `id` only when saved | strengthen | "keeps the result when it cannot be saved" asserts `id` is undefined |
-| run-controller.ts:241, 276 | Conditional | `repository === null` guard | equivalent | with a null repository the next call throws a `TypeError` that the surrounding `catch` turns into the same `storage: "error"` state |
-| run-controller.ts:279 | String | `storage: "ok"` after a good read | equivalent | the state is already `"ok"` unless the store failed, and then `load` returns before reaching this line |
+| run-controller.ts:261, 296 | Conditional | `repository === null` guard | equivalent | with a null repository the next call throws a `TypeError` that the surrounding `catch` turns into the same `storage: "error"` state |
+| run-controller.ts:299 | String | `storage: "ok"` after a good read | equivalent | the state is already `"ok"` unless the store failed, and then `load` returns before reaching this line |
 | run-controller.ts:268-281 (no coverage) | Block | open and read failures | strengthen | "reports a storage that cannot open…", "reports a failing read of the newest runs" |
 | mesh-client.ts:54 | ArrayDeclaration | login reply codes `[]` | strengthen | "fails a login check on a truncated 85/86 push" |
 | mesh-client.ts:270 | Arithmetic | `now() + startedAt` | strengthen | "measures the duration of a check…" |
