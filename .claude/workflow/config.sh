@@ -29,3 +29,7 @@
 : "${WORKFLOW_REVIEW_ROUNDS:=2}"        # review / fix-review rounds
 : "${WORKFLOW_MAX_PHASES:=12}"          # implement sessions per change
 : "${WORKFLOW_STEP_RETRIES:=1}"         # extra sessions when a step leaves its artifact incomplete
+
+# 1: after each session, stop emulators and Gradle/Kotlin daemons it started (they hold 15-20 GB).
+# 0: leave them running, e.g. to inspect the emulator after a step.
+: "${WORKFLOW_REAP_TOOLS:=1}"

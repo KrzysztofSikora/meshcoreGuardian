@@ -57,10 +57,29 @@ step_model() {
   echo "${!var:-}"
 }
 
+# Emulators and Gradle/Kotlin daemons that a session starts outlive it and together hold 15-20 GB;
+# left running, a later session runs the machine out of memory. After each session, stop the ones
+# that were not running before it (an emulator the person started stays up).
+heavy_pids() { { pgrep -f 'qemu-system|GradleDaemon|KotlinCompileDaemon' || true; } | sort; }
+reap_leftovers() {
+  local new pid
+  [ "$WORKFLOW_REAP_TOOLS" = 1 ] || return 0
+  new=$(comm -13 <(echo "$1") <(heavy_pids))
+  [ -n "$new" ] || return 0
+  note "  stopping emulator/Gradle processes left by the session: $(echo "$new" | paste -sd' ' -)"
+  for pid in $new; do kill "$pid" 2>/dev/null || true; done
+  for _ in $(seq 1 30); do
+    for pid in $new; do kill -0 "$pid" 2>/dev/null && break; pid=""; done
+    [ -n "$pid" ] || return 0
+    sleep 1
+  done
+  for pid in $new; do kill -9 "$pid" 2>/dev/null || true; done
+}
+
 # run_step <name> <prompt> [key=value ...]
 # One fresh headless session per attempt; retried while the step's artifact is incomplete.
 run_step() {
-  local name=$1 prompt=$2 attempt missing="" log phones model
+  local name=$1 prompt=$2 attempt missing="" log phones model before
   shift 2
   for attempt in $(seq 0 "$WORKFLOW_STEP_RETRIES"); do
     phones=$(phones_attached)
@@ -73,7 +92,9 @@ run_step() {
     model=$(step_model "$name" "$attempt")
     note "step $name (attempt $((attempt + 1)), model ${model:-default}): $prompt"
     $WF run step "$name" "$@"
+    before=$(heavy_pids)
     claude -p "$prompt" "${CLAUDE_ARGS[@]}" ${model:+--model "$model"} > "$log" 2>&1 || note "  claude exited non-zero, see $log"
+    reap_leftovers "$before"
     note "  $($WF cost "$log")"
     if [ -f .workflow/stuck ]; then
       FAILED="$name: agent stuck: $(cat .workflow/stuck)"
