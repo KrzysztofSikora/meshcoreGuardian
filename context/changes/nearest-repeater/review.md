@@ -1,19 +1,28 @@
 # Review: nearest-repeater
 
-Verdict: CHANGES REQUESTED
-Gates: typecheck ok, lint ok, unit tests ok, e2e fail (16/17, `diag-responded` fails, R1), mutation `nearest.ts` ok (83.5 %, 13 survivors, matches `mutation.md`) · Round: 1
+Verdict: APPROVE
+Gates: typecheck ok, lint ok, unit tests ok, e2e ok (17/17), mutation `nearest.ts` ok (83.5 %, 13 survivors on lines 22/49/59, as decided in `mutation.md`), mutation `contacts.ts` ok (96.8 %, 1 survivor, as decided) · Round: 2
+
+Round 1 (gates then: e2e 16/17): R1 blocker, R2 major, R3 minor. Round 2 re-checks those fixes and the new `path_companion_key` design.
+
+## Round 2 re-check
+| Finding | Fix | Verified |
+|---------|-----|----------|
+| R1 | 981e981: `scrollUntilVisible` for "Responded just now" | yes: `diag-responded` passes, e2e 17/17 |
+| R2 | d75247f: nullable `devices.path_companion_key` in unreleased `0003`, written by `applyContactSync`, Zod-checked on read; `rankRepeaters` filters on `pathCompanionKey === origin.companionPublicKey` | yes: domain, presenter and storage tests cover a same-companion partial sync and keep the other-companion case; the card no longer says "No repeater" while the companion still lists repeaters. Side effect in R4 |
+| R3 | 78f2358: `useNow(useIsFocused(), COUNTDOWN_TICK_MS)` | yes |
 
 ## Plan vs diff
 | File | Status | Note |
 |------|--------|------|
 | `packages/domain/src/geo/geo.ts` (+ test) | done | haversine, bearing, 8-point compass, 0,0 / out-of-range → `null` |
-| `packages/domain/src/nodes/nearest.ts` (+ test) | done | ranking per D-3/D-4 plus the `syncedAt` filter from the `[REVIEW]` deviation (see R2) |
+| `packages/domain/src/nodes/nearest.ts` (+ test) | done | ranking per D-3/D-4; filter now on `pathCompanionKey` (R2 `[REVIEW]` deviation) |
 | `packages/domain/src/nodes/node.ts`, `companion/companion.ts`, `index.ts` | done | required nullable fields and exports |
 | `packages/domain/src/nodes/ports.ts` | done | `SyncOrigin`, `applySync` `origin`, `syncOrigin()` |
 | `packages/meshcore-adapter/src/client/mesh-client.ts` | done | hops and position from the contact frame, position from self info |
 | `packages/meshcore-adapter/test/mesh-client{,-contacts}.int.test.ts`, `test/support/frames.ts` | done | frames.ts builders take lat/lon (logged as minor deviation) |
 | `packages/meshcore-adapter/src/transport/nearest-script.ts` (+ test), `src/index.ts` | done | |
-| `packages/storage/migrations/0003_nearest.sql`, `src/migrations/generated.ts` | done | D-1, D-2 schema as planned |
+| `packages/storage/migrations/0003_nearest.sql`, `src/migrations/generated.ts` | done | D-1, D-2 schema plus `path_companion_key` (R2 deviation, logged); D-1 row not updated (R5) |
 | `packages/storage/src/sync/contacts.ts` | done | columns and origin row in the sync transaction |
 | `packages/storage/src/nodes/node-repository.ts` | done | Zod-checked columns, `syncOrigin()` |
 | `packages/storage/test/{contact-sync,node-repository,migrate}.int.test.ts` | done | |
@@ -29,17 +38,19 @@ Gates: typecheck ok, lint ok, unit tests ok, e2e fail (16/17, `diag-responded` f
 | `apps/mobile/e2e/{contacts-sync,diag-cancel,diag-no-response}.yaml` | unplanned | `scrollUntilVisible` because the card pushes rows down; logged under Deviations (phase 4); `diag-responded.yaml` needed the same and was missed (R1) |
 | `apps/mobile/src/application/nodes/presenter.test.ts`, `packages/domain/src/nodes/node.test.ts` | unplanned | builder fields; logged (plan-review 3) |
 | `context/roadmap.md` | unplanned | status line only |
+| `context/lessons.md` | unplanned | two lessons proposed from R1 and R2 |
+| `apps/mobile/e2e/diag-responded.yaml` | unplanned | R1 fix |
 
 ## Areas
 | Area | Result | One-line reason |
 |------|--------|-----------------|
-| Correctness | concern | a partial sync from the same companion hides every repeater it did not report and can show "No repeater in the companion's contacts" (R2) |
+| Correctness | ok | R2 fixed. A row kept from an earlier same-companion sync is labelled with the last sync's time (R4, minor) |
 | Design | ok | layers respected: domain is import-free, card reads stored state only, no extra radio request |
 | Safety | ok | positions validated at decode (`advertisedPosition`), by SQL CHECKs and by Zod on read; no secrets; privacy export risk logged as `[FOLLOW-UP]` for S-08 |
-| Tests | fail | e2e gate fails: `diag-responded` lost its last assertion under the new card (R1). Otherwise behaviour-level ranking, presenter, storage and controller tests, the disconnect-during-fetch lesson test and the AC6 frame assertion are good. Mutation re-run on `nearest.ts`: 13 survivors as recorded; the table says line 49 "x6" but there are 7, all the same redundant-guard equivalence, so the decision holds |
+| Tests | ok | round 2: e2e 17/17; same-companion partial-sync tests added at domain, presenter and storage level. Round 1: behaviour-level ranking, presenter, storage and controller tests, the disconnect-during-fetch lesson test and the AC6 frame assertion are good. Mutation re-run on `nearest.ts`: 13 survivors as recorded; the table says line 49 "x6" but there are 7, all the same redundant-guard equivalence, so the decision holds |
 | Simplicity | ok | small, cohesive modules |
 | Plan fidelity | ok | every planned file changed; divergences logged |
-| Agent decisions | concern | the `[REVIEW]` `syncedAt` filter (plan-review 1) fixed the cross-companion case but regressed the same-companion partial sync (R2); D-1/D-2 schema stays in one migration as claimed |
+| Agent decisions | concern | the R2 `[REVIEW]` deviation replaces the `syncedAt` filter and is logged; D-1's row still describes the old column set (R5, minor) |
 
 ## Findings
 ### R1: `diag-responded` e2e flow fails because the card pushes Room K's status below the fold
@@ -68,3 +79,21 @@ Gates: typecheck ok, lint ok, unit tests ok, e2e fail (16/17, `diag-responded` f
 - Effort: small
 - Lesson candidate: no
 - Decision: fixed (78f2358)
+
+### R4: The "As of the last contact sync" time is wrong for repeaters kept from an earlier partial sync
+- Severity: minor
+- Where: `apps/mobile/src/application/nodes/nearest-presenter.ts:89-92`
+- Problem: after the R2 fix the card can rank repeaters whose hops and position come from an earlier sync of the same companion (`node.syncedAt < origin.at`). `asOf` still prints `formatTime(origin.at)`, the time of the latest (partial) sync. So the line under the nearest repeater says "As of the last contact sync, <latest time>" for data that is older. The new presenter test "keeps repeaters an earlier partial sync from the same companion reported (R2)" builds exactly this case (`syncedAt: SYNCED - 10`, `origin.at = SYNCED`) and does not check `asOf`. FR-21 AC4 asks for honest labelling. This is minor: the companion is the same and "last contact sync" stays true in spirit, but the time shown is not.
+- Fix: use the shown node's own sync time, `formatTime(nearest.node.syncedAt)`, for `asOf` (keep `null` when `origin` is `null`), and assert it in the R2 presenter test. Alternative: keep `origin.at` and change the text to "Path as of the last contact sync that reported it".
+- Effort: small
+- Lesson candidate: no
+- Decision: open
+
+### R5: Decision D-1 does not mention the new `path_companion_key` column
+- Severity: minor
+- Where: `context/changes/nearest-repeater/plan.md:71`
+- Problem: D-1 (costly, the storage shape) still lists only `path_hops`, `adv_lat` and `adv_lon`. The R2 `[REVIEW]` deviation (line 285) says it "extends D-1's shape", but the Decisions row a reader checks at the PR, and that `/address-pr` acts on, is out of date with `0003_nearest.sql`. The superseded plan-review-1 deviation (line 284) and the plan-review note (line 297) still describe the `syncedAt` filter as the design.
+- Fix: add `path_companion_key TEXT` (nullable, 64 hex, the companion that gave `path_hops`, filter key for the ranking) to D-1's chosen option. Mark line 297 as superseded by R2.
+- Effort: small
+- Lesson candidate: no
+- Decision: open
