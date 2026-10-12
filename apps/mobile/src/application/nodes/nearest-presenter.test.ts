@@ -150,5 +150,6 @@ describe("nearestCard", () => {
     const card = nearestCard([earlier], origin(null), fmt);
     if (card.kind !== "found") throw new Error("expected found");
     expect(card.nearest.publicKey).toBe("earlier");
+    expect(card.asOf).toEqual({ key: "nearest.asOf", params: { time: `T${SYNCED - 10}` } });
   });
 });

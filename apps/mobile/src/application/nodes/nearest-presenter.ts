@@ -89,6 +89,6 @@ export function nearestCard(
     asOf:
       origin === null
         ? null
-        : { key: "nearest.asOf", params: { time: formatTime(origin.at) } },
+        : { key: "nearest.asOf", params: { time: formatTime(nearest.node.syncedAt) } },
   };
 }
