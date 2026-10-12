@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0E6B5E}a:hover{color:#0A4F45}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F3F4F1; color: #15201B; font-family: 'IBM Plex Sans', sans-serif; font-size: 15px; overflow: hidden">
+  <header style="padding: 20px 20px 12px">
+    <h1 style="margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.01em">Settings</h1>
+  </header>
+
+  <div style="flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 0 20px 16px; overflow: hidden">
+    <section style="display: flex; flex-direction: column; padding: 4px 16px; border-radius: 14px; background: #FFFFFF; border: 1px solid #D9DDD8">
+      <h2 style="margin: 12px 0 4px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #55605A">Diagnostics</h2>
+      <div style="display: flex; flex-direction: column; gap: 8px; padding: 8px 0 12px; border-bottom: 1px solid #ECEEEB">
+        <span id="timeout-label">Timeout per attempt</span>
+        <div role="group" aria-labelledby="timeout-label" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 10px; background: #E4E7E2">
+          <button type="button" aria-pressed="true" style="min-height: 40px; border: 0; border-radius: 8px; background: #FFFFFF; font: 600 14px 'IBM Plex Sans', sans-serif; color: #15201B">Auto</button>
+          <button type="button" aria-pressed="false" style="min-height: 40px; border: 0; border-radius: 8px; background: transparent; font: 500 14px 'IBM Plex Sans', sans-serif; color: #4A524D">Fixed (5–60 s)</button>
+        </div>
+        <span style="font-size: 12px; color: #55605A">Auto: companion estimate with margin, max 30 s; 15 s when there is no estimate.</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; min-height: 60px">
+        <div style="display: flex; flex-direction: column"><span id="attempts-label">Attempts per check</span><span style="font-size: 12px; color: #55605A">1–3</span></div>
+        <div role="group" aria-labelledby="attempts-label" style="display: flex; align-items: center; gap: 6px">
+          <button type="button" aria-label="Fewer attempts" style="width: 44px; height: 44px; border: 1px solid #B9BFB8; border-radius: 10px; background: #FFFFFF; font: 600 20px 'IBM Plex Sans', sans-serif; color: #15201B">−</button>
+          <span style="min-width: 24px; text-align: center; font: 500 17px 'IBM Plex Mono', monospace">2</span>
+          <button type="button" aria-label="More attempts" style="width: 44px; height: 44px; border: 1px solid #B9BFB8; border-radius: 10px; background: #FFFFFF; font: 600 20px 'IBM Plex Sans', sans-serif; color: #15201B">+</button>
+        </div>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; padding: 4px 16px; border-radius: 14px; background: #FFFFFF; border: 1px solid #D9DDD8">
+      <h2 style="margin: 12px 0 4px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #55605A">Export</h2>
+      <label style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 64px; cursor: pointer">
+        <span style="display: flex; flex-direction: column"><span>Shorten public keys</span><span style="font-size: 12px; color: #55605A">Exports show a 4-byte prefix. Passwords are never exported.</span></span>
+        <input type="checkbox" checked="" style="width: 22px; height: 22px; accent-color: {{accent}}; flex: none">
+      </label>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 14px; background: #FFFFFF; border: 1px solid #D9DDD8; font-size: 14px">
+      <h2 style="margin: 0 0 4px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #55605A">About</h2>
+      <div style="display: flex; justify-content: space-between"><span>App</span><span style="font-family: 'IBM Plex Mono', monospace">[APP VERSION]</span></div>
+      <div style="display: flex; justify-content: space-between"><span>Companion</span><span>Heltec V3</span></div>
+      <div style="display: flex; justify-content: space-between"><span>Firmware</span><span style="font-family: 'IBM Plex Mono', monospace">v1.17.1-d929643</span></div>
+      <div style="display: flex; justify-content: space-between"><span>Data</span><span>On this phone only</span></div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 8px">
+      <button type="button" style="min-height: 48px; border: 1px solid #B9BFB8; border-radius: 10px; background: #FFFFFF; color: #15201B; font: 600 15px 'IBM Plex Sans', sans-serif">Delete a node's history…</button>
+      <button type="button" style="min-height: 48px; border: 1.5px solid #A1262A; border-radius: 10px; background: #FFFFFF; color: #A1262A; font: 600 15px 'IBM Plex Sans', sans-serif">Clear all data…</button>
+    </section>
+  </div>
+
+  <nav aria-label="Main" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: #FFFFFF; border-top: 1px solid #D9DDD8">
+    <a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 60px; color: #55605A; text-decoration: none; font-size: 12px; font-weight: 500">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+      Dashboard
+    </a>
+    <a href="Connect.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 60px; color: #55605A; text-decoration: none; font-size: 12px; font-weight: 500">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7l10 10-5 5V2l5 5L7 17"/></svg>
+      Connect
+    </a>
+    <a href="Settings.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 60px; color: {{accent}}; text-decoration: none; font-size: 12px; font-weight: 600">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+      Settings
+    </a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#0E6B5E","options":["#0E6B5E","#1D4E89","#7A3E9D","#15201B"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return { accent: this.props.accent ?? '#0E6B5E' };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Connect.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "1 · Connect",
+      "w": 390,
+      "x": 0,
+      "y": 1200
+    },
+    "Main.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "2 · Dashboard",
+      "w": 390,
+      "x": 470,
+      "y": 1200
+    },
+    "Node.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "3 · Node details",
+      "w": 390,
+      "x": 940,
+      "y": 1200
+    },
+    "Result.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "5 · Result: no response",
+      "w": 390,
+      "x": 1880,
+      "y": 1200
+    },
+    "Run.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "4 · Diagnostic run",
+      "w": 390,
+      "x": 1410,
+      "y": 1200
+    },
+    "Settings.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "6 · Settings",
+      "w": 390,
+      "x": 2350,
+      "y": 1200
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-11T21:12:43.561Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {},
+  "notes": {
+    "title": {
+      "kind": "title1",
+      "maxW": 2740,
+      "text": "MeshCore Guardian — app mockup",
+      "w": 240,
+      "x": 0,
+      "y": 900
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Connect.dc.html",
+    "Node.dc.html",
+    "Run.dc.html",
+    "Result.dc.html",
+    "Settings.dc.html"
+  ],
+  "pages": [],
+  "title": "MeshCore Guardian mockup"
+}
