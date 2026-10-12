@@ -56,3 +56,23 @@ export class CommandRejectedError extends Error {
     super(code === undefined ? "Command rejected" : `Command rejected (code ${code})`);
   }
 }
+
+export type BusyActivity = "handshake" | "contacts" | "diagnostic";
+
+/** Another request is in flight on this client; the radio takes one at a time. */
+export class BusyError extends Error {
+  override readonly name = "BusyError";
+
+  constructor(readonly activity: BusyActivity) {
+    super("busy");
+  }
+}
+
+/** The node was asked less than the cooldown ago; nothing was sent (FR-10 AC2). */
+export class CooldownError extends Error {
+  override readonly name = "CooldownError";
+
+  constructor(readonly remainingMs: number) {
+    super(`Node was asked recently; wait ${remainingMs} ms`);
+  }
+}

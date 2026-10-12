@@ -26,17 +26,31 @@ export { FakeTransport, type ScriptFrame } from "./transport/fake-transport";
 export { HANDSHAKE_FRAMES, withFirmware } from "./transport/handshake-script";
 export { CONTACTS_FRAMES } from "./transport/contacts-script";
 export {
+  DIAG_CONTACTS_FRAMES,
+  REMOTE_FRAMES,
+  remoteScript,
+  type RemoteScriptSpec,
+  type RemoteStep,
+} from "./transport/remote-script";
+export {
   MeshClient,
   type AbortSignalLike,
+  type CheckProgress,
   type ContactsResult,
   type MeshClientOptions,
+  type RunChecksRequest,
+  SENT_TIMEOUT_MS,
 } from "./client/mesh-client";
+export { RemoteRequestLedger } from "./client/request-ledger";
 export {
   AbortError,
+  BusyError,
   CommandRejectedError,
+  CooldownError,
   ContactsTimeoutError,
   HandshakeTimeoutError,
   TransportUnavailableError,
+  type BusyActivity,
   type ContactsStage,
   type HandshakeStep,
 } from "./client/errors";

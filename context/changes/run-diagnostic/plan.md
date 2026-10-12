@@ -351,7 +351,7 @@ Dashboard rows ─▶ RunController.store.latest[publicKey] ─▶ lastRunStatus
 - [x] Phase 1: Domain codes, check model and radio policies
 - [x] Phase 2: Classification, rule table and status line
 - [x] Phase 3: Storage for runs and checks
-- [ ] Phase 4: `MeshClient.runChecks` and remote scripts
+- [x] Phase 4: `MeshClient.runChecks` and remote scripts
 - [ ] Phase 5: Application use case, catalog and composition
 - [ ] Phase 6: Screens, fake scenarios, e2e and docs
 
@@ -360,6 +360,7 @@ Dashboard rows ─▶ RunController.store.latest[publicKey] ─▶ lastRunStatus
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
+- [minor] (Phase 4) D-10 says `runChecks` throws only `BusyError`, `CooldownError` or `TransportUnavailableError`. The code also throws `RangeError` for attempts outside 1–3 or an override outside 5–60 s, before any write (a programming error; S-09 validates input first). An already-aborted signal resolves with `[]` instead of throwing; `classifyRun` with `cancelled: true` handles it.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->
