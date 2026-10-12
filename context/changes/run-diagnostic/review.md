@@ -70,7 +70,7 @@ Gates: typecheck ok, lint ok, unit tests ok (946/946), e2e ok (15/15) · Round: 
   disconnect case).
 - Effort: small
 - Lesson candidate: Capture the context a record needs (companion, session facts) when the operation starts; never read it from live state after an await that can span a disconnect.
-- Decision: open
+- Decision: fixed (ed4a1bb) + lesson proposed
 
 ### R2: PRD FR-06 AC2 and the roadmap's best-evidence rule are overridden without a `[REVIEW]` deviation
 - Severity: major
@@ -89,7 +89,7 @@ Gates: typecheck ok, lint ok, unit tests ok (946/946), e2e ok (15/15) · Round: 
   (one branch in `classifyRun` each).
 - Effort: small
 - Lesson candidate: Every plan-review finding gets a line in *Review response*; a PRD/roadmap conflict is always a `[REVIEW]` deviation, not only an error-model row.
-- Decision: open
+- Decision: fixed (docs: D-19 and two [REVIEW] deviations in plan.md; no code change) + lesson proposed
 
 ### R3: A contact sync and a run refuse each other with wrong texts
 - Severity: minor
@@ -106,7 +106,7 @@ Gates: typecheck ok, lint ok, unit tests ok (946/946), e2e ok (15/15) · Round: 
   activity runs. Add one test per direction.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (e42376e)
 
 ### R4: A run keeps sending retries and later checks after the app goes to the background
 - Severity: minor
@@ -123,7 +123,7 @@ Gates: typecheck ok, lint ok, unit tests ok (946/946), e2e ok (15/15) · Round: 
   background") as a D-row and narrow the TR-18 wording.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (2cf816b)
 
 ### R5: The run's own limitations are stored but never shown
 - Severity: minor
@@ -139,4 +139,4 @@ Gates: typecheck ok, lint ok, unit tests ok (946/946), e2e ok (15/15) · Round: 
   from the model if the checks list is meant to carry it, and say so in the plan.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (80926fd)
