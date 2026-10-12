@@ -3,6 +3,8 @@ import {
   DIAG_CONTACTS_FRAMES,
   FakeTransport,
   HANDSHAKE_FRAMES,
+  NEAREST_CONTACTS_FRAMES,
+  NEAREST_HANDSHAKE_FRAMES,
   remoteScript,
   withFirmware,
   type RemoteScriptSpec,
@@ -24,6 +26,8 @@ export type Attempt =
   | "silent"
   | { dropAfterMs: number }
   | { firmware: { verCode: number; version: string } }
+  /** Companion with a position and contacts with paths and positions (nearest-repeater card). */
+  | { nearest: true }
   | {
       /** Remote exchanges for Room K (plan D-17), on top of the usual handshake and contacts. */
       diagnostic: RemoteScriptSpec;
@@ -113,13 +117,20 @@ export class FakeBlePlatform implements BlePlatform {
     if (attempt === "connect-timeout") return abortReject(signal);
     const firmware =
       typeof attempt === "object" && "firmware" in attempt ? attempt.firmware : undefined;
+    const nearest = typeof attempt === "object" && "nearest" in attempt;
+    const baseHandshake = nearest ? NEAREST_HANDSHAKE_FRAMES : HANDSHAKE_FRAMES;
     const handshake =
-      firmware === undefined ? HANDSHAKE_FRAMES : withFirmware(HANDSHAKE_FRAMES, firmware);
+      firmware === undefined ? baseHandshake : withFirmware(baseHandshake, firmware);
     const diagnostic =
       typeof attempt === "object" && "diagnostic" in attempt ? attempt : undefined;
     // Two syncs per connection: the automatic one and one tap on "Sync contacts" (plan D-12).
     // The remote script is there twice: a retry writes the same request again (plan D-17).
-    const contacts = diagnostic === undefined ? CONTACTS_FRAMES : DIAG_CONTACTS_FRAMES;
+    const contacts =
+      diagnostic !== undefined
+        ? DIAG_CONTACTS_FRAMES
+        : nearest
+          ? NEAREST_CONTACTS_FRAMES
+          : CONTACTS_FRAMES;
     const remote =
       diagnostic === undefined
         ? []

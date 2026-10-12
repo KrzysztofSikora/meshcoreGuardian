@@ -272,10 +272,12 @@ request (AC6).
 - [x] Phase 1: Domain geometry and ranking
 - [x] Phase 2: Decode, store and load path, position and sync origin
 - [x] Phase 3: Nearest repeater card on the Dashboard
-- [ ] Phase 4: Fake scenario and e2e
+- [x] Phase 4: Fake scenario and e2e
 
 ## Human checks
 <!-- Filled by /implement: one open checkbox per human check, with how to run it and evidence. -->
+- [ ] (Phase 4) Wording reads as "last known"/"advertised", nothing suggests live reachability, the card does not crowd the list — run: open the screenshots — evidence: `context/changes/nearest-repeater/evidence/nearest-with-positions.png`, `nearest-without-positions.png`, `nearest-empty.png`
+- [ ] (Phase 4) Real hardware, CI APK (`android-apk` artifact, test-plan *Install a PR build*): connect, let the sync finish, compare the card's repeater, hop line and distance with the MeshCore app's contact details for the same repeater (`out_path_len` and positions are UNVERIFIED); note whether the companion position shows as set — run: install APK, connect — evidence: none
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
@@ -286,6 +288,8 @@ request (AC6).
 - [FOLLOW-UP] Plan-review 5: S-08 export must leave out or redact the companion position (`contact_sync_origin`) and node positions by default and list them in the preview.
 
 - [minor] Phase 3: the "other nearby" compass word is a nested `Text` in the distance line's params (`NearestText`), resolved in the card; the card reuses `runButton` (already covered by presenter tests) so no separate disabled-reason test was added. The card renders nothing until the node list is loaded.
+
+- [minor] Phase 4: the card sits above the list, so the diag-cancel, diag-no-response and contacts-sync flows had `assertVisible` on a row text that moved off-screen; they now use `scrollUntilVisible`. The derived "Sensor test" contact shares the key prefix of the first repeater, so it also gets the edit (it is not a repeater, no effect on the card).
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->

@@ -26,6 +26,15 @@ export { FakeTransport, type ScriptFrame } from "./transport/fake-transport";
 export { HANDSHAKE_FRAMES, withFirmware } from "./transport/handshake-script";
 export { CONTACTS_FRAMES } from "./transport/contacts-script";
 export {
+  NEAREST_COMPANION_POSITION,
+  NEAREST_CONTACT_GEO,
+  NEAREST_CONTACTS_FRAMES,
+  NEAREST_HANDSHAKE_FRAMES,
+  withContactGeo,
+  withSelfPosition,
+  type ContactGeo,
+} from "./transport/nearest-script";
+export {
   DIAG_CONTACTS_FRAMES,
   REMOTE_FRAMES,
   remoteScript,

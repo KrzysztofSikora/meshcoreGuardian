@@ -26,7 +26,8 @@ appId: io.github.krzysztofsikora.guardian
     element: "PL-KR-WRBL-RPT"
 - scrollUntilVisible:
     element: "Sensor test"
-- assertVisible: "Unknown"
+- scrollUntilVisible:
+    element: "Unknown"
 - assertNotVisible: "chat-1"
 - tapOn:
     id: "filter-all"

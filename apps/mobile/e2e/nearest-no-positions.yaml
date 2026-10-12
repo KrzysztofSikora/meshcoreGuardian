@@ -1,0 +1,30 @@
+# FR-21 AC3, AC5: the card says so with no repeater in the contacts, and reads "Path unknown" and
+# "Companion position not set" for the recorded companion that sends neither.
+appId: io.github.krzysztofsikora.guardian
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Known nodes will appear here."
+- assertVisible: "Nearest repeater"
+- assertVisible: "No repeater in the companion's contacts."
+- assertVisible: "Use Sync contacts to update the list."
+- takeScreenshot: nearest-empty
+- openLink: guardian://debug/scenario/connect-ok
+- extendedWaitUntil:
+    visible: "Scan for companions"
+    timeout: 10000
+- tapOn: "Scan for companions"
+- extendedWaitUntil:
+    visible: "Connect to MeshCore-companion"
+    timeout: 10000
+- tapOn: "Connect to MeshCore-companion"
+- extendedWaitUntil:
+    visible: "Connected"
+    timeout: 20000
+- back
+- extendedWaitUntil:
+    visible: "Contacts synced: 31"
+    timeout: 30000
+- assertVisible: "Path unknown"
+- assertVisible: "Companion position not set"
+- takeScreenshot: nearest-without-positions

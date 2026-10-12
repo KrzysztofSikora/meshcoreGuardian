@@ -16,4 +16,5 @@ appId: io.github.krzysztofsikora.guardian
     visible: "Check cancelled"
     timeout: 10000
 - back
-- assertVisible: "Last test cancelled"
+- scrollUntilVisible:
+    element: "Last test cancelled"
