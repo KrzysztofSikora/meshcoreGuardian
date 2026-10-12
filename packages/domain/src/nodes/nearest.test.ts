@@ -19,6 +19,7 @@ function node(overrides: Partial<Node> = {}): Node {
     lastHeardAt: null,
     pathHops: null,
     position: null,
+    pathCompanionKey: null,
     inContacts: true,
     dashboardPinned: false,
     createdAt: 1,
@@ -49,11 +50,21 @@ describe("rankRepeaters candidates", () => {
     expect(nearestRepeaters([], COMPANION)).toEqual({ nearest: null, others: [] });
   });
 
-  it("only ranks nodes the last sync reported when asked", () => {
-    const old = node({ pathHops: 0, syncedAt: 5 });
-    const fresh = node({ pathHops: 3, syncedAt: 9 });
-    expect(keys(rankRepeaters([old, fresh], null, 9))).toEqual([fresh.publicKey]);
-    expect(keys(rankRepeaters([old, fresh], null, null))).toEqual([old.publicKey, fresh.publicKey]);
+  it("only ranks nodes whose path came from the given companion", () => {
+    const other = node({ pathHops: 0, pathCompanionKey: "b".repeat(64) });
+    const mine = node({ pathHops: 3, pathCompanionKey: "a".repeat(64) });
+    expect(keys(rankRepeaters([other, mine], null, "a".repeat(64)))).toEqual([mine.publicKey]);
+    expect(keys(rankRepeaters([other, mine], null, null))).toEqual([other.publicKey, mine.publicKey]);
+  });
+
+  it("keeps repeaters synced earlier from the same companion (partial sync)", () => {
+    const key = "a".repeat(64);
+    const earlier = node({ pathHops: 1, pathCompanionKey: key, syncedAt: 10 });
+    const later = node({ pathHops: 2, pathCompanionKey: key, syncedAt: 20 });
+    expect(keys(rankRepeaters([earlier, later], null, key))).toEqual([
+      earlier.publicKey,
+      later.publicKey,
+    ]);
   });
 });
 
@@ -212,7 +223,7 @@ describe("nearestRepeaters", () => {
 
   it("honours a custom count and the sync filter", () => {
     expect(nearestRepeaters(nine, null, null, 2).others).toHaveLength(2);
-    const stale = nine.map((n) => ({ ...n, syncedAt: 0 }));
-    expect(nearestRepeaters(stale, null, 1).nearest).toBeNull();
+    const stale = nine.map((n) => ({ ...n, pathCompanionKey: "b".repeat(64) }));
+    expect(nearestRepeaters(stale, null, "a".repeat(64)).nearest).toBeNull();
   });
 });

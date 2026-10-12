@@ -49,6 +49,7 @@ const rowSchema = z
     user_role: role.nullable(),
     last_heard_at: z.number().nullable(),
     path_hops: z.number().int().min(0).max(63).nullable(),
+    path_companion_key: z.string().length(64).nullable(),
     adv_lat: z.number().min(-90).max(90).nullable(),
     adv_lon: z.number().min(-180).max(180).nullable(),
     in_contacts: z.number().int().min(0).max(1),
@@ -66,6 +67,7 @@ const rowSchema = z
     lastHeardAt: row.last_heard_at,
     pathHops: row.path_hops,
     position: point(row.adv_lat, row.adv_lon),
+    pathCompanionKey: row.path_companion_key,
     inContacts: row.in_contacts === 1,
     dashboardPinned: row.dashboard_pinned === 1,
     createdAt: row.created_at,
@@ -73,7 +75,7 @@ const rowSchema = z
   }));
 
 const COLUMNS = `public_key, reported_name, reported_role, reported_type, user_label, user_role,
-  last_heard_at, path_hops, adv_lat, adv_lon, in_contacts, dashboard_pinned, created_at, synced_at`;
+  last_heard_at, path_hops, path_companion_key, adv_lat, adv_lon, in_contacts, dashboard_pinned, created_at, synced_at`;
 
 export class SqliteNodeRepository implements NodeRepository {
   constructor(private readonly driver: SqlDriver) {}

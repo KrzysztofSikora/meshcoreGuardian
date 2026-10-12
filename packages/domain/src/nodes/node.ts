@@ -32,6 +32,8 @@ export interface Node {
   pathHops: number | null;
   /** As of the last contact sync that reported this node. */
   position: GeoPoint | null;
+  /** The companion whose contact list gave `pathHops`; `null` = never synced with the path columns. */
+  pathCompanionKey: string | null;
   inContacts: boolean;
   dashboardPinned: boolean;
   createdAt: number;

@@ -32,14 +32,15 @@ export async function applyContactSync(
     for (const r of reports) {
       await tx.run(
         `INSERT INTO devices
-           (public_key, reported_name, reported_role, reported_type, last_heard_at, path_hops, adv_lat, adv_lon, in_contacts, created_at, synced_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+           (public_key, reported_name, reported_role, reported_type, last_heard_at, path_hops, path_companion_key, adv_lat, adv_lon, in_contacts, created_at, synced_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
          ON CONFLICT(public_key) DO UPDATE SET
            reported_name = excluded.reported_name,
            reported_role = excluded.reported_role,
            reported_type = excluded.reported_type,
            last_heard_at = excluded.last_heard_at,
            path_hops = excluded.path_hops,
+           path_companion_key = excluded.path_companion_key,
            adv_lat = excluded.adv_lat,
            adv_lon = excluded.adv_lon,
            in_contacts = 1,
@@ -51,6 +52,7 @@ export async function applyContactSync(
           r.type,
           r.lastHeardAt,
           r.pathHops,
+          opts.origin.companionPublicKey,
           r.position?.lat ?? null,
           r.position?.lon ?? null,
           opts.now,

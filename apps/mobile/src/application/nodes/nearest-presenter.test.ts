@@ -16,6 +16,7 @@ function node(over: Partial<Node> & { publicKey: string }): Node {
     lastHeardAt: 500,
     pathHops: null,
     position: null,
+    pathCompanionKey: "c".repeat(64),
     inContacts: true,
     dashboardPinned: true,
     createdAt: 0,
@@ -136,11 +137,18 @@ describe("nearestCard", () => {
     expect(card.others.map((o) => o.publicKey)).toEqual(["k1", "k2", "k3", "k4", "k5"]);
   });
 
-  it("ignores nodes an earlier sync reported (plan-review 1)", () => {
-    const stale = node({ publicKey: "old", pathHops: 0, syncedAt: SYNCED - 1 });
+  it("ignores nodes whose path came from another companion (plan-review 1)", () => {
+    const stale = node({ publicKey: "old", pathHops: 0, pathCompanionKey: "d".repeat(64) });
     const fresh = node({ publicKey: "new", pathHops: 3 });
     const card = nearestCard([stale, fresh], origin(null), fmt);
     if (card.kind !== "found") throw new Error("expected found");
     expect(card.nearest.publicKey).toBe("new");
+  });
+
+  it("keeps repeaters an earlier partial sync from the same companion reported (R2)", () => {
+    const earlier = node({ publicKey: "earlier", pathHops: 1, syncedAt: SYNCED - 10 });
+    const card = nearestCard([earlier], origin(null), fmt);
+    if (card.kind !== "found") throw new Error("expected found");
+    expect(card.nearest.publicKey).toBe("earlier");
   });
 });

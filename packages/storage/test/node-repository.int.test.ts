@@ -41,6 +41,7 @@ describe("SqliteNodeRepository", () => {
       lastHeardAt: 5_000,
       pathHops: null,
       position: null,
+      pathCompanionKey: ORIGIN.companionPublicKey,
       inContacts: true,
       dashboardPinned: false,
       createdAt: 7,

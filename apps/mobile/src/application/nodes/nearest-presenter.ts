@@ -67,7 +67,7 @@ export function nearestCard(
   formatTime: (ms: number) => string,
 ): NearestCardModel {
   const companion = origin?.position ?? null;
-  const { nearest, others } = nearestRepeaters(nodes, companion, origin?.at ?? null);
+  const { nearest, others } = nearestRepeaters(nodes, companion, origin?.companionPublicKey ?? null);
   if (nearest === null) {
     return {
       kind: "empty",

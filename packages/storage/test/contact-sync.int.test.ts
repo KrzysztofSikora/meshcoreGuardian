@@ -327,13 +327,36 @@ describe("applyContactSync", () => {
       origin: { companionPublicKey: key(55), position: null },
     });
 
-    const stored = await testDb.driver.all<{ path_hops: number; synced_at: number }>(
-      "SELECT path_hops, synced_at FROM devices ORDER BY public_key",
+    const stored = await testDb.driver.all<{ path_companion_key: string; synced_at: number }>(
+      "SELECT path_companion_key, synced_at FROM devices ORDER BY public_key",
     );
-    // Node 2 keeps its old sync time, so the ranking (which filters on the origin's time) skips it.
+    // Node 2 keeps the companion that gave its path, so the ranking (which filters on it) skips it.
     expect(stored).toEqual([
-      { path_hops: 5, synced_at: 20 },
-      { path_hops: 4, synced_at: 10 },
+      { path_companion_key: key(55), synced_at: 20 },
+      { path_companion_key: ORIGIN.companionPublicKey, synced_at: 10 },
+    ]);
+  });
+
+  it("keeps the companion of a node a partial sync from the same companion did not report", async () => {
+    testDb = await openTestDb();
+    await applyContactSync(testDb.driver, [report(1), report(2)], {
+      complete: true,
+      now: 10,
+      origin: ORIGIN,
+    });
+
+    await applyContactSync(testDb.driver, [report(1)], {
+      complete: false,
+      now: 20,
+      origin: ORIGIN,
+    });
+
+    const stored = await testDb.driver.all<{ path_companion_key: string }>(
+      "SELECT path_companion_key FROM devices",
+    );
+    expect(stored.map((r) => r.path_companion_key)).toEqual([
+      ORIGIN.companionPublicKey,
+      ORIGIN.companionPublicKey,
     ]);
   });
 });

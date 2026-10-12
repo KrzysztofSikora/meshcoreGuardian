@@ -24,21 +24,21 @@ function byNullLast(a: number | null, b: number | null, sign: 1 | -1): number {
 
 /**
  * Contact repeaters, best first: fewest known hops, then shortest distance from the companion,
- * then most recently heard, then public key. Unknown values sort last. `syncedAt` restricts the
- * list to the nodes the last sync reported, because their hops belong to that companion and
- * position; older rows may come from another companion (plan-review 1).
+ * then most recently heard, then public key. Unknown values sort last. `companionKey` restricts the
+ * list to the nodes whose path came from that companion, because hops from another companion say
+ * nothing about this one (plan-review 1); a partial sync from the same companion keeps the rest.
  */
 export function rankRepeaters(
   nodes: readonly Node[],
   companion: GeoPoint | null,
-  syncedAt: number | null = null,
+  companionKey: string | null = null,
 ): RankedRepeater[] {
   return nodes
     .filter(
       (n) =>
         n.inContacts &&
         effectiveRole(n) === "repeater" &&
-        (syncedAt === null || n.syncedAt === syncedAt),
+        (companionKey === null || n.pathCompanionKey === companionKey),
     )
     .map((node): RankedRepeater => {
       const distanceM =
@@ -63,9 +63,9 @@ export function rankRepeaters(
 export function nearestRepeaters(
   nodes: readonly Node[],
   companion: GeoPoint | null,
-  syncedAt: number | null = null,
+  companionKey: string | null = null,
   others: number = OTHER_NEARBY_COUNT,
 ): { nearest: RankedRepeater | null; others: RankedRepeater[] } {
-  const ranked = rankRepeaters(nodes, companion, syncedAt);
+  const ranked = rankRepeaters(nodes, companion, companionKey);
   return { nearest: ranked[0] ?? null, others: ranked.slice(1, 1 + others) };
 }
