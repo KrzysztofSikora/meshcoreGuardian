@@ -51,6 +51,8 @@ describe("en catalog", () => {
       userLabel: "x",
       userRole: null,
       lastHeardAt: null,
+      pathHops: null,
+      position: null,
       inContacts: true,
       dashboardPinned: false,
       createdAt: 0,

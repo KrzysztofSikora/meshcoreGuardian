@@ -82,6 +82,7 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | `apps/mobile/src/application/connection/companion-session.ts` | connect/scan/drop state machine, background and no-auto-reconnect rules (FR-01, FR-02, TR-12, TR-13, TR-18) | 80 % | report |
 | `packages/domain/src/trend.ts` | no trend on thin data (TR-17) | 80 % | report |
 | `packages/storage/src/sync/contacts.ts` | merge rules for labels/roles and removed contacts (TR-15) | 70 % | report |
+| `packages/domain/src/geo/geo.ts`, `packages/domain/src/nodes/nearest.ts` | distance, direction and the order of the nearest-repeater card (FR-21) | 80 % | report |
 
 File names are the intended layout; the plan of each slice may rename them and must then update
 this table. After S-04 lands, revisit whether CI should break below 70 % on the domain targets.

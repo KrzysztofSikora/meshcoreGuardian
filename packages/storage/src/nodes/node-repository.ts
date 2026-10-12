@@ -37,6 +37,8 @@ const rowSchema = z
       userLabel: row.user_label,
       userRole: row.user_role,
       lastHeardAt: row.last_heard_at,
+      pathHops: null,
+      position: null,
       inContacts: row.in_contacts === 1,
       dashboardPinned: row.dashboard_pinned === 1,
       createdAt: row.created_at,

@@ -152,6 +152,8 @@ describe("MeshClient.getContacts", () => {
         name: "Repeater 1",
         type: 2,
         lastHeardAt: 1_760_000_100_000,
+        pathHops: null,
+        position: null,
       },
     ]);
     expect(t.written).toEqual([Uint8Array.of(GET_CONTACTS)]);

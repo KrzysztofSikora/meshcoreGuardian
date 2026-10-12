@@ -269,7 +269,7 @@ request (AC6).
 
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
-- [ ] Phase 1: Domain geometry and ranking
+- [x] Phase 1: Domain geometry and ranking
 - [ ] Phase 2: Decode, store and load path, position and sync origin
 - [ ] Phase 3: Nearest repeater card on the Dashboard
 - [ ] Phase 4: Fake scenario and e2e
@@ -279,6 +279,16 @@ request (AC6).
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
+- [REVIEW] Plan-review 1 (partial sync from another companion): `rankRepeaters` and `nearestRepeaters` take an optional `syncedAt`; the Dashboard passes `origin.at` (phase 3), so only nodes the last sync reported are ranked and labelled "as of the last contact sync". Phase 2 needs a contact-sync test for a partial sync from another companion. Alternative: a `path_companion_key` column per node.
+- [minor] Plan-review 2: the D-11 edits to `context/test-plan.md` and `stryker.targets` were done in phase 1, with the files they cover.
+- [minor] Plan-review 3: builders in `presenter.test.ts`, `catalog.test.ts`, `node.test.ts`, storage tests and the controller test got `pathHops: null, position: null`; `capabilities.test.ts`, `check.test.ts` and `handshake-script.int.test.ts` needed no change (typecheck green).
+- [FOLLOW-UP] Plan-review 5: S-08 export must leave out or redact the companion position (`contact_sync_origin`) and node positions by default and list them in the preview.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->
+- 1 (major): handled in the ranking with a `syncedAt` filter (Deviations), tests in phase 1 (`nearest.test.ts`) and phase 2.
+- 2: D-11 moved into phase 1 (done).
+- 3: line number and builder list noted in Deviations; typecheck covers the rest.
+- 4: phase 3: the card component computes `runButton` from `session.store` and `runs.store` like `RunPanel` (cooldown from `runs.store.latest`), with a disabled-reason test.
+- 5: `[FOLLOW-UP]` for S-08 in Deviations.
+- 6: phase 2: capture the companion before the first await but decide the outcome after the repository step, keeping today's order.

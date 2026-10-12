@@ -1,3 +1,5 @@
+import type { GeoPoint } from "../geo/geo";
+
 export const NODE_ROLES = ["repeater", "room_server", "chat", "unknown"] as const;
 
 export type NodeRole = (typeof NODE_ROLES)[number];
@@ -11,6 +13,10 @@ export interface ContactReport {
   name: string;
   type: number;
   lastHeardAt: number | null;
+  /** Hops of the companion's last known path; `null` = path unknown (UNVERIFIED encoding). */
+  pathHops: number | null;
+  /** Position the contact advertised; `null` = not advertised. */
+  position: GeoPoint | null;
 }
 
 /** A known node. Reported values come from the protocol; user values always win. Times are epoch ms. */
@@ -22,6 +28,10 @@ export interface Node {
   userLabel: string | null;
   userRole: NodeRole | null;
   lastHeardAt: number | null;
+  /** As of the last contact sync that reported this node. */
+  pathHops: number | null;
+  /** As of the last contact sync that reported this node. */
+  position: GeoPoint | null;
   inContacts: boolean;
   dashboardPinned: boolean;
   createdAt: number;

@@ -243,6 +243,8 @@ describe("NodesController", () => {
       name: `Node ${n}`,
       type: 2,
       lastHeardAt: null,
+      pathHops: null,
+      position: null,
     });
 
     function scripted(outcome: (options?: { signal?: AbortSignal }) => Promise<ContactsResult>) {

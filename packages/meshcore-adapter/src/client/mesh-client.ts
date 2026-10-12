@@ -179,6 +179,7 @@ export class MeshClient {
         firmwareVersion: device.firmwareVersion,
         firmwareVerCode: device.firmwareVerCode,
         buildDate: device.buildDate,
+        position: null,
       };
     } finally {
       this.busy = null;
@@ -453,6 +454,8 @@ export class MeshClient {
               name: frame.name,
               type: frame.type,
               lastHeardAt: contactLastHeard(frame.lastMod),
+              pathHops: null,
+              position: null,
             });
             armIdle(this.contactsIdleTimeoutMs, "idle");
           } else if (frame.kind === "endOfContacts") {

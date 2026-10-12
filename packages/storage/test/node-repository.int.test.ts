@@ -1,3 +1,4 @@
+import type { ContactReport } from "@guardian/domain";
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -6,7 +7,14 @@ import { NodeSqlDriver } from "./helpers/node-sql-driver";
 import { openTestDb, type TestDb } from "./helpers/open-test-db";
 
 const KEY = "ab".repeat(32);
-const report = { publicKey: KEY, name: "Hill", type: 4, lastHeardAt: 5_000 };
+const report: ContactReport = {
+  publicKey: KEY,
+  name: "Hill",
+  type: 4,
+  lastHeardAt: 5_000,
+  pathHops: null,
+  position: null,
+};
 
 describe("SqliteNodeRepository", () => {
   let testDb: TestDb | undefined;
@@ -29,6 +37,8 @@ describe("SqliteNodeRepository", () => {
       userLabel: null,
       userRole: null,
       lastHeardAt: 5_000,
+      pathHops: null,
+      position: null,
       inContacts: true,
       dashboardPinned: false,
       createdAt: 7,
@@ -41,7 +51,7 @@ describe("SqliteNodeRepository", () => {
   it("reads a contact missing from a complete sync as not in contacts, in get and listAll", async () => {
     testDb = await openTestDb();
     const repo = new SqliteNodeRepository(testDb.driver);
-    const other = { publicKey: "cd".repeat(32), name: "Ridge", type: 2, lastHeardAt: 0 };
+    const other: ContactReport = { publicKey: "cd".repeat(32), name: "Ridge", type: 2, lastHeardAt: 0, pathHops: null, position: null };
 
     await repo.applySync([report, other], { complete: true, now: 7 });
     await repo.applySync([other], { complete: true, now: 8 });

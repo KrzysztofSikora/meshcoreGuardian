@@ -13,6 +13,8 @@ const report = (n: number, over: Partial<ContactReport> = {}): ContactReport => 
   name: `node-${n}`,
   type: 2,
   lastHeardAt: 1_000 * n,
+  pathHops: null,
+  position: null,
   ...over,
 });
 
@@ -133,7 +135,7 @@ describe("applyContactSync", () => {
     ) as { frames: { decoded?: { kind: string; publicKey?: string; name?: string; type?: number } }[] };
     const reports = fixture.frames.flatMap((f) =>
       f.decoded?.kind === "contact"
-        ? [{ publicKey: f.decoded.publicKey!, name: f.decoded.name!, type: f.decoded.type!, lastHeardAt: null }]
+        ? [{ publicKey: f.decoded.publicKey!, name: f.decoded.name!, type: f.decoded.type!, lastHeardAt: null, pathHops: null, position: null }]
         : [],
     );
     expect(reports).toHaveLength(350);

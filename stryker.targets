@@ -16,3 +16,5 @@ packages/domain/src/export/serialize.ts
 packages/domain/src/trend.ts
 packages/storage/src/sync/contacts.ts
 apps/mobile/src/application/connection/companion-session.ts
+packages/domain/src/geo/geo.ts
+packages/domain/src/nodes/nearest.ts

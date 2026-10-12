@@ -24,6 +24,8 @@ function node(overrides: Partial<Node> = {}): Node {
     userLabel: null,
     userRole: null,
     lastHeardAt: null,
+    pathHops: null,
+    position: null,
     inContacts: true,
     dashboardPinned: false,
     createdAt: 1,
