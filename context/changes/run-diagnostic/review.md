@@ -1,7 +1,14 @@
 # Review: run-diagnostic
 
 Verdict: APPROVE WITH FOLLOW-UPS
-Gates: typecheck ok, lint ok, unit tests ok (952/952), e2e ok (15/15), mutation run-controller.ts ok (96.1 %, 8 survivors) · Round: 2
+Gates: typecheck ok, lint ok, unit tests ok (952/952), e2e ok (15/15), mutation run-controller.ts ok (96.1 %, 8 survivors, round 2 run) · Round: 3
+
+Round 3: no code changed since round 2 (HEAD 5128015 only touches this file). Fix-review round 2
+was interrupted during its mutation run (exit 144) and left no commits, so R6 is still in the code:
+`run-controller.int.test.ts` only sends `appState.set("background")` (lines 183, 211, 688), and
+`mutation.md:14` still shows the pre-fix score (96.3 %, 7 survivors). The mutation gate was not
+re-run because `run-controller.ts` is unchanged since the round 2 run. R1-R5 stay fixed. No new
+findings.
 
 Round 2 re-checked R1-R5 against ed4a1bb, e42376e, 80926fd, 2cf816b and 62c69e0. All five are fixed
 in code or in the plan. One new finding (R6). Round 1 text is kept below for the record.
