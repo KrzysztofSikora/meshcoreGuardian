@@ -20,6 +20,57 @@ describe("RULES", () => {
     }
   });
 
+  // The FR-09 table: which causes, next steps and limitations each result × reason lists.
+  const PARTS: [string, string, string[], string[], string[]][] = [
+    ["RESPONDED", "ALL_CHECKS_REPLIED", [], ["review"], []],
+    ["RESPONDED", "PARTIAL_REPLY", ["route", "congestion"], ["retry"], ["unanswered"]],
+    [
+      "RESPONDED",
+      "LOGIN_REJECTED",
+      ["password", "permissions"],
+      ["credentials", "other"],
+      ["noSession"],
+    ],
+    [
+      "NO_RESPONSE",
+      "NO_REPLY",
+      ["route", "congestion", "device"],
+      ["wait", "closer"],
+      ["unknownCause"],
+    ],
+    ["TRANSPORT_UNAVAILABLE", "NOT_CONNECTED", [], ["connect"], []],
+    ["TRANSPORT_UNAVAILABLE", "LINK_LOST", ["range", "companion"], ["reconnect"], ["notSent"]],
+    ["TRANSPORT_UNAVAILABLE", "COMPANION_NO_ACK", ["companion"], ["reconnect"], ["notSent"]],
+    ["UNSUPPORTED", "CAPABILITY_MISSING", [], ["update"], ["firmware"]],
+    ["UNSUPPORTED", "COMMAND_REJECTED", ["firmware", "contact"], ["sync", "update"], ["rejected"]],
+    [
+      "UNSUPPORTED",
+      "MALFORMED_RESPONSE",
+      ["firmware", "corrupt"],
+      ["retry", "report"],
+      ["unreadable"],
+    ],
+    ["NOT_TESTED", "CANCELLED", [], ["again"], []],
+    ["NOT_TESTED", "UNEXPECTED_ERROR", [], ["again"], ["unknown"]],
+  ];
+  const names = (keys: string[]) => keys.map((key) => key.split(".").slice(4).join("."));
+
+  it("covers every declared pair in the table below", () => {
+    expect(PARTS.map(([result, reason]) => `${result}/${reason}`).sort()).toEqual(
+      pairs.map(([result, reason]) => `${result}/${reason}`).sort(),
+    );
+  });
+
+  it.each(PARTS)(
+    "%s/%s lists its causes, next steps and limitations",
+    (result, reason, causes, steps, limits) => {
+      const rule = ruleFor(result as never, reason)!;
+      expect(names(rule.causes)).toEqual(causes.map((name) => `causes.${name}`));
+      expect(names(rule.nextSteps)).toEqual(steps.map((name) => `nextSteps.${name}`));
+      expect(names(rule.limitations)).toEqual(limits.map((name) => `limitations.${name}`));
+    },
+  );
+
   it("has no rules beyond the declared pairs", () => {
     const count = Object.values(RULES).reduce((n, byReason) => n + Object.keys(byReason).length, 0);
     expect(count).toBe(pairs.length);

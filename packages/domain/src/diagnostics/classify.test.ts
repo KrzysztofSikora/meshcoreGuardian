@@ -91,6 +91,16 @@ describe("classifyRun", () => {
       ],
       ["no outcomes", [], { result: "NOT_TESTED", reason: "UNEXPECTED_ERROR", lim: 0 }],
       [
+        "a rejected login wins over a later reply",
+        [out("login", "RESPONDED", "LOGIN_REJECTED"), ok("status")],
+        { result: "RESPONDED", reason: "LOGIN_REJECTED", lim: 0 },
+      ],
+      [
+        "no reply next to an untested check is still NO_RESPONSE",
+        [silent("login"), out("status", "NOT_TESTED", "UNEXPECTED_ERROR")],
+        { result: "NO_RESPONSE", reason: "NO_REPLY", lim: 2 },
+      ],
+      [
         "unexpected outcome only",
         [out("login", "NOT_TESTED", "UNEXPECTED_ERROR")],
         { result: "NOT_TESTED", reason: "UNEXPECTED_ERROR", lim: 1 },

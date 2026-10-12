@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { CheckKind } from "@guardian/domain";
 import {
   type AbortSignalLike,
   BusyError,
@@ -203,6 +204,72 @@ describe("MeshClient.runChecks", () => {
       const result = await outcome;
       if (!("value" in result)) throw result.error;
       expect(result.value[0]).toMatchObject({ kind: "login", result: "RESPONDED" });
+    });
+
+    const OTHER_PREFIX = "7c73a8cd01d8";
+    const other = (frame: Uint8Array) => bytes(hex(frame).replace(PREFIX, OTHER_PREFIX));
+    const TELEMETRY_OK = bytes(recordedHex(8));
+    // Every frame a check must not take for its reply: another node's, or another check's.
+    const WRONG: [CheckKind, string, Uint8Array][] = [
+      ["login", "a status reply", STATUS_OK],
+      ["login", "a telemetry reply", TELEMETRY_OK],
+      ["login", "a login reply from another node", other(LOGIN_OK)],
+      ["login", "a login rejection from another node", other(LOGIN_FAIL)],
+      ["status", "a login reply", LOGIN_OK],
+      ["status", "a login rejection", LOGIN_FAIL],
+      ["status", "a telemetry reply", TELEMETRY_OK],
+      ["status", "a status reply from another node", other(STATUS_OK)],
+      ["telemetry", "a login reply", LOGIN_OK],
+      ["telemetry", "a login rejection", LOGIN_FAIL],
+      ["telemetry", "a status reply", STATUS_OK],
+      ["telemetry", "a telemetry reply from another node", other(TELEMETRY_OK)],
+    ];
+
+    it.each(WRONG)("a %s check does not take %s for its reply", async (kind, _what, frame) => {
+      expect(hex(frame)).toMatch(/^[0-9a-f]+$/);
+      const t = scriptedTransport();
+      const client = new MeshClient(t.transport);
+      const outcome = start(client, { checks: [kind], policy: { attempts: 1, overrideMs: null } });
+      await tick();
+      t.emit(sentFrame(2_694));
+      t.emit(frame);
+      await tick(30_000);
+      const result = await outcome;
+      if (!("value" in result)) throw result.error;
+      expect(result.value[0]).toMatchObject({
+        result: "NO_RESPONSE",
+        reason: "NO_REPLY",
+        attempts: 1,
+      });
+    });
+
+    it("measures the duration of a check from its first write to its reply", async () => {
+      const t = scriptedTransport();
+      const client = new MeshClient(t.transport, { now: () => Date.now() });
+      const t0 = Date.now();
+      const outcome = start(client, { checks: ["status"] });
+      await tick();
+      t.emit(sentFrame(2_694));
+      await tick(1_000);
+      t.emit(STATUS_OK);
+      const result = await outcome;
+      if (!("value" in result)) throw result.error;
+      expect(result.value[0]).toMatchObject({ startedAt: t0, durationMs: 1_000 });
+    });
+
+    it("does not re-arm the reply timer on a second sent frame", async () => {
+      const t = scriptedTransport();
+      const client = new MeshClient(t.transport);
+      const outcome = start(client, { checks: ["status"] });
+      await tick();
+      t.emit(sentFrame(2_694));
+      await tick(3_000);
+      t.emit(sentFrame(2_694));
+      await tick(2_388);
+      expect(t.written).toHaveLength(2); // attempt 2 at 5388 ms after the first sent
+      t.emit(sentFrame(2_694));
+      t.emit(STATUS_OK);
+      await outcome;
     });
 
     it("accepts a late reply of attempt 1 while attempt 2 waits", async () => {
@@ -415,6 +482,21 @@ describe("MeshClient.runChecks", () => {
         reason: "MALFORMED_RESPONSE",
         attempts: 1,
         evidence: { kind: "malformed", code: 0x87, length: 2, hex: "8700" },
+      });
+    });
+
+    it.each([["85"], ["86"]])("fails a login check on a truncated %s push", async (push) => {
+      const t = scriptedTransport();
+      const client = new MeshClient(t.transport);
+      const outcome = start(client, { checks: ["login"] });
+      await tick();
+      t.emit(sentFrame(2_694));
+      t.emit(bytes(push));
+      const result = await outcome;
+      if (!("value" in result)) throw result.error;
+      expect(result.value[0]).toMatchObject({
+        result: "UNSUPPORTED",
+        reason: "MALFORMED_RESPONSE",
       });
     });
 
@@ -639,7 +721,11 @@ describe("MeshClient.runChecks", () => {
       await tick();
       const result = await outcome;
       if (!("value" in result)) throw result.error;
-      expect(result.value[0]).toMatchObject({ reason: "LINK_LOST", attempts: 1 });
+      expect(result.value[0]).toMatchObject({
+        result: "TRANSPORT_UNAVAILABLE",
+        reason: "LINK_LOST",
+        attempts: 1,
+      });
       expect(vi.getTimerCount()).toBe(0);
     });
 
@@ -661,7 +747,27 @@ describe("MeshClient.runChecks", () => {
       t.drop(); // sets the unavailable flag and fails the login
       const result = await outcome;
       if (!("value" in result)) throw result.error;
-      expect(result.value.map((o) => o.reason)).toEqual(["LINK_LOST"]);
+      expect(result.value.map((o) => [o.result, o.reason])).toEqual([
+        ["TRANSPORT_UNAVAILABLE", "LINK_LOST"],
+      ]);
+    });
+
+    it("records a link lost between two checks as an unsent check", async () => {
+      const t = scriptedTransport();
+      const client = new MeshClient(t.transport);
+      const outcome = start(client);
+      await tick();
+      t.emit(sentFrame(2_694));
+      t.emit(LOGIN_OK);
+      t.drop(); // before the run loop moves on: nothing is pending, the flag is set
+      const result = await outcome;
+      if (!("value" in result)) throw result.error;
+      expect(result.value.map((o) => [o.kind, o.result, o.reason, o.attempts])).toEqual([
+        ["login", "RESPONDED", "ALL_CHECKS_REPLIED", 1],
+        ["status", "TRANSPORT_UNAVAILABLE", "LINK_LOST", 0],
+      ]);
+      expect(result.value[1]).toMatchObject({ startedAt: null, durationMs: null, timeoutMs: null });
+      expect(t.written).toEqual([LOGIN_TX]);
     });
   });
 });
