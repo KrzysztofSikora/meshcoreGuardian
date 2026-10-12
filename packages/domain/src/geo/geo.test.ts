@@ -94,6 +94,10 @@ describe("initialBearing", () => {
     expect(b).toBeLessThan(19);
   });
 
+  it("matches the great-circle bearing away from the equator and the shared meridian", () => {
+    expect(initialBearing({ lat: 50, lon: 10 }, { lat: 51, lon: 12 })).toBeCloseTo(51.0618, 3);
+  });
+
   it("stays within [0, 360)", () => {
     const b = initialBearing(origin, { lat: 50.01, lon: 19.99 });
     expect(b).toBeGreaterThanOrEqual(0);

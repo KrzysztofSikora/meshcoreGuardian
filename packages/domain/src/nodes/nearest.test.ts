@@ -114,6 +114,44 @@ describe("rankRepeaters order", () => {
     expect(keys(rankRepeaters([c, a, b], null))).toEqual([a.publicKey, b.publicKey, c.publicKey]);
   });
 
+  it("orders a full tie by public key whatever the input order", () => {
+    const a = node({ publicKey: "aa".repeat(32) });
+    const b = node({ publicKey: "bb".repeat(32) });
+    const c = node({ publicKey: "cc".repeat(32) });
+    const perms = [
+      [a, b, c],
+      [a, c, b],
+      [b, a, c],
+      [b, c, a],
+      [c, a, b],
+      [c, b, a],
+    ];
+    for (const input of perms) {
+      expect(keys(rankRepeaters(input, null))).toEqual([a.publicKey, b.publicKey, c.publicKey]);
+    }
+  });
+
+  it("falls through to the next criterion when both values are unknown", () => {
+    const near = { lat: 50, lon: 20.001 };
+    const far = { lat: 50, lon: 20.01 };
+    const a = node({ pathHops: null, position: far, lastHeardAt: 9 });
+    const b = node({ pathHops: null, position: near, lastHeardAt: 1 });
+    const c = node({ pathHops: null, position: null, lastHeardAt: 5 });
+    const d = node({ pathHops: null, position: null, lastHeardAt: 7 });
+    for (const input of [
+      [a, b, c, d],
+      [d, c, b, a],
+      [c, a, d, b],
+    ]) {
+      expect(keys(rankRepeaters(input, COMPANION))).toEqual([
+        b.publicKey,
+        a.publicKey,
+        d.publicKey,
+        c.publicKey,
+      ]);
+    }
+  });
+
   it("treats equal distances as a tie for last heard", () => {
     const p = { lat: 50, lon: 20.01 };
     const a = node({ pathHops: 1, position: p, lastHeardAt: 1 });
