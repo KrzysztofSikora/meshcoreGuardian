@@ -348,7 +348,7 @@ Dashboard rows ─▶ RunController.store.latest[publicKey] ─▶ lastRunStatus
 
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
-- [ ] Phase 1: Domain codes, check model and radio policies
+- [x] Phase 1: Domain codes, check model and radio policies
 - [ ] Phase 2: Classification, rule table and status line
 - [ ] Phase 3: Storage for runs and checks
 - [ ] Phase 4: `MeshClient.runChecks` and remote scripts
