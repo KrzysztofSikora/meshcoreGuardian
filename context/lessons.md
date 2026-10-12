@@ -43,3 +43,15 @@ Rules from reviews. Binding for planning, implementing and reviewing once accept
 - Seen in: sync-contacts, R4
 - Scope: `apps/mobile/src/application/**`, `packages/domain/**` failure types
 - Status: proposed in the PR for sync-contacts
+
+## Capture the context a stored record needs when the operation starts; never read it from live state after an await that can span a disconnect
+- Why: a run that lost the link was saved with an empty companion identity, because the session state was already cleared when the run finished.
+- Seen in: run-diagnostic, R1
+- Scope: `apps/mobile/src/application/**`
+- Status: proposed in the PR for run-diagnostic
+
+## Give every plan-review finding a line in *Review response*, and log a PRD or roadmap conflict as a `[REVIEW]` deviation, not only as an error-model row
+- Why: two artifacts were overruled in code and the PR would not have shown the person.
+- Seen in: run-diagnostic, R2
+- Scope: `context/changes/*/plan.md`
+- Status: proposed in the PR for run-diagnostic
