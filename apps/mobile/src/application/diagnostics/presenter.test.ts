@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   deriveCapabilities,
+  ruleFor,
   type CheckOutcome,
   type DiagnosticRun,
   type StatusKind,
@@ -218,6 +219,18 @@ describe("runDetails", () => {
     for (const text of [...details.causes, ...details.nextSteps, ...details.limitations]) {
       expect(i18n.exists(text.key)).toBe(true);
     }
+  });
+
+  it("lists each check that did not reply under limitations, before the rule's own (R5)", () => {
+    const details = runDetails(
+      run({
+        limitations: [{ check: "telemetry", result: "UNSUPPORTED", reason: "CAPABILITY_MISSING" }],
+      }),
+    );
+    expect(say(details.limitations[0]!)).toBe("Telemetry: Not supported by the companion firmware");
+    expect(details.limitations).toHaveLength(
+      1 + (ruleFor("RESPONDED", "ALL_CHECKS_REPLIED")?.limitations.length ?? 0),
+    );
   });
 
   it("shows a malformed reply as raw bytes and a rejection with its code", () => {

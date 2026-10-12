@@ -190,7 +190,12 @@ export function runDetails(run: DiagnosticRun): RunDetails {
     summary: key(rule?.summary ?? "diagnostic.rule.unknown.summary"),
     explanation: key(rule?.explanation ?? "diagnostic.rule.unknown.explanation"),
     checks: run.checks.map(checkDetails),
-    limitations: (rule?.limitations ?? []).map(key),
+    limitations: [
+      ...run.limitations.map((item) =>
+        text(`diagnostic.limitation.${item.check}`, { reason: item.reason }),
+      ),
+      ...(rule?.limitations ?? []).map(key),
+    ],
     causesNote: rule?.causesNote ? key(rule.causesNote) : null,
     causes: (rule?.causes ?? []).map(key),
     nextSteps: (rule?.nextSteps ?? ["diagnostic.rule.unknown.nextSteps.again"]).map(key),

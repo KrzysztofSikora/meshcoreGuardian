@@ -169,6 +169,11 @@
       "status": "Status",
       "telemetry": "Telemetry"
     },
+    "limitation": {
+      "login": "Login: $t(diagnostic.outcome.{{reason}})",
+      "status": "Status: $t(diagnostic.outcome.{{reason}})",
+      "telemetry": "Telemetry: $t(diagnostic.outcome.{{reason}})"
+    },
     "outcome": {
       "ALL_CHECKS_REPLIED": "Replied",
       "PARTIAL_REPLY": "Replied",
