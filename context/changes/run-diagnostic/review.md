@@ -1,7 +1,10 @@
 # Review: run-diagnostic
 
-Verdict: CHANGES REQUESTED
-Gates: typecheck ok, lint ok, unit tests ok (946/946), e2e ok (15/15) · Round: 1
+Verdict: APPROVE WITH FOLLOW-UPS
+Gates: typecheck ok, lint ok, unit tests ok (952/952), e2e ok (15/15), mutation run-controller.ts ok (96.1 %, 8 survivors) · Round: 2
+
+Round 2 re-checked R1-R5 against ed4a1bb, e42376e, 80926fd, 2cf816b and 62c69e0. All five are fixed
+in code or in the plan. One new finding (R6). Round 1 text is kept below for the record.
 
 ## Plan vs diff
 | File | Status | Note |
@@ -23,8 +26,8 @@ Gates: typecheck ok, lint ok, unit tests ok (946/946), e2e ok (15/15) · Round: 
 | `packages/meshcore-adapter/test/mesh-client-diagnostics.int.test.ts`, `remote-script.int.test.ts` | done | |
 | `apps/mobile/src/application/connection/companion-session.ts` | done | shared ledger, abort on disconnect |
 | `apps/mobile/src/application/diagnostics/ports.ts` | done | adds `appState` (plan-review #3) |
-| `apps/mobile/src/application/diagnostics/run-controller.ts` (+ int test) | diverged | stores an empty companion identity when the link drops (R1) |
-| `apps/mobile/src/application/diagnostics/presenter.ts` (+ test) | diverged | the run's own limitations are not shown (R5) |
+| `apps/mobile/src/application/diagnostics/run-controller.ts` (+ int test) | done | round 2: companion captured before the run (R1), busy activity named (R3), cancel on background (R4) |
+| `apps/mobile/src/application/diagnostics/presenter.ts` (+ test) | done | round 2: `run.limitations` listed before the rule's own (R5) |
 | `apps/mobile/src/platform/airtime-notice-store.ts` | done | D-14 |
 | `apps/mobile/src/composition/index.ts` | done | shared DB promise |
 | `apps/mobile/src/i18n/en.json`, `catalog.test.ts` | done | forbidden-words test covers new keys |
@@ -36,6 +39,8 @@ Gates: typecheck ok, lint ok, unit tests ok (946/946), e2e ok (15/15) · Round: 
 | `apps/mobile/e2e/lib/connect-diag.yaml` | unplanned | logged `[minor]` |
 | `apps/mobile/e2e/contacts-label-restart.yaml` | unplanned | logged `[minor]` (scroll) |
 | `apps/mobile/src/components/use-now.ts` | unplanned | logged `[minor]` |
+| `apps/mobile/src/application/nodes/nodes-controller.ts` (+ int test), `packages/domain/src/nodes/sync.ts` (+ test) | unplanned | round 2: `BUSY` sync failure, logged `[minor]` (R3) |
+| `context/lessons.md` | unplanned | two lessons proposed from R1, R2 |
 | `apps/mobile/src/platform/fake/in-memory.ts` | unplanned | `InMemoryAirtimeNoticeStore` test double |
 | `apps/mobile/src/application/connection/companion-session.int.test.ts` | unplanned | tests for `runChecks` on the session |
 | `context/changes/run-diagnostic/{plan-review,mutation}.md`, `evidence/`, `context/roadmap.md` | unplanned | workflow artifacts |
@@ -43,12 +48,12 @@ Gates: typecheck ok, lint ok, unit tests ok (946/946), e2e ok (15/15) · Round: 
 ## Areas
 | Area | Result | One-line reason |
 |------|--------|-----------------|
-| Correctness | fail | a run that loses the link is stored with an empty companion identity (FR-05 AC4) |
+| Correctness | ok | round 2: companion identity kept on a link drop; background cancels a run in flight; busy texts name the activity |
 | Design | ok | layers respected: classification and policy in domain, orchestration in `MeshClient`, storage behind a port |
 | Safety | ok | password only passed through, never stored or logged; stored rows parsed with Zod |
-| Tests | concern | the drop test asserts result/reason but not the stored companion; busy-contacts test pins a misleading text |
-| Simplicity | ok | small focused modules; `run.limitations` is computed and stored but unused (R5) |
-| Plan fidelity | concern | plan-review #2 and #4 were not acted on; PRD FR-06 AC2 conflict not raised as `[REVIEW]` |
+| Tests | concern | round 2: every fix has a test, but `mutation.md` was not refreshed after the fixes and one new survivor has no decision (R6) |
+| Simplicity | ok | small focused modules; `run.limitations` now used by the presenter |
+| Plan fidelity | ok | round 2: D-19 and two `[REVIEW]` deviations added; *Review response* covers plan-review #2-#4; fixes logged as `[minor]` |
 | Agent decisions | ok | D-1 lives in `REASONS_BY_RESULT`, D-8 in one migration; both swappable as claimed. Mutation `equivalent`/`accept` decisions checked and plausible |
 
 ## Findings
@@ -140,3 +145,23 @@ Gates: typecheck ok, lint ok, unit tests ok (946/946), e2e ok (15/15) · Round: 
 - Effort: small
 - Lesson candidate: no
 - Decision: fixed (80926fd)
+
+### R6: `mutation.md` is stale after the fixes; a new survivor in `run-controller.ts` has no decision
+- Severity: major
+- Where: `apps/mobile/src/application/diagnostics/run-controller.ts:78`; `context/changes/run-diagnostic/mutation.md:14,34-51`
+- Problem: `run-controller.ts` is a test-plan mutation target (`context/test-plan.md:75`) and the
+  R1, R3 and R4 fixes changed it after mutation ran; `mutation.md` still shows the old line numbers
+  and the old score (96.3 %, 7 survivors). A fresh `pnpm mutation --mutate
+  apps/mobile/src/application/diagnostics/run-controller.ts` gives 96.08 % with 8 survivors. New
+  and without a decision: line 78 `if (state === "background") this.cancel()` → `if (true)`
+  survives, so no test shows that an `"active"` event leaves a run in flight alone (the R4 test only
+  sends `"background"`). Also undecided: line 110 `seen().catch(() => false)` → `() => undefined`
+  (equivalent: both are falsy). The other six survivors match recorded `equivalent` decisions, only
+  at shifted lines (159, 186, 220, 261, 296, 299).
+- Fix: add a test that an `appState` change to `"active"` during a run sends the next check and
+  stores the normal result; re-run mutation on `run-controller.ts` and update its row and the
+  line numbers in `mutation.md`, recording line 110 as `equivalent`.
+- Effort: small
+- Lesson candidate: no (covered by the proposed lesson "Re-run mutation after the last test change and copy every survivor into `mutation.md`")
+- Decision: open
+
