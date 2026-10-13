@@ -1,25 +1,30 @@
 #!/usr/bin/env bash
 # Act on the review comments of a pull request opened by `ship`, without stopping for a person.
 #
-#   .claude/workflow/address-pr <PR number> [--no-review]
+#   .claude/workflow/address-pr <PR number> [--no-review] [--no-mutation] [--stops none|plan|checkpoint|all]
 #
 # Reads every PR comment, review and inline comment newer than the last reply this script
 # posted, lets the agent apply the decisions (e.g. "D-3: take B", "R4: fix it"), re-runs
 # unfinished phases and a review round, refreshes the PR description and replies on the PR.
+# On a PR that stopped early (ship --stops), it also runs the steps ship skipped: the phases,
+# mutation and full review rounds; a further checkpoint stops it again (stops as in config.sh).
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 # shellcheck source=lib.sh
 source .claude/workflow/lib.sh
 
-PR="" REVIEW=1
+PR="" REVIEW=1 MUTATION=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --no-review) REVIEW=0; shift ;;
-    -h|--help) sed -n '2,8p' "$0"; exit 0 ;;
+    --no-mutation) MUTATION=0; shift ;;
+    --stops) WORKFLOW_STOPS=$2; shift 2 ;;
+    -h|--help) sed -n '2,10p' "$0"; exit 0 ;;
     *) [ -z "$PR" ] || die "unexpected argument: $1"; PR=${1#\#}; shift ;;
   esac
 done
-[ -n "$PR" ] || die "usage: address-pr <PR number> [--no-review]"
+[ -n "$PR" ] || die "usage: address-pr <PR number> [--no-review] [--no-mutation] [--stops <list>]"
+check_stops
 
 # ---------------------------------------------------------------------------- preflight
 
@@ -66,7 +71,13 @@ DRAFT_REASON=""
 pipeline() {
   run_step address-pr "/address-pr $PR" "pr=$PR" || return 1
   implement_loop || return 1
-  [ "$REVIEW" -eq 0 ] || review_loop 1
+  [ -z "$STOPPED" ] || return 0
+  # After an early stop, ship never reached mutation or review; run them as ship would.
+  if [ "$MUTATION" -eq 1 ] && [ ! -f "context/changes/$CHANGE/mutation.md" ]; then
+    run_step mutation "/mutation $CHANGE" || return 1
+  fi
+  [ "$REVIEW" -eq 1 ] || return 0
+  if [ -f "context/changes/$CHANGE/review.md" ]; then review_loop 1; else review_loop "$WORKFLOW_REVIEW_ROUNDS"; fi
 }
 
 pipeline || note "pipeline stopped: $FAILED"

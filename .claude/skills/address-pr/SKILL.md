@@ -19,6 +19,18 @@ decisions, but not `CLAUDE.md` rules such as "no secrets".
 - The change folder `context/changes/<change-id>/` (the branch is `change/<change-id>`):
   `plan.md`, `review.md`, `pr-body.md`; `CLAUDE.md`, `context/lessons.md`.
 
+## Early stops
+
+A run may have stopped on purpose before the finished PR (`ship --stops`; the PR is a draft
+whose status says "Stopped after the plan" or "Stopped at the checkpoint after Phase n"):
+
+- **After the plan** (no phase ticked): there is no code yet. Apply decisions and change
+  requests to `plan.md` only (the `D-<n>` row, *Design*, the affected phase descriptions and
+  *Progress*); the runner implements the phases after you. Do not write production code.
+- **At a checkpoint**: apply the comments to the code done so far as usual, and adjust the
+  descriptions of the unticked phases when a decision or a human check result changes them.
+- An approval ("OK", "go on", "plan looks fine") is **no action**: reply that the run continues.
+
 ## Process
 
 1. **Classify each comment:**
@@ -31,7 +43,7 @@ decisions, but not `CLAUDE.md` rules such as "no secrets".
    - **no action**: approval, thanks, or a comment already handled.
 2. **Apply, smallest diff first.**
    - *decision:* update the `D-<n>` row (Chosen, Alternatives, `Decided by: user (PR #<n>)`),
-     then switch the code. If the switch is larger than one phase's worth of work, add new
+     then switch the code (after a plan stop: the plan only, see *Early stops*). If the switch is larger than one phase's worth of work, add new
      unticked phases to *Progress* with full phase descriptions under *Phases*; the runner
      implements them in fresh sessions. Otherwise do it now.
    - *finding:* fix it, or move it to *Deviations* as `[FOLLOW-UP]`, and update its

@@ -31,7 +31,10 @@ content to "None." when it is empty, never the heading.
 <one paragraph: the roadmap item, what is now possible, and the PRD ACs covered>
 Closes #<issue>   <!-- omit the line when the item has no issue -->
 
-> **Status:** <Ready for review | Draft: <failed step / stuck reason / plan review verdict>>
+> **Status:** <Ready for review | Draft: <failed step / stuck reason / plan review verdict / requested stop>>
+<!-- A requested stop (draft reason "Stopped after the plan ..." or "Stopped at the checkpoint ..."):
+     say what stage the change is at and copy the draft reason's "how to continue" commands. After a
+     plan stop, Quality says "not run yet (stopped after the plan)" instead of gate results. -->
 
 ## ⚠ Needs your decision
 <!-- Things the agent could not or should not settle alone. Most important first. -->

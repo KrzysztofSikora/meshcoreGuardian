@@ -57,6 +57,13 @@ Choose phases that each:
 - are small enough to review as one diff (aim for under ~400 changed lines);
 - put every `costly` decision in as few files as possible, so the PR reviewer can swap it.
 
+Mark a phase as a **checkpoint** by ending its *Progress* line with `(checkpoint)` when its
+human checks confirm behaviour that later phases build on and that only a person can confirm
+(real hardware, `UNVERIFIED` protocol behaviour, a UI direction the rest depends on). Use it
+sparingly (at most two per plan, never the last phase) and say why under the phase. The runner
+stops there only when the person asked for checkpoint stops (`WORKFLOW_STOPS`); otherwise the
+marker changes nothing.
+
 ### 4. Write the plan
 
 Each phase must name the files it touches, with the intent of each change and the contract it
@@ -102,7 +109,7 @@ Set the roadmap status to `planned`. Do not commit; the runner commits the plan.
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
 - [ ] Phase 1: <name>
-- [ ] Phase 2: <name>
+- [ ] Phase 2: <name> (checkpoint)
 
 ## Human checks
 <!-- Filled by /implement: one open checkbox per human check, with how to run it and evidence. -->
@@ -119,4 +126,5 @@ Set the roadmap status to `planned`. Do not commit; the runner commits the plan.
 - Only short snippets, and only where prose would be ambiguous (a regex, an unusual API call).
 - Every PRD AC this item covers must be proved by a test in some phase.
 - Prefer the simplest design that meets the ACs. Name any pattern you introduce and say why.
-- Keep the `## Progress` line format exactly: the runner counts `- [ ] Phase` lines.
+- Keep the `## Progress` line format exactly: the runner counts `- [ ] Phase` lines and reads a
+  trailing `(checkpoint)`.

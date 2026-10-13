@@ -28,6 +28,38 @@ the person, in the PR                 ▼
   .claude/workflow/address-pr 42  ────┘  applies the comments, re-reviews, replies, updates the PR
 ```
 
+## Optional stops: decide earlier
+
+By default the loop runs to the finished PR. `--stops` (or `WORKFLOW_STOPS` in `config.sh`)
+makes it open a **draft PR earlier**, so a decision lands before the code that depends on it:
+
+| Stop | Where the run stops | Use it when |
+|------|---------------------|-------------|
+| `none` (default) | finished PR | the roadmap already settled the costly questions |
+| `plan` | after the plan review; nothing implemented | the plan has `costly` decisions you want to make yourself |
+| `checkpoint` | after a phase that `/plan` marked `(checkpoint)` in *Progress*, when phases remain | behaviour only a person can confirm (real hardware, `UNVERIFIED` protocol) that later phases build on |
+| `all` | both | |
+
+```
+.claude/workflow/ship S-06 --stops plan,checkpoint
+  /plan ─▶ /plan-review ─▶ draft PR (plan only)                       ◀ stop: plan
+  you comment "D-2: take B" (or "OK")
+.claude/workflow/address-pr <n>        plan updated ─▶ Phase 1 ─▶ Phase 2 (checkpoint)
+                                       ─▶ draft PR, CI builds the APK  ◀ stop: checkpoint
+  you do the human checks on the APK and comment
+.claude/workflow/address-pr <n>        fixes ─▶ Phase 3 … ─▶ /mutation ─▶ /review ─▶ PR
+```
+
+- **Continue** with `address-pr <n>` (applies your comments first, then the remaining steps:
+  phases, mutation, full review rounds) or with `ship <id>` again when you have nothing to say.
+  `address-pr` needs at least one new comment; an "OK" is enough.
+- A plan stop happens only right after a run wrote or revised the plan, and a checkpoint stop
+  only right after that phase was implemented, so continuing never stops at the same place twice.
+- `/plan` marks checkpoints sparingly (at most two, never the last phase). Without
+  `checkpoint` in the stops the marker does nothing.
+- Cost: every stop is one more round trip through you; the run waits. Time saved is the rework
+  of code built on a decision you would have changed.
+
 ## Where the human gates went
 
 | Interactive workflow | Autonomous workflow |
@@ -100,6 +132,7 @@ PRs. Without them the description is left in `context/changes/<id>/pr-body.md`.
 | `WORKFLOW_REVIEW_ROUNDS` | 2 | Review / fix rounds. |
 | `WORKFLOW_MAX_PHASES` | 12 | Implement sessions per change. |
 | `WORKFLOW_STEP_RETRIES` | 1 | Fresh sessions when a step's artifact is incomplete. |
+| `WORKFLOW_STOPS` | `none` | Early draft PRs: `none`, `plan`, `checkpoint`, `all` or a comma list. `--stops` on `ship` / `address-pr` overrides it. See *Optional stops*. |
 
 ## Files
 
@@ -133,6 +166,7 @@ Runtime state (gitignored): `.workflow/run.json` (active run), `.workflow/run-su
 - **Cost.** One item takes roughly 8–15 sessions (plan, 1–2 plan reviews, one per phase,
   mutation, 1–2 reviews and fixes, PR body). The run summary lists the cost of each.
 - **Wrong early decisions are the main risk**: everything after the plan builds on them.
+  Use `--stops plan` for items with costly open questions.
   Settle the expensive ones in `/roadmap` (*Decided up front*), keep phases small, and read
   the PR's *Needs your decision* section before the code.
 - **The hooks are guard rails, not a sandbox.** The git rules match command text; the

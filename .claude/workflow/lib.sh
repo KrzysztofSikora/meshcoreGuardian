@@ -12,6 +12,15 @@ note() { echo "[$(basename "$0") $(date +%H:%M:%S)] $*" | tee -a "$SUMMARY" >&2;
 # Agents use only the emulator: a real phone may hold personal data (CLAUDE.md, Rules).
 phones_attached() { $WF physical-devices | paste -sd, -; }
 
+# stops_on <plan|checkpoint>: whether WORKFLOW_STOPS asks the run to stop there.
+stops_on() { case ",$WORKFLOW_STOPS," in *,all,*|*",$1,"*) return 0 ;; esac; return 1; }
+check_stops() {
+  local s
+  for s in ${WORKFLOW_STOPS//,/ }; do
+    case $s in none|plan|checkpoint|all) ;; *) die "unknown stop '$s' (use none, plan, checkpoint or all)" ;; esac
+  done
+}
+
 # begin_run <change-id> <title line>: branch must already be checked out.
 begin_run() {
   local phones
@@ -25,7 +34,7 @@ begin_run() {
   rm -f .workflow/stuck
   printf '# %s\n\nBranch: %s · Started: %s\n\n' "$2" "$BRANCH" "$(date -Iseconds)" > "$SUMMARY"
   N=$(find "$LOGS" -name '*.jsonl' | wc -l)
-  FAILED=""
+  FAILED="" STOPPED=""
   $WF run start "$CHANGE" "$BRANCH"
   export WORKFLOW_RUN=$CHANGE   # hooks act only in sessions that inherit this
   trap '$WF run end' EXIT
@@ -110,9 +119,10 @@ run_step() {
   return 1
 }
 
-# One implement session per unticked phase.
+# One implement session per unticked phase. With checkpoint stops, it returns 0 with STOPPED set
+# after a phase marked "(checkpoint)" when phases remain; the next run continues from there.
 implement_loop() {
-  local ticked total guard=0
+  local ticked total guard=0 cp
   read -r ticked total < <($WF progress "$CHANGE")
   while [ "$ticked" -lt "$total" ]; do
     guard=$((guard + 1))
@@ -122,6 +132,12 @@ implement_loop() {
     fi
     run_step implement "/implement $CHANGE" "ticked_before=$ticked" || return 1
     read -r ticked total < <($WF progress "$CHANGE")
+    if [ "$ticked" -lt "$total" ] && stops_on checkpoint && cp=$($WF checkpoint "$CHANGE"); then
+      STOPPED="checkpoint"
+      DRAFT_REASON="Stopped at the checkpoint after Phase $cp, as asked (stops: $WORKFLOW_STOPS). Do that phase's human checks (CI APK), comment on this PR, then run \`.claude/workflow/address-pr <this PR>\` to apply the comments and continue, or \`.claude/workflow/ship $CHANGE\` to continue without changes."
+      note "checkpoint: stopping after Phase $cp ($ticked/$total phases done)"
+      return 0
+    fi
   done
 }
 

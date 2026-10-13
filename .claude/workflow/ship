@@ -2,6 +2,7 @@
 # Take one roadmap item from plan to pull request without stopping for a person.
 #
 #   .claude/workflow/ship <S-01 | change-id | #issue> [--base <branch>] [--no-mutation] [--no-pr]
+#                         [--stops none|plan|checkpoint|all]
 #   .claude/workflow/ship <S-01 | change-id | #issue> --publish-only
 #
 # Every step is a fresh headless Claude Code session running one skill. Progress lives in the
@@ -9,6 +10,8 @@
 # Decisions the agent made on its own are collected in the PR description for review.
 # --publish-only pushes the branch and opens or updates the PR from the existing pr-body.md,
 # without any session (use it when a run finished but publishing failed).
+# --stops (default WORKFLOW_STOPS, see config.sh) opens a draft PR early: after the plan review
+# and/or after a phase marked "(checkpoint)". Run ship again, or address-pr, to continue.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 # shellcheck source=lib.sh
@@ -21,11 +24,13 @@ while [ $# -gt 0 ]; do
     --no-mutation) MUTATION=0; shift ;;
     --no-pr) OPEN_PR=0; shift ;;
     --publish-only) PUBLISH_ONLY=1; shift ;;
-    -h|--help) sed -n '2,11p' "$0"; exit 0 ;;
+    --stops) WORKFLOW_STOPS=$2; shift 2 ;;
+    -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
     *) [ -z "$ITEM" ] || die "unexpected argument: $1"; ITEM=$1; shift ;;
   esac
 done
-[ -n "$ITEM" ] || die "usage: ship <S-01 | change-id | #issue> [--base <branch>] [--no-mutation] [--no-pr] | --publish-only"
+[ -n "$ITEM" ] || die "usage: ship <S-01 | change-id | #issue> [--base <branch>] [--no-mutation] [--no-pr] [--stops <list>] | --publish-only"
+check_stops
 [ "$PUBLISH_ONLY" -eq 0 ] || [ "$OPEN_PR" -eq 1 ] || die "--publish-only and --no-pr exclude each other"
 
 # ---------------------------------------------------------------------------- preflight
@@ -55,7 +60,7 @@ if [ "$PUBLISH_ONLY" -eq 1 ]; then
   [ -s "context/changes/$CHANGE/pr-body.md" ] || die "no context/changes/$CHANGE/pr-body.md to publish"
 fi
 
-begin_run "$CHANGE" "Run summary: ship $CHANGE ($ROADMAP_ID), base $BASE"
+begin_run "$CHANGE" "Run summary: ship $CHANGE ($ROADMAP_ID), base $BASE, stops $WORKFLOW_STOPS"
 DRAFT_REASON=""
 
 if [ "$PUBLISH_ONLY" -eq 1 ]; then
@@ -66,9 +71,12 @@ fi
 # ---------------------------------------------------------------------------- pipeline
 
 pipeline() {
-  local ticked total verdict round=0
+  local ticked total verdict round=0 planned=0
   read -r ticked total < <($WF progress "$CHANGE")
-  [ "$total" -gt 0 ] || run_step plan "/plan $CHANGE" || return 1
+  if [ "$total" -eq 0 ]; then
+    run_step plan "/plan $CHANGE" || return 1
+    planned=1
+  fi
 
   # Plan review: author and reviewer iterate; leftover blockers go to the PR instead of stopping.
   # Skipped on resume once a reviewed plan is being implemented.
@@ -85,10 +93,20 @@ pipeline() {
         return 0
       fi
       run_step plan "/plan $CHANGE revise" || return 1
+      planned=1
     done
   fi
 
+  # Plan stop: only right after this run wrote the plan, so running ship again continues.
+  if [ "$planned" -eq 1 ] && stops_on plan; then
+    STOPPED="plan"
+    DRAFT_REASON="Stopped after the plan, as asked (stops: $WORKFLOW_STOPS). Nothing is implemented yet. Comment on the decisions (e.g. \`D-3: take B\`) and run \`.claude/workflow/address-pr <this PR>\`, or run \`.claude/workflow/ship $CHANGE\` to implement the plan as it is."
+    note "plan stop: plan reviewed ($verdict), stopping before implementation"
+    return 0
+  fi
+
   implement_loop || return 1
+  [ -z "$STOPPED" ] || return 0
   if [ "$MUTATION" -eq 1 ] && [ ! -f "context/changes/$CHANGE/mutation.md" ]; then
     run_step mutation "/mutation $CHANGE" || return 1
   fi

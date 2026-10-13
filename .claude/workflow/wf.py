@@ -6,6 +6,7 @@ artifacts in `context/` and from `.workflow/run.json`, never from chat memory.
 
   wf.py resolve <S-01 | change-id | #12>     -> "<change-id>\t<roadmap-id>\t<issue>"
   wf.py progress <change-id>                 -> "<ticked> <total>"
+  wf.py checkpoint <change-id>               -> "<n>: <name>" and exit 0 when the last ticked phase is a checkpoint
   wf.py verdict <change-id> plan-review|review
   wf.py open-findings <change-id>            -> number of review findings still `Decision: open`
   wf.py check <step> <change-id>             -> exit 0 when the step's artifact is complete
@@ -125,6 +126,21 @@ def progress(change_id: str) -> tuple[int, int]:
     section = section.split("\n## ", 1)[0]
     phases = re.findall(r"^\s*- \[( |x|X)\] Phase", section, re.M)
     return sum(1 for p in phases if p.lower() == "x"), len(phases)
+
+
+def checkpoint(change_id: str) -> str:
+    """The last ticked phase, as "<n>: <name>", when /plan marked it "(checkpoint)"; else ""."""
+    text = read_text(change_dir(change_id) / "plan.md")
+    section = text.split("## Progress", 1)[1] if "## Progress" in text else ""
+    section = section.split("\n## ", 1)[0]
+    ticked = re.findall(r"^\s*- \[[xX]\] Phase\s+(\d+):?\s*(.*?)\s*$", section, re.M)
+    if not ticked:
+        return ""
+    number, name = ticked[-1]
+    if not re.search(r"\(checkpoint\)", name, re.I):
+        return ""
+    name = re.sub(r"\s*\(checkpoint\)", "", name, flags=re.I)
+    return f"{number}: {name}"
 
 
 def verdict(change_id: str, kind: str) -> str:
@@ -362,6 +378,11 @@ def main(argv: list[str]) -> int:
         print("\t".join(resolve(args[0])))
     elif cmd == "progress":
         print(*progress(args[0]))
+    elif cmd == "checkpoint":
+        found = checkpoint(args[0])
+        if not found:
+            return 1
+        print(found)
     elif cmd == "verdict":
         print(verdict(args[0], args[1]))
     elif cmd == "open-findings":

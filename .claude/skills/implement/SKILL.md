@@ -43,7 +43,8 @@ phase committed and ticked, or with a `[STUCK]` entry.
    screenshot) under `context/changes/<change-id>/evidence/`.
 7. **Commit the phase.**
    - Tick the phase in *Progress* (`- [x] Phase n: <name>`) before committing, so the tick is
-     part of the phase commit.
+     part of the phase commit. Change only the box: keep the rest of the line, including a
+     trailing `(checkpoint)` (the runner may stop there for the person's human checks).
    - Stage, by explicit path, only the files on your list from step 3, the evidence files,
      `plan.md` and `context/roadmap.md`. Bulk staging is off-limits.
    - Message: `<type>(<change-id>): <what the phase delivers>` (Conventional Commits), a body

@@ -24,6 +24,14 @@
 # Optional: a dollar cap per step (API-key auth only).
 : "${WORKFLOW_STEP_BUDGET_USD:=}"
 
+# Where a run stops for the person before the finished PR (comma list): none, plan, checkpoint, all.
+#   plan        after the plan review: a draft PR with only the plan, to settle D-rows before code.
+#   checkpoint  after a phase /plan marked "(checkpoint)" in Progress: a draft PR with the work so
+#               far, e.g. for a human check on real hardware before the later phases build on it.
+# Continue with `address-pr <PR>` (applies your comments first) or by running `ship` again.
+# `--stops` on ship or address-pr overrides this for one run.
+: "${WORKFLOW_STOPS:=none}"
+
 # Loop limits. When a limit is hit the run does not stop for a person: it opens a draft PR.
 : "${WORKFLOW_PLAN_REVIEW_ROUNDS:=2}"   # plan-review / plan-revise rounds
 : "${WORKFLOW_REVIEW_ROUNDS:=2}"        # review / fix-review rounds
