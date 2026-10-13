@@ -1,0 +1,83 @@
+# NFR-09 look pass: visits every screen under ${THEME} (light|dark) and takes one screenshot each.
+# The fake-build deep link forces the colour scheme; the status words are asserted so a restyle
+# can never leave a status as colour alone (NFR-05, TR-19).
+appId: io.github.krzysztofsikora.guardian
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Known nodes will appear here."
+    timeout: 30000
+- openLink: guardian://debug/theme/${THEME}
+- extendedWaitUntil:
+    visible: "Known nodes will appear here."
+    timeout: 10000
+- takeScreenshot: look-dashboard-empty-${THEME}
+- openLink: guardian://debug/scenario/diag-no-reply
+- extendedWaitUntil:
+    visible: "Scan for companions"
+    timeout: 10000
+- takeScreenshot: look-connect-idle-${THEME}
+- tapOn: "Scan for companions"
+- extendedWaitUntil:
+    visible: "Connect to MeshCore-companion"
+    timeout: 10000
+- tapOn: "Connect to MeshCore-companion"
+- extendedWaitUntil:
+    visible: "Connected"
+    timeout: 20000
+- assertVisible: "Supported"
+- takeScreenshot: look-connect-connected-${THEME}
+- back
+- extendedWaitUntil:
+    visible: "Contacts synced: 32"
+    timeout: 30000
+- assertVisible: "Not tested"
+- takeScreenshot: look-dashboard-${THEME}
+- scrollUntilVisible:
+    element: "Room K"
+- tapOn: "Room K"
+- assertVisible: "Diagnostic"
+- assertVisible: "Not tested"
+- takeScreenshot: look-node-${THEME}
+- tapOn: "Run diagnostic"
+- tapOn: "Run diagnostic"
+- extendedWaitUntil:
+    visible: "Step: Login · Attempt 1 of 2"
+    timeout: 20000
+- takeScreenshot: look-run-${THEME}
+- extendedWaitUntil:
+    visible: "No response — cause unknown"
+    timeout: 90000
+- takeScreenshot: look-node-result-${THEME}
+# After a run the Node screen overflows; its content must scroll to the last element
+# (PR #21: flex: 1 on the scroll content pinned it). Not earlier: it fits before the run.
+- scrollUntilVisible:
+    element: "Node details will appear here."
+- scrollUntilVisible:
+    element: "View details"
+    direction: UP
+- tapOn: "View details"
+- extendedWaitUntil:
+    visible: "Possible causes. None of them is confirmed."
+    timeout: 10000
+- assertNotVisible: ".*[Oo]ffline.*"
+- takeScreenshot: look-result-${THEME}
+- scrollUntilVisible:
+    element: "Next steps"
+- back
+- back
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Settings will appear here."
+    timeout: 10000
+- takeScreenshot: look-settings-${THEME}
+# Tabs must not grow the stack: Settings -> Connect -> back lands on the Dashboard (R1).
+- tapOn: "Connect"
+- extendedWaitUntil:
+    visible: "Scan for companions|Disconnect"
+    timeout: 10000
+- back
+- extendedWaitUntil:
+    visible: "Contacts synced: 32"
+    timeout: 10000

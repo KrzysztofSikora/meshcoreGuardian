@@ -73,3 +73,15 @@ Rules from reviews. Binding for planning, implementing and reviewing once accept
 - Seen in: nearest-repeater, R6
 - Scope: `context/changes/*/evidence/`, e2e flows with `takeScreenshot`
 - Status: proposed in the PR for nearest-repeater
+
+## When you build navigation with expo-router `navigate`, check the resulting back stack in an e2e flow
+- Why: `navigate` pushes unless the target is the current route, so custom tab bars silently grow the stack and Android back walks through earlier tabs.
+- Seen in: app-look, R1
+- Scope: `apps/mobile/src/components/ui`, `apps/mobile/e2e`
+- Status: proposed in the PR for app-look
+
+## When an e2e step asserts that a screen scrolls, run it in a state where the target is below the fold
+- Why: `scrollUntilVisible` passes without scrolling when the element is already visible, so the step guarded nothing.
+- Seen in: app-look, R5
+- Scope: `apps/mobile/e2e/**`
+- Status: proposed in the PR for app-look

@@ -135,7 +135,7 @@ Tool setup (done in F-01, configuration fixed here): `@stryker-mutator/core` and
 3. Assert user-visible outcomes only (text, enabled/disabled, labels). Never assert colours.
 4. Run one flow: `pnpm e2e --flow apps/mobile/e2e/<flow>.yaml`; all: `pnpm e2e`.
 5. Keep the e2e suite under ~15 flows; push detail down to integration tests. Flows that need a connected companion share `apps/mobile/e2e/lib/connect-diag.yaml` (`runFlow` with `env: SCENARIO`); it sits in a subfolder so Maestro does not run it alone.
-6. The diagnostic flows (S-04) are `diag-responded`, `diag-no-response`, `diag-transport-drop`, `diag-unsupported`, `diag-malformed` and `diag-cancel`: 15 flows in all.
+6. The diagnostic flows (S-04) are `diag-responded`, `diag-no-response`, `diag-transport-drop`, `diag-unsupported`, `diag-malformed` and `diag-cancel`: 15 flows in all. S-12 adds `app-look` (look pass: every screen in light and dark via the fake-build `guardian://debug/theme/<light|dark>` link, status words asserted in both schemes, TR-19; shared steps in `lib/look-screens.yaml`): 18 flows, above the ~15 guideline (plan D-13).
 
 Existing S-03 flows: `contacts-sync.yaml` (FR-04 AC1, AC2, AC4: sync after connect, Unknown role, chat contacts only under All contacts, pin to Dashboard, second sync) and `contacts-label-restart.yaml` (FR-04 AC3: label and role survive `stopApp`/`launchApp` without `clearState`).
 
