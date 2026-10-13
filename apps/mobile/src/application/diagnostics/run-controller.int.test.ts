@@ -93,7 +93,7 @@ function setup(
     noticeSeen?: boolean;
     firmware?: { verCode: number; version: string };
     password?: (publicKey: string) => Promise<string>;
-    adminPassword?: (publicKey: string) => Promise<void>;
+    adminPassword?: (publicKey: string, sent: string) => Promise<void>;
   } = {},
 ) {
   const platform = new DiagPlatform(specs, options.firmware);
@@ -229,7 +229,7 @@ describe("RunController", () => {
       if (saved !== null) await passwords.save(ROOM_K, saved);
       const { session, controller, platform, runs } = setup([spec], {
         password: (key) => passwords.password(key),
-        adminPassword: async (key) => void (await passwords.discardAdminPassword(key)),
+        adminPassword: async (key, sent) => void (await passwords.discardAdminPassword(key, sent)),
       });
       await connect(session);
       const done = controller.start(ROOM_K);
@@ -269,6 +269,26 @@ describe("RunController", () => {
       const codes = (platform.transport?.writtenFrames ?? []).map((frame) => frame[0]!);
       expect(codes.filter((code) => !READ_ONLY_CODES.includes(code))).toEqual([]);
       expect(codes).toEqual(expect.arrayContaining([0x1a, 0x1b, 0x27]));
+    });
+
+    it("keeps a different password saved while the run was in flight", async () => {
+      const passwords = new GuestPasswords(new InMemorySecretStore());
+      await passwords.save(ROOM_K, "pw-ADMIN");
+      const { session, controller, runs } = setup([{}], {
+        password: async (key) => {
+          const sent = await passwords.password(key);
+          void passwords.save(key, "guest");
+          return sent;
+        },
+        adminPassword: async (key, sent) => void (await passwords.discardAdminPassword(key, sent)),
+      });
+      await connect(session);
+      const done = controller.start(ROOM_K);
+      await vi.runAllTimersAsync();
+      await done;
+      expect(runs.saved[0]).toMatchObject({ result: "RESPONDED" });
+      expect(await passwords.password(ROOM_K)).toBe("guest");
+      expect(passwords.store.getState().adminDiscarded).toEqual({});
     });
 
     it("still stores the run when removing the password fails", async () => {

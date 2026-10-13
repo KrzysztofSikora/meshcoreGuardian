@@ -48,7 +48,8 @@ export const container = {
     repository: async () => new SqliteDiagnosticRunRepository(await db()),
     notice: new KvAirtimeNoticeStore(),
     password: (publicKey) => passwords.password(publicKey),
-    adminPassword: async (publicKey) => void (await passwords.discardAdminPassword(publicKey)),
+    adminPassword: async (publicKey, sent) =>
+      void (await passwords.discardAdminPassword(publicKey, sent)),
     policy: () => DEFAULT_DIAGNOSTIC_POLICY,
   }),
 };

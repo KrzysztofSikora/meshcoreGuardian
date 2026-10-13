@@ -66,11 +66,7 @@ export class GuestPasswords {
 
   async remove(publicKey: string): Promise<{ ok: boolean }> {
     try {
-      await this.serial(async () => {
-        const index = await this.readIndex();
-        await this.secrets.delete(keyOf(publicKey));
-        await this.secrets.set(INDEX_KEY, JSON.stringify(index.filter((k) => k !== publicKey)));
-      });
+      await this.serial(() => this.removeLocked(publicKey));
     } catch {
       return { ok: false };
     }
@@ -79,11 +75,24 @@ export class GuestPasswords {
   }
 
   /**
-   * The stored password opened an admin session. Guardian takes only a guest password (PRD
-   * out of scope: admin login), so it is removed and the node card says why.
+   * The password `sent` opened an admin session. Guardian takes only a guest password (PRD
+   * out of scope: admin login), so it is removed and the node card says why. A different value
+   * saved since the run started is left alone.
    */
-  async discardAdminPassword(publicKey: string): Promise<{ ok: boolean }> {
-    const result = await this.remove(publicKey);
+  async discardAdminPassword(publicKey: string, sent: string): Promise<{ ok: boolean }> {
+    let result: { ok: boolean };
+    try {
+      const removed = await this.serial(async () => {
+        if ((await this.secrets.get(keyOf(publicKey))) !== sent) return false;
+        await this.removeLocked(publicKey);
+        return true;
+      });
+      if (!removed) return { ok: true };
+      this.mark(publicKey, "no");
+      result = { ok: true };
+    } catch {
+      result = { ok: false };
+    }
     this.store.setState((state) => ({
       adminDiscarded: { ...state.adminDiscarded, [publicKey]: result.ok ? "removed" : "kept" },
     }));
@@ -98,6 +107,12 @@ export class GuestPasswords {
       await this.secrets.delete(INDEX_KEY);
     });
     this.store.setState({ saved: {}, adminDiscarded: {} });
+  }
+
+  private async removeLocked(publicKey: string): Promise<void> {
+    const index = await this.readIndex();
+    await this.secrets.delete(keyOf(publicKey));
+    await this.secrets.set(INDEX_KEY, JSON.stringify(index.filter((k) => k !== publicKey)));
   }
 
   private clearAdminNotice(publicKey: string): void {
