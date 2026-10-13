@@ -328,6 +328,7 @@ export class MeshClient {
               permissions: frame.permissions,
               aclPermissions: frame.aclPermissions ?? null,
               firmwareLevel: frame.firmwareLevel ?? null,
+              passwordSent: request.password !== "",
             });
           } else if (
             kind === "status" &&

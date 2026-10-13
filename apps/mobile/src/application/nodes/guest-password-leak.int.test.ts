@@ -69,6 +69,7 @@ describe("guest password leak scan (FR-14 AC2, TR-09)", () => {
       repository: async () => new SqliteDiagnosticRunRepository(testDb.driver),
       notice: new InMemoryAirtimeNoticeStore(true),
       password: (publicKey) => passwords.password(publicKey),
+      adminPassword: async (publicKey) => void (await passwords.discardAdminPassword(publicKey)),
       policy: () => DEFAULT_DIAGNOSTIC_POLICY,
     });
 

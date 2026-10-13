@@ -73,6 +73,11 @@ export function passwordStatusText(saved: "yes" | "no" | "error" | undefined): T
   }
 }
 
+/** Why a saved password was dropped after an admin session; shown on the password card. */
+export function adminDiscardedText(state: "removed" | "kept" | undefined): Text | null {
+  return state === undefined ? null : { key: `password.admin.${state}` };
+}
+
 export type PasswordProblem = "EMPTY" | "TOO_LONG" | "STORAGE_ERROR" | "REMOVE_FAILED";
 
 export function passwordErrorText(problem: PasswordProblem): Text {

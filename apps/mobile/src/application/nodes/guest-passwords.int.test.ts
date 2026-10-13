@@ -15,7 +15,7 @@ function setup() {
 
 describe("GuestPasswords", () => {
   it("starts with no password state", () => {
-    expect(setup().passwords.store.getState()).toEqual({ saved: {} });
+    expect(setup().passwords.store.getState()).toEqual({ saved: {}, adminDiscarded: {} });
   });
 
   it("save writes the value under the node key and lists it in the index (FR-14 AC1)", async () => {
@@ -116,5 +116,34 @@ describe("GuestPasswords", () => {
     const { passwords } = setup();
     await passwords.save(A, "pw-LEAK-CANARY");
     expect(JSON.stringify(passwords.store.getState())).not.toContain("pw-LEAK-CANARY");
+  });
+
+  it("discardAdminPassword removes the password and notes it for the card (PR #22)", async () => {
+    const { secrets, passwords } = setup();
+    await passwords.save(A, "pw-ADMIN");
+    expect(await passwords.discardAdminPassword(A)).toEqual({ ok: true });
+    expect(secrets.keys()).toEqual([INDEX]);
+    expect(await passwords.password(A)).toBe("");
+    expect(passwords.store.getState().saved[A]).toBe("no");
+    expect(passwords.store.getState().adminDiscarded[A]).toBe("removed");
+  });
+
+  it("discardAdminPassword reports a password it could not remove", async () => {
+    const { secrets, passwords } = setup();
+    await passwords.save(A, "pw-ADMIN");
+    secrets.failWith = new Error("keystore");
+    expect(await passwords.discardAdminPassword(A)).toEqual({ ok: false });
+    expect(passwords.store.getState().adminDiscarded[A]).toBe("kept");
+  });
+
+  it("saving a new password clears the admin note; clearAll clears all notes", async () => {
+    const { passwords } = setup();
+    await passwords.save(A, "pw-ADMIN");
+    await passwords.discardAdminPassword(A);
+    await passwords.save(A, "guest");
+    expect(passwords.store.getState().adminDiscarded).toEqual({});
+    await passwords.discardAdminPassword(A);
+    await passwords.clearAll();
+    expect(passwords.store.getState().adminDiscarded).toEqual({});
   });
 });

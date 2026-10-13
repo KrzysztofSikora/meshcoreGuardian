@@ -123,6 +123,7 @@ describe("MeshClient.runChecks", () => {
         permissions: 1,
         aclPermissions: 3,
         firmwareLevel: 1,
+        passwordSent: false,
       });
       expect(status!.evidence).toMatchObject({
         kind: "status",

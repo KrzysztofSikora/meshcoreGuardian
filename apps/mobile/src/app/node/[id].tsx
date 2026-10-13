@@ -13,12 +13,14 @@ import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
 import {
+  adminSessionLimitation,
   progressText,
   runButton,
   runDetails,
   statusOf,
 } from "../../application/diagnostics/presenter";
 import {
+  adminDiscardedText,
   lastHeardText,
   nameText,
   passwordErrorText,
@@ -165,7 +167,9 @@ function GuestPasswordCard({ publicKey }: { publicKey: string }) {
   const { t } = useTranslation();
   const [input, setInput] = useState("");
   const [problem, setProblem] = useState<PasswordProblem | null>(null);
-  const saved = useStore(passwords.store).saved[publicKey];
+  const { saved: savedByNode, adminDiscarded } = useStore(passwords.store);
+  const saved = savedByNode[publicKey];
+  const adminNotice = adminDiscardedText(adminDiscarded[publicKey]);
   const { colors } = useTheme();
   const styles = useNodeStyles();
   const status = passwordStatusText(saved);
@@ -194,6 +198,11 @@ function GuestPasswordCard({ publicKey }: { publicKey: string }) {
           style={[styles.body, { color: saved === "error" ? colors.danger : colors.text }]}
         >
           {tr(t, status)}
+        </Text>
+      )}
+      {adminNotice !== null && (
+        <Text accessibilityRole="alert" style={[styles.body, { color: colors.danger }]}>
+          {tr(t, adminNotice)}
         </Text>
       )}
       <TextInput
@@ -243,6 +252,7 @@ function RunPanel({ node }: { node: Node }) {
   });
   const refusal = state.refusal?.publicKey === node.publicKey ? state.refusal.text : null;
   const details = latest === undefined ? null : runDetails(latest);
+  const adminLimitation = latest === undefined ? null : adminSessionLimitation(latest);
   const unsaved = state.last?.publicKey === node.publicKey && state.last.runId === null;
 
   return (
@@ -287,6 +297,7 @@ function RunPanel({ node }: { node: Node }) {
         <View style={styles.section}>
           <Text style={[styles.strong, { color: colors.text }]}>{tr(t, details.summary)}</Text>
           <Text style={[styles.body, { color: colors.text }]}>{tr(t, details.explanation)}</Text>
+          {adminLimitation !== null && <Muted>{tr(t, adminLimitation)}</Muted>}
           {unsaved && <Muted>{t("diagnostic.notSaved")}</Muted>}
           {latest.id !== undefined && (
             <Link href={{ pathname: "/run/[id]", params: { id: String(latest.id) } }} asChild>

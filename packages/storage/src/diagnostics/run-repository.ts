@@ -33,6 +33,7 @@ const evidenceSchema: z.ZodType<CheckEvidence> = z.discriminatedUnion("kind", [
     permissions: z.number(),
     aclPermissions: z.number().nullable(),
     firmwareLevel: z.number().nullable(),
+    passwordSent: z.boolean().optional(),
   }),
   z.object({
     kind: z.literal("status"),

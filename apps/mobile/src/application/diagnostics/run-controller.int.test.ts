@@ -93,6 +93,7 @@ function setup(
     noticeSeen?: boolean;
     firmware?: { verCode: number; version: string };
     password?: (publicKey: string) => Promise<string>;
+    adminPassword?: (publicKey: string) => Promise<void>;
   } = {},
 ) {
   const platform = new DiagPlatform(specs, options.firmware);
@@ -110,6 +111,7 @@ function setup(
     notice,
     repository: async () => runs,
     password: options.password ?? (async () => ""),
+    adminPassword: options.adminPassword ?? (async () => undefined),
     policy: () => DEFAULT_DIAGNOSTIC_POLICY,
     clock: Date.now,
   });
@@ -216,6 +218,72 @@ describe("RunController", () => {
     await done;
     expect(remoteWrites(platform)).toBe(0);
     expect(runs.saved[0]).toMatchObject({ result: "NOT_TESTED", reason: "UNEXPECTED_ERROR" });
+  });
+
+  describe("admin sessions (PR #22)", () => {
+    // Codes written on air: app start, device query, get contacts, login, status, telemetry.
+    const READ_ONLY_CODES = [0x01, 0x16, 0x04, 0x1a, 0x1b, 0x27];
+
+    async function runWith(spec: RemoteScriptSpec, saved: string | null) {
+      const passwords = new GuestPasswords(new InMemorySecretStore());
+      if (saved !== null) await passwords.save(ROOM_K, saved);
+      const { session, controller, platform, runs } = setup([spec], {
+        password: (key) => passwords.password(key),
+        adminPassword: async (key) => void (await passwords.discardAdminPassword(key)),
+      });
+      await connect(session);
+      const done = controller.start(ROOM_K);
+      await vi.runAllTimersAsync();
+      await done;
+      return { passwords, platform, runs };
+    }
+
+    it("removes a stored password that opened an admin session and keeps the run RESPONDED", async () => {
+      const { passwords, runs } = await runWith({}, "pw-ADMIN");
+      expect(runs.saved[0]).toMatchObject({ result: "RESPONDED", reason: "ALL_CHECKS_REPLIED" });
+      expect(runs.saved[0]!.checks[0]!.evidence).toMatchObject({
+        kind: "login",
+        aclPermissions: 3,
+        passwordSent: true,
+      });
+      expect(await passwords.password(ROOM_K)).toBe("");
+      expect(passwords.store.getState().saved[ROOM_K]).toBe("no");
+      expect(passwords.store.getState().adminDiscarded[ROOM_K]).toBe("removed");
+    });
+
+    it("keeps a stored password that opened a guest session", async () => {
+      const { passwords } = await runWith({ loginSession: { permissions: 0, acl: 0 } }, "pw-GUEST");
+      expect(await passwords.password(ROOM_K)).toBe("pw-GUEST");
+      expect(passwords.store.getState().adminDiscarded).toEqual({});
+    });
+
+    it("does not touch storage when an admin session came from the node ACL (no password sent)", async () => {
+      const { passwords, runs } = await runWith({}, null);
+      expect(runs.saved[0]).toMatchObject({ result: "RESPONDED", reason: "ALL_CHECKS_REPLIED" });
+      expect(runs.saved[0]!.checks[0]!.evidence).toMatchObject({ passwordSent: false });
+      expect(passwords.store.getState().adminDiscarded).toEqual({});
+    });
+
+    it("sends only read requests during an admin session", async () => {
+      const { platform } = await runWith({}, "pw-ADMIN");
+      const codes = (platform.transport?.writtenFrames ?? []).map((frame) => frame[0]!);
+      expect(codes.filter((code) => !READ_ONLY_CODES.includes(code))).toEqual([]);
+      expect(codes).toEqual(expect.arrayContaining([0x1a, 0x1b, 0x27]));
+    });
+
+    it("still stores the run when removing the password fails", async () => {
+      const { session, controller, runs } = setup([{}], {
+        password: async () => "pw-ADMIN",
+        adminPassword: async () => {
+          throw new Error("keystore");
+        },
+      });
+      await connect(session);
+      const done = controller.start(ROOM_K);
+      await vi.runAllTimersAsync();
+      await done;
+      expect(runs.saved[0]).toMatchObject({ result: "RESPONDED" });
+    });
   });
 
   it("sends nothing until start is called (FR-10 AC6)", async () => {
@@ -482,6 +550,7 @@ describe("RunController", () => {
       notice: new InMemoryAirtimeNoticeStore(true),
       repository: async () => runs,
       password: async () => "",
+      adminPassword: async () => undefined,
       policy: () => DEFAULT_DIAGNOSTIC_POLICY,
       clock: Date.now,
     });
@@ -519,6 +588,7 @@ describe("RunController with a failing session", () => {
       notice: new InMemoryAirtimeNoticeStore(true),
       repository: async () => runs,
       password: async () => "",
+      adminPassword: async () => undefined,
       policy: () => DEFAULT_DIAGNOSTIC_POLICY,
       clock: Date.now,
     });
@@ -633,6 +703,7 @@ describe("RunController edge cases", () => {
       notice: options.notice ?? new InMemoryAirtimeNoticeStore(true),
       repository: options.repository ?? (async () => runs),
       password: async () => "",
+      adminPassword: async () => undefined,
       policy: () => DEFAULT_DIAGNOSTIC_POLICY,
       clock: Date.now,
     });

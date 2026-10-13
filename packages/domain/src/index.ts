@@ -4,6 +4,8 @@ export { REASONS_BY_RESULT, isReasonFor } from "./diagnostics/reason-code";
 export type { ReasonCode, ReasonsOf } from "./diagnostics/reason-code";
 export { CHECK_KINDS, continuesAfter, planChecks } from "./diagnostics/check";
 export type { CheckEvidence, CheckKind, CheckOutcome, CheckPlan } from "./diagnostics/check";
+export { loginEvidence, sessionRole } from "./diagnostics/session-role";
+export type { SessionRole } from "./diagnostics/session-role";
 export { classifyRun } from "./diagnostics/classify";
 export type {
   ClassifyContext,

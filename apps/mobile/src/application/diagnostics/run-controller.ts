@@ -2,6 +2,8 @@ import {
   classifyRun,
   continuesAfter,
   cooldownRemaining,
+  loginEvidence,
+  sessionRole,
   planChecks,
   type CheckKind,
   type CheckOutcome,
@@ -185,6 +187,7 @@ export class RunController {
         }
         return await this.finishPreflight(publicKey, startedAt, companion, "UNEXPECTED_ERROR");
       }
+      await this.dropAdminPassword(publicKey, outcomes);
       const completed =
         outcomes.length === plan.run.length && outcomes.every((outcome) => continuesAfter(outcome));
       // Skipped checks are kept only for a run that went through; an earlier stop hides them (D-2).
@@ -203,6 +206,19 @@ export class RunController {
       this.running = false;
       this.set({ active: null });
     }
+  }
+
+  /**
+   * A password that opened an admin session is removed: Guardian takes only a guest password
+   * (PRD out of scope: admin login). The run keeps its honest result; the node did reply.
+   */
+  private async dropAdminPassword(
+    publicKey: string,
+    outcomes: readonly CheckOutcome[],
+  ): Promise<void> {
+    const login = loginEvidence(outcomes);
+    if (login === null || login.passwordSent !== true || sessionRole(login) !== "admin") return;
+    await this.ports.adminPassword(publicKey).catch(() => undefined);
   }
 
   private finishPreflight(

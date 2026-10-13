@@ -7,6 +7,8 @@ const INDEX_KEY = `${KEY_PREFIX}index`;
 export interface GuestPasswordsState {
   /** Whether a password is stored per node, as last read. Never the password itself. */
   saved: Record<string, "yes" | "no" | "error">;
+  /** Nodes whose saved password gave an admin session and was dropped; `kept` if removal failed. */
+  adminDiscarded: Record<string, "removed" | "kept">;
 }
 
 export type SaveResult =
@@ -23,6 +25,7 @@ const keyOf = (publicKey: string) => `${KEY_PREFIX}${publicKey}`;
 export class GuestPasswords {
   readonly store: StoreApi<GuestPasswordsState> = createStore<GuestPasswordsState>(() => ({
     saved: {},
+    adminDiscarded: {},
   }));
   private tail: Promise<unknown> = Promise.resolve();
 
@@ -46,6 +49,7 @@ export class GuestPasswords {
   async save(publicKey: string, input: string): Promise<SaveResult> {
     const checked = validateGuestPassword(input);
     if (!checked.ok) return checked;
+    this.clearAdminNotice(publicKey);
     try {
       await this.serial(async () => {
         const index = await this.readIndex();
@@ -74,6 +78,18 @@ export class GuestPasswords {
     return { ok: true };
   }
 
+  /**
+   * The stored password opened an admin session. Guardian takes only a guest password (PRD
+   * out of scope: admin login), so it is removed and the node card says why.
+   */
+  async discardAdminPassword(publicKey: string): Promise<{ ok: boolean }> {
+    const result = await this.remove(publicKey);
+    this.store.setState((state) => ({
+      adminDiscarded: { ...state.adminDiscarded, [publicKey]: result.ok ? "removed" : "kept" },
+    }));
+    return result;
+  }
+
   /** Deletes every stored password and the index. Throws on failure so the caller can report it. */
   async clearAll(): Promise<void> {
     await this.serial(async () => {
@@ -81,7 +97,14 @@ export class GuestPasswords {
       for (const publicKey of index) await this.secrets.delete(keyOf(publicKey));
       await this.secrets.delete(INDEX_KEY);
     });
-    this.store.setState({ saved: {} });
+    this.store.setState({ saved: {}, adminDiscarded: {} });
+  }
+
+  private clearAdminNotice(publicKey: string): void {
+    this.store.setState((state) => {
+      const { [publicKey]: _gone, ...rest } = state.adminDiscarded;
+      return { adminDiscarded: rest };
+    });
   }
 
   private mark(publicKey: string, saved: "yes" | "no" | "error"): void {

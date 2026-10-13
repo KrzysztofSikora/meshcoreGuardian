@@ -130,7 +130,11 @@
     "remove": "Remove password",
     "tooLong": "The password must be 1 to 15 bytes long.",
     "saveFailed": "Could not save the password",
-    "removeFailed": "Could not remove the password"
+    "removeFailed": "Could not remove the password",
+    "admin": {
+      "removed": "The last password you saved gives administrator rights. Guardian takes only a guest password, so it was removed.",
+      "kept": "The saved password gives administrator rights, and Guardian takes only a guest password. It could not be removed: remove it here."
+    }
   },
   "sync": {
     "syncing": "Syncing contacts…",
@@ -182,6 +186,11 @@
       "telemetry": "Telemetry"
     },
     "limitation": {
+      "adminSession": {
+        "password": "The login was an administrator session. The password you saved gives administrator rights, and Guardian takes only a guest password, so it was removed from this phone. Only read requests were sent.",
+        "acl": "The login was an administrator session. The node granted administrator rights to this companion from its own access list, with no password. Guardian sent only read requests.",
+        "unknown": "The login was an administrator session. Guardian sent only read requests."
+      },
       "login": "Login: $t(diagnostic.outcome.{{reason}})",
       "status": "Status: $t(diagnostic.outcome.{{reason}})",
       "telemetry": "Telemetry: $t(diagnostic.outcome.{{reason}})"
@@ -209,7 +218,13 @@
     },
     "evidence": {
       "login": {
-        "permissions": "Permissions: {{value}}",
+        "role": {
+          "guest": "Session role: guest",
+          "read_only": "Session role: read-only",
+          "read_write": "Session role: read-write",
+          "admin": "Session role: administrator",
+          "unknown": "Session role: unknown"
+        },
         "firmwareLevel": "Node firmware level: {{value}}"
       },
       "status": {
