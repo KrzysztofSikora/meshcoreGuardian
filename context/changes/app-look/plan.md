@@ -297,13 +297,17 @@ checks WCAG contrast ≥ 4.5:1 for every token pair the theme declares as text-o
 - [x] Phase 2: Shared components and the Dashboard
 - [x] Phase 3: Connect and Settings
 - [x] Phase 4: Node, run panel and Run result
-- [ ] Phase 5: Look flow and side-by-side evidence
+- [x] Phase 5: Look flow and side-by-side evidence
 
 ## Human checks
 <!-- Filled by /implement: one open checkbox per human check, with how to run it and evidence. -->
 - [ ] (Phase 2) Dashboard light/dark next to the mockup: spacing, type, chips, node cards, nearest card, segmented filter, bottom nav — run: `EXPO_PUBLIC_TRANSPORT=fake pnpm --filter mobile android` on the `guardian` emulator, compare with `docs/design/mockup/preview/Main.html` — evidence: `context/changes/app-look/evidence/look.md` (written in Phase 5)
 - [ ] (Phase 3) Connect (idle, connected with capabilities, failure) and Settings light/dark next to the mockup — run: `EXPO_PUBLIC_TRANSPORT=fake pnpm --filter mobile android` on the `guardian` emulator, compare with `docs/design/mockup/preview/Connect.html` — evidence: `context/changes/app-look/evidence/look.md` (written in Phase 5)
 - [ ] (Phase 4) Node, run-in-progress (airtime notice, progress, Cancel) and Result light/dark next to the mockup — run: `EXPO_PUBLIC_TRANSPORT=fake pnpm --filter mobile android` on the `guardian` emulator, open a node and run a diagnostic, compare with `docs/design/mockup/preview/Node.html`, `Run.html`, `Result.html` — evidence: `context/changes/app-look/evidence/look.md` (written in Phase 5)
+- [ ] (Phase 5) Every row of `evidence/look.md` (light, dark, mockup): spacing, type, colours, chips, nav read as the mockup — run: open `context/changes/app-look/evidence/look.md` — evidence: `context/changes/app-look/evidence/look.md`
+- [ ] (Phase 5) On the CI APK (`android-apk` artifact) on a real phone: switch system dark mode on and off with the app open; the app follows — run: install the artifact, toggle dark mode — evidence: none
+- [ ] (Phase 5) On the CI APK with system font size at maximum: Dashboard, Connect, Node, Result readable, no clipped button text, nav labels visible — run: Settings > Display > Font size — evidence: none
+- [ ] (Phase 5) TalkBack on the Dashboard: node cards read name, role, status words, last heard; nav reads "<name>, tab, selected"; icons silent — run: enable TalkBack on the CI APK — evidence: none
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->

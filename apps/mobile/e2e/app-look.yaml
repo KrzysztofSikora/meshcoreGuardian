@@ -1,0 +1,12 @@
+# NFR-09: every screen in light and dark (screenshots land next to the mockup in
+# context/changes/app-look/evidence/look.md). Colour is forced by the fake-build debug link.
+appId: io.github.krzysztofsikora.guardian
+---
+- runFlow:
+    file: lib/look-screens.yaml
+    env:
+      THEME: light
+- runFlow:
+    file: lib/look-screens.yaml
+    env:
+      THEME: dark
