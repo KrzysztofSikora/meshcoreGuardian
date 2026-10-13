@@ -1,7 +1,8 @@
 # Plan: nearest-repeater (S-11)
 
 ## Goal and end state
-The Dashboard opens with a "Nearest repeater" card above the node list. It names one repeater
+The Dashboard opens with a "Nearest node" card above the node list (PR #19, D-3: repeaters and room
+servers, the role is shown). It names one node
 picked from the companion's contacts by known hop count, then distance from the companion, then
 last heard, and shows its last known path, its distance and 8-point compass direction from the
 companion, its last-heard time and a Run diagnostic button (FR-21 AC1, AC2). Missing data reads as
@@ -143,10 +144,10 @@ request (AC6).
     companion" / `nearest.position.noDirection` (distance 0) / `nearest.position.notAdvertised`
     "Position not advertised" / `nearest.position.companionNotSet` "Companion position not set" (D-5);
   - `nearest.asOf` "As of the last contact sync, {{time}}";
-  - `nearest.empty` "No repeater in the companion's contacts." + `nearest.syncHint` "Use Sync
+  - `nearest.empty` "No repeater or room server in the companion's contacts." + `nearest.syncHint` "Use Sync
     contacts to update the list."
   - `formatDistance(m): Text` per D-7.
-- `components/nearest-repeater-card.tsx`: header "Nearest repeater"; candidate block; Run
+- `components/nearest-repeater-card.tsx`: header "Nearest node"; candidate block; Run
   diagnostic button (`runButton` state, reason below; `accessibilityLabel` "Run diagnostic on
   {{name}}"; D-6); "Other nearby (n)" toggle (D-9). No colour-only status.
 - `app/index.tsx`: card as `ListHeaderComponent` (D-10).
@@ -286,6 +287,8 @@ request (AC6).
 - [minor] Plan-review 2: the D-11 edits to `context/test-plan.md` and `stryker.targets` were done in phase 1, with the files they cover.
 - [minor] Plan-review 3: builders in `presenter.test.ts`, `catalog.test.ts`, `node.test.ts`, storage tests and the controller test got `pathHops: null, position: null`; `capabilities.test.ts`, `check.test.ts` and `handshake-script.int.test.ts` needed no change (typecheck green).
 - [minor] Phase 2: `NodesController.sync` decides `TRANSPORT_UNAVAILABLE` itself when the session is not connected at the start (after the repository step, as before), instead of calling `fetchContacts`, which would have failed the same way; the `scripted` test session now starts connected. `migrate.int.test.ts` asserted version `2` after migrating from 1; it now asserts `MIGRATIONS.length`, and a v2→v3 test was added. Test frame builders (`contactFrame`, `selfInfoFrame`) take optional lat/lon.
+- [REVIEW] Review R7: PR #19 D-3 (room servers are candidates, heading "Nearest node", role shown) overrules the repeaters-only wording of PRD FR-21 AC1/AC2/AC5; `context/prd.md` FR-21 was updated to match, and the Goal and Design texts here follow. Alternative: keep FR-21 as written and drop room servers.
+- [minor] Review R8: 945f395 also made the nearest candidate a link to `/node/[id]` (like the "Other nearby" entries, D-6/D-9), so a tap on the card opens the node screen; it was not asked at PR #19. Alternative: remove the `Link` wrapper in `nearest-repeater-card.tsx`.
 - [FOLLOW-UP] Plan-review 5: S-08 export must leave out or redact the companion position (`contact_sync_origin`) and node positions by default and list them in the preview.
 
 - [minor] Phase 3: the "other nearby" compass word is a nested `Text` in the distance line's params (`NearestText`), resolved in the card; the card reuses `runButton` (already covered by presenter tests) so no separate disabled-reason test was added. The card renders nothing until the node list is loaded.

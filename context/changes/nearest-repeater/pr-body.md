@@ -1,6 +1,6 @@
-# feat(nearest-repeater): Dashboard card naming the nearest repeater with Run diagnostic
+# feat(nearest-repeater): Dashboard card naming the nearest node with Run diagnostic
 
-Roadmap S-11. The Dashboard now opens with a "Nearest repeater" card: the repeater from the companion's contacts with the fewest known hops, then the shortest distance from the companion, then the most recently heard. It shows the last known path, advertised distance and 8-point compass direction, last heard time and a Run diagnostic button, plus up to 5 "Other nearby" candidates. Missing data reads as words ("Path unknown", "Position not advertised", "Companion position not set"), and every value is labelled "as of the last contact sync". It uses only contact-sync data and the companion's self info: no location permission, no extra radio request. Covers PRD FR-21 AC1–AC6.
+Roadmap S-11. The Dashboard now opens with a "Nearest node" card: the repeater or room server (its role is shown) from the companion's contacts with the fewest known hops, then the shortest distance from the companion, then the most recently heard. It shows the last known path, advertised distance and 8-point compass direction, last heard time and a Run diagnostic button, plus up to 5 "Other nearby" candidates. Missing data reads as words ("Path unknown", "Position not advertised", "Companion position not set"), and every value is labelled "as of the last contact sync". It uses only contact-sync data and the companion's self info: no location permission, no extra radio request. Covers PRD FR-21 AC1–AC6.
 Closes #18
 
 > **Status:** Ready for review
