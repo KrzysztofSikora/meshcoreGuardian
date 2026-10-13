@@ -62,6 +62,16 @@ export {
   sortNodes,
 } from "./nodes/node";
 export type { ContactReport, LabelResult, Node, NodeRole } from "./nodes/node";
-export type { NodeRepository, SyncOutcome } from "./nodes/ports";
+export type { NodeRepository, SyncOrigin, SyncOutcome } from "./nodes/ports";
 export { CONTACT_SYNC_FAILURES, isContactSyncFailure } from "./nodes/sync";
 export type { ContactSyncFailure, ContactSyncState } from "./nodes/sync";
+export {
+  COMPASS_POINTS,
+  advertisedPosition,
+  compassPoint,
+  distanceMeters,
+  initialBearing,
+} from "./geo/geo";
+export type { CompassPoint, GeoPoint } from "./geo/geo";
+export { OTHER_NEARBY_COUNT, nearestRepeaters, rankRepeaters } from "./nodes/nearest";
+export type { RankedRepeater } from "./nodes/nearest";

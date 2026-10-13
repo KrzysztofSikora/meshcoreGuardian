@@ -152,9 +152,46 @@ describe("MeshClient.getContacts", () => {
         name: "Repeater 1",
         type: 2,
         lastHeardAt: 1_760_000_100_000,
+        pathHops: 2,
+        position: { lat: 52.229675, lon: -21.012228 },
       },
     ]);
     expect(t.written).toEqual([Uint8Array.of(GET_CONTACTS)]);
+  });
+
+  it("reads the hop count from the low six bits for hash sizes 1 and 2, and 0 as direct", async () => {
+    const t = scriptedTransport();
+    const outcome = run(new MeshClient(t.transport));
+    t.emit(startFrame(3));
+    t.emit(contactFrame({ pathLen: 0x03 })); // hash size 1, 3 hops
+    t.emit(contactFrame({ pathLen: 0x45 })); // hash size 2, 5 hops
+    t.emit(contactFrame({ pathLen: 0x00 })); // direct
+    t.emit(endFrame);
+    const result = await outcome;
+    if (!("value" in result)) throw result.error;
+    expect(result.value.contacts.map((c) => c.pathHops)).toEqual([3, 5, 0]);
+  });
+
+  it("reports an unknown path (0xFF) and a 0,0 position as null", async () => {
+    const t = scriptedTransport();
+    const outcome = run(new MeshClient(t.transport));
+    t.emit(startFrame(1));
+    t.emit(contactFrame({ pathLen: 0xff, latE6: 0, lonE6: 0 }));
+    t.emit(endFrame);
+    const result = await outcome;
+    if (!("value" in result)) throw result.error;
+    expect(result.value.contacts[0]).toMatchObject({ pathHops: null, position: null });
+  });
+
+  it("reports an out-of-range position as null instead of failing", async () => {
+    const t = scriptedTransport();
+    const outcome = run(new MeshClient(t.transport));
+    t.emit(startFrame(1));
+    t.emit(contactFrame({ latE6: 91_000_000, lonE6: 10_000_000 }));
+    t.emit(endFrame);
+    const result = await outcome;
+    if (!("value" in result)) throw result.error;
+    expect(result.value.contacts[0]?.position).toBeNull();
   });
 
   it("reports fewer contacts than announced and leaves the comparison to the caller", async () => {

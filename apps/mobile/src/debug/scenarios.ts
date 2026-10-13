@@ -20,6 +20,8 @@ export const SCENARIOS = {
     ...base,
     attempts: [{ firmware: { verCode: 4, version: "v1.4.0" } }],
   },
+  // Nearest-repeater card with paths and positions (S-11).
+  nearest: { ...base, attempts: [{ nearest: true }] },
   // Diagnostics against Room K (plan D-17). Cancel uses `diag-no-reply`.
   "diag-ok": { ...base, attempts: [{ diagnostic: {} }] },
   "diag-no-reply": { ...base, attempts: [{ diagnostic: { login: "no-reply" } }] },

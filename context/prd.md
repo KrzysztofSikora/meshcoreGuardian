@@ -160,12 +160,12 @@ understand what to test next." A missing reply never proves a node is offline.
 ### FR-19 Local reminders  (Could, P1, covers US-14, B-25)
 - AC1: Given a reminder set for a node, When due, Then a local notification asks the user to run a check; no check runs automatically.
 
-### FR-21 Nearest repeater  (Must, covers US-15, B-31)
-- AC1: Given synced contacts, When the Dashboard opens, Then a "Nearest repeater" card above the list names one repeater chosen by the app, with its hop distance, its distance and compass direction from the companion's position, and its last-heard time, and offers Run diagnostic on the card.
-- AC2: Given several repeaters, When the app picks the nearest, Then it ranks by known hop count (direct first, unknown path last), then by distance from the companion (unknown last), then by most recent last-heard; the card links to the next few candidates ("Other nearby").
+### FR-21 Nearest node  (Must, covers US-15, B-31)
+- AC1: Given synced contacts, When the Dashboard opens, Then a "Nearest node" card above the list names one repeater or room server chosen by the app, with its hop distance, its distance and compass direction from the companion's position, and its role (Repeater or Room server), its last-heard time, and offers Run diagnostic on the card.
+- AC2: Given several repeaters and room servers, When the app picks the nearest, Then it ranks by known hop count (direct first, unknown path last), then by distance from the companion (unknown last), then by most recent last-heard; the card links to the next few candidates ("Other nearby").
 - AC3: Given a repeater or the companion without an advertised position, When shown, Then the distance reads "Position not advertised" (or "Companion position not set") instead of a number; Given an unknown path, Then the hop line reads "Path unknown".
 - AC4: Given the card, When shown, Then the hop count and position are labelled as the companion's last known path and the node's advertised position, never as "in range now" or "online".
-- AC5: Given no repeater in the companion's contacts, When the Dashboard opens, Then the card says so and points to Sync contacts.
+- AC5: Given no repeater or room server in the companion's contacts, When the Dashboard opens, Then the card says so and points to Sync contacts.
 - AC6: Given the feature, When used, Then it needs no phone location permission and sends no radio request; it uses only data from contact sync and the companion's self info.
 
 ### FR-20 Pilot release  (Must, covers B-26)

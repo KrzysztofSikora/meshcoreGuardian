@@ -12,6 +12,8 @@ import {
   TransportUnavailableError,
 } from "../src";
 
+import { deviceInfoFrame, selfInfoFrame } from "./support/frames";
+
 const DEVICE_QUERY = 0x16;
 const APP_START = 0x01;
 
@@ -69,6 +71,29 @@ describe("MeshClient.handshake", () => {
     });
     expect(result.value.publicKey).toMatch(/^[0-9a-f]{64}$/);
     expect(transport.writtenFrames.map((f) => f[0])).toEqual([DEVICE_QUERY, APP_START]);
+  });
+
+  it("reports the companion position from self info, and null for 0,0", async () => {
+    for (const [lat, lon, expected] of [
+      [52_229_675, 21_012_228, { lat: 52.229675, lon: 21.012228 }],
+      [0, 0, null],
+    ] as const) {
+      const listeners = new Set<(frame: Uint8Array) => void>();
+      const transport: MeshTransport = {
+        write: async (bytes) => {
+          const reply = bytes[0] === DEVICE_QUERY ? deviceInfoFrame() : selfInfoFrame("Base", lat, lon);
+          for (const listener of [...listeners]) listener(reply);
+        },
+        close: async () => undefined,
+        onFrame: (callback) => {
+          listeners.add(callback);
+          return () => listeners.delete(callback);
+        },
+        onDisconnect: () => () => undefined,
+      };
+      const info = await new MeshClient(transport).handshake();
+      expect(info.position).toEqual(expected);
+    }
   });
 
   it("times out the device query at 30 s and not before", async () => {

@@ -415,5 +415,36 @@
         }
       }
     }
+  },
+  "nearest": {
+    "heading": "Nearest node",
+    "empty": "No repeater or room server in the companion's contacts.",
+    "syncHint": "Use Sync contacts to update the list.",
+    "asOf": "As of the last contact sync, {{time}}",
+    "path": {
+      "direct": "Last known path: direct",
+      "hops_one": "Last known path: {{count}} hop",
+      "hops_other": "Last known path: {{count}} hops",
+      "unknown": "Path unknown"
+    },
+    "position": {
+      "distance": "Advertised position: {{distance}} {{direction}} of the companion",
+      "noDirection": "Advertised position: {{distance}} from the companion",
+      "notAdvertised": "Position not advertised",
+      "companionNotSet": "Companion position not set"
+    },
+    "runLabel": "Run diagnostic on {{name}}",
+    "otherShow": "Other nearby ({{count}})",
+    "otherHide": "Hide other nearby ({{count}})",
+    "compass": {
+      "N": "north",
+      "NE": "north-east",
+      "E": "east",
+      "SE": "south-east",
+      "S": "south",
+      "SW": "south-west",
+      "W": "west",
+      "NW": "north-west"
+    }
   }
 }

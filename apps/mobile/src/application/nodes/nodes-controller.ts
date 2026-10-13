@@ -6,6 +6,7 @@ import {
   type Node,
   type NodeRepository,
   type NodeRole,
+  type SyncOrigin,
 } from "@guardian/domain";
 import {
   AbortError,
@@ -24,6 +25,8 @@ import type { AppStatePort } from "../connection/ports";
 export interface NodesState {
   nodes: Node[];
   loaded: boolean;
+  /** Companion and time of the last contact sync; the stored paths are relative to it. */
+  origin: SyncOrigin | null;
   storage: "ok" | "error";
   sync: ContactSyncState;
 }
@@ -43,6 +46,7 @@ export interface NodesPorts {
 const INITIAL: NodesState = {
   nodes: [],
   loaded: false,
+  origin: null,
   storage: "ok",
   sync: { kind: "idle" },
 };
@@ -96,17 +100,27 @@ export class NodesController {
     this.syncing = true;
     const abort = new AbortController();
     this.abort = abort;
+    // The stored hops belong to this companion; the session is already cleared if the link drops
+    // during the fetch (lessons: capture the context when the operation starts).
+    const connection = this.ports.session.store.getState().connection;
+    const companion = connection.kind === "connected" ? connection.companion : null;
     this.set({ sync: { kind: "syncing" } });
     try {
       const repository = await this.open();
       if (repository === null || abort.signal.aborted) return this.set({ sync: { kind: "idle" } });
+      if (companion === null)
+        return this.set({ sync: { kind: "failed", reason: "TRANSPORT_UNAVAILABLE" } });
       const result = await this.fetch(abort);
       if (result === "aborted") return this.set({ sync: { kind: "idle" } });
       if (typeof result === "string") return this.set({ sync: { kind: "failed", reason: result } });
       const complete = result.contacts.length === result.expected;
       const now = this.ports.clock();
       try {
-        await repository.applySync(result.contacts, { complete, now });
+        await repository.applySync(result.contacts, {
+          complete,
+          now,
+          origin: { companionPublicKey: companion.publicKey, position: companion.position },
+        });
         await this.refresh(repository);
       } catch {
         return this.set({ sync: { kind: "failed", reason: "STORAGE_ERROR" } });
@@ -169,7 +183,7 @@ export class NodesController {
     try {
       return await this.repo;
     } catch {
-      this.set({ storage: "error", loaded: true, nodes: [] });
+      this.set({ storage: "error", loaded: true, nodes: [], origin: null });
       return null;
     }
   }
@@ -180,13 +194,14 @@ export class NodesController {
     try {
       await this.refresh(repository);
     } catch {
-      this.set({ storage: "error", loaded: true, nodes: [] });
+      this.set({ storage: "error", loaded: true, nodes: [], origin: null });
     }
   }
 
   private async refresh(repository: NodeRepository): Promise<void> {
     const nodes = sortNodes(await repository.listAll());
-    this.set({ nodes, loaded: true, storage: "ok" });
+    const origin = await repository.syncOrigin();
+    this.set({ nodes, origin, loaded: true, storage: "ok" });
   }
 
   private async write(action: (repository: NodeRepository) => Promise<void>): Promise<EditResult> {

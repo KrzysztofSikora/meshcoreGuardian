@@ -20,4 +20,5 @@ appId: io.github.krzysztofsikora.guardian
 - takeScreenshot: diag-no-response-details
 - back
 - back
-- assertVisible: "No reply in last test"
+- scrollUntilVisible:
+    element: "No reply in last test"

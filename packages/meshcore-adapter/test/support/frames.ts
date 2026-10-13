@@ -81,6 +81,9 @@ export interface ContactOptions {
   pathLen?: number;
   path?: number[];
   name?: string;
+  /** Degrees × 1e6 as on the wire. */
+  latE6?: number;
+  lonE6?: number;
 }
 
 /** RESP_CODE_CONTACT (148 bytes). */
@@ -89,6 +92,8 @@ export function contactFrame({
   pathLen = 0x42,
   path = sequence(0x11, 4),
   name = "Repeater K",
+  latE6 = 52_229_675,
+  lonE6 = -21_012_228,
 }: ContactOptions = {}) {
   const outPath = new Array<number>(64).fill(0);
   outPath.splice(0, path.length, ...path);
@@ -100,21 +105,21 @@ export function contactFrame({
     .raw(outPath)
     .text(name, 32)
     .u32(1_760_000_000) // last_advert_timestamp
-    .i32(52_229_675) // gps_lat x 1e6
-    .i32(-21_012_228) // gps_lon x 1e6
+    .i32(latE6) // gps_lat x 1e6
+    .i32(lonE6) // gps_lon x 1e6
     .u32(1_760_000_100) // lastmod
     .build();
 }
 
 /** RESP_CODE_SELF_INFO with the node name at the end. */
-export function selfInfoFrame(name = "Base") {
+export function selfInfoFrame(name = "Base", latE6 = 52_229_675, lonE6 = -21_012_228) {
   return frame(5)
     .u8(1) // ADV_TYPE_CHAT
     .u8(22) // tx_power_dbm
     .u8(30) // MAX_LORA_TX_POWER
     .raw(PUBLIC_KEY)
-    .i32(52_229_675)
-    .i32(-21_012_228)
+    .i32(latE6)
+    .i32(lonE6)
     .u8(1) // multi_acks
     .u8(2) // advert_loc_policy
     .u8(0x15) // telemetry modes

@@ -1,6 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/triple-slash-reference -- the ambient declaration must travel with the source to consumers
 /// <reference path="../types/timers.d.ts" />
 import {
+  advertisedPosition,
   attemptTimeout,
   contactLastHeard,
   continuesAfter,
@@ -179,6 +180,7 @@ export class MeshClient {
         firmwareVersion: device.firmwareVersion,
         firmwareVerCode: device.firmwareVerCode,
         buildDate: device.buildDate,
+        position: advertisedPosition(self.lat, self.lon),
       };
     } finally {
       this.busy = null;
@@ -453,6 +455,8 @@ export class MeshClient {
               name: frame.name,
               type: frame.type,
               lastHeardAt: contactLastHeard(frame.lastMod),
+              pathHops: frame.path.kind === "known" ? frame.path.hops : null,
+              position: advertisedPosition(frame.lat, frame.lon),
             });
             armIdle(this.contactsIdleTimeoutMs, "idle");
           } else if (frame.kind === "endOfContacts") {

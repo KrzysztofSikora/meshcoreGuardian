@@ -1,0 +1,49 @@
+# FR-21 AC1, AC2, AC4: the nearest node card with paths and positions, "Other nearby", and
+# Run diagnostic from the card.
+appId: io.github.krzysztofsikora.guardian
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Known nodes will appear here."
+- openLink: guardian://debug/scenario/nearest
+- extendedWaitUntil:
+    visible: "Scan for companions"
+    timeout: 10000
+- tapOn: "Scan for companions"
+- extendedWaitUntil:
+    visible: "Connect to MeshCore-companion"
+    timeout: 10000
+- tapOn: "Connect to MeshCore-companion"
+- extendedWaitUntil:
+    visible: "Connected"
+    timeout: 20000
+- back
+- extendedWaitUntil:
+    visible: "Contacts synced: 31"
+    timeout: 30000
+- assertVisible: "Nearest node"
+- assertVisible: "PL-KR-WRBL-RPT"
+- assertVisible: "Repeater"
+- assertVisible: "Last known path: direct"
+- assertVisible: "Advertised position: 1.2 km north-east of the companion"
+- assertVisible: "As of the last contact sync.*"
+- assertVisible: "Last heard.*"
+- assertNotVisible: ".*[Oo]nline.*"
+- assertNotVisible: ".*in range.*"
+- tapOn: "Run diagnostic on PL-KR-WRBL-RPT"
+- extendedWaitUntil:
+    visible: "Run diagnostic"
+    timeout: 10000
+- tapOn: "Run diagnostic"
+- extendedWaitUntil:
+    visible: ".*Login.*Attempt 1 of 2.*"
+    timeout: 20000
+- tapOn: "Cancel"
+- back
+- tapOn: "Other nearby \\(5\\)"
+- assertVisible: "Last known path: 1 hop"
+- assertVisible: "PL- RDE_Room_MXC"
+- assertVisible: "Room server"
+- scrollUntilVisible:
+    element: "Last known path: 2 hops"
+- takeScreenshot: nearest-with-positions
