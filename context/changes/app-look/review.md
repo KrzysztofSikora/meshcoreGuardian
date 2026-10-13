@@ -151,4 +151,4 @@ evidence image is ≤ 300 KB (largest 245 KB).
   pre-run pair.
 - Effort: small
 - Lesson candidate: When an e2e step asserts that a screen scrolls, run it in a state where the target is below the fold (check the screenshot); `scrollUntilVisible` passes without scrolling when the element is already visible.
-- Decision: open
+- Decision: fixed (c2be50e) + lesson proposed
