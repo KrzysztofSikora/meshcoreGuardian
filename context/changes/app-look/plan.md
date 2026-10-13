@@ -293,7 +293,7 @@ checks WCAG contrast ≥ 4.5:1 for every token pair the theme declares as text-o
 
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
-- [ ] Phase 1: Theme, fonts and dark mode
+- [x] Phase 1: Theme, fonts and dark mode
 - [ ] Phase 2: Shared components and the Dashboard
 - [ ] Phase 3: Connect and Settings
 - [ ] Phase 4: Node, run panel and Run result
@@ -306,6 +306,13 @@ checks WCAG contrast ≥ 4.5:1 for every token pair the theme declares as text-o
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
 - [minor] The test-plan asks to keep the e2e suite under ~15 flows; it has 17 and this change adds
   `app-look.yaml` (D-13). Consequence: e2e runtime grows by one flow of about two minutes.
+- [minor] Phase 1: plan says the three top-level screens get `headerShown: false` in Phase 1; code shows
+  their in-content title sits under the status bar until they use `Screen` (safe-area padding, Phases
+  2-3). Consequence: `index`, `connect` and `settings` keep their native header in Phase 1 and each
+  phase that restyles the screen flips it to `headerShown: false`. No user-visible change in Phase 1.
+- [minor] Phase 1: review finding 7 checked without a screenshot: after `pnpm e2e` the prebuilt
+  `android/app/src/main/res/font/` holds `xml_ibm_plex_sans.xml`, `xml_ibm_plex_mono.xml` and the six
+  TTFs, so the font plugin is active. Dark mode is first seen in Phase 5 screenshots.
 - [FOLLOW-UP] Licences screen listing IBM Plex (OFL) and meshcore.js (MIT) — S-10 pilot release.
 - [FOLLOW-UP] In-app theme choice (system / light / dark) on the Settings screen — S-09.
 

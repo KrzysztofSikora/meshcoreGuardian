@@ -5,6 +5,7 @@
     "version": "0.0.0",
     "orientation": "portrait",
     "scheme": "guardian",
+    "userInterfaceStyle": "automatic",
     "android": {
       "package": "io.github.krzysztofsikora.guardian",
       "predictiveBackGestureEnabled": false
@@ -13,7 +14,32 @@
       "expo-router",
       ["react-native-ble-plx", { "isBackgroundEnabled": false, "neverForLocation": true }],
       ["expo-build-properties", { "android": { "minSdkVersion": 31 } }],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-font",
+        {
+          "android": {
+            "fonts": [
+              {
+                "fontFamily": "IBM Plex Sans",
+                "fontDefinitions": [
+                  { "path": "./assets/fonts/IBMPlexSans_400Regular.ttf", "weight": 400 },
+                  { "path": "./assets/fonts/IBMPlexSans_500Medium.ttf", "weight": 500 },
+                  { "path": "./assets/fonts/IBMPlexSans_600SemiBold.ttf", "weight": 600 },
+                  { "path": "./assets/fonts/IBMPlexSans_700Bold.ttf", "weight": 700 }
+                ]
+              },
+              {
+                "fontFamily": "IBM Plex Mono",
+                "fontDefinitions": [
+                  { "path": "./assets/fonts/IBMPlexMono_400Regular.ttf", "weight": 400 },
+                  { "path": "./assets/fonts/IBMPlexMono_500Medium.ttf", "weight": 500 }
+                ]
+              }
+            ]
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
