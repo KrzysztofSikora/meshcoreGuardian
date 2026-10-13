@@ -12,12 +12,13 @@ Sources: `context/prd.md`, `context/tech-stack.md`. Order follows risk: the prot
 | S-03 | #4 | sync-contacts | slice | FR-04 | S-02 | M | done |
 | S-04 | #5 | run-diagnostic | slice | FR-05, FR-06, FR-09, FR-10, FR-11 | S-03 | L | done |
 | S-11 | #18 | nearest-repeater | slice | FR-21 | S-04 | M | todo |
+| S-12 | #20 | app-look | slice | NFR-09, NFR-05 | S-11 | M | todo |
 | S-05 | #6 | guest-password | slice | FR-14, FR-05 AC2 | S-04 | S | todo |
 | S-06 | #7 | node-details-telemetry | slice | FR-07, FR-08 | S-04 | M | todo |
 | S-07 | #8 | battery-history | slice | FR-12 | S-06 | M | todo |
 | S-08 | #9 | export-report | slice | FR-13 | S-06 | M | todo |
 | S-09 | #10 | settings | slice | FR-15 | S-04 | M | todo |
-| S-10 | #11 | pilot-release | slice | FR-20, NFR-05, NFR-06 | S-05 … S-09, S-11 | M | todo |
+| S-10 | #11 | pilot-release | slice | FR-20, NFR-05, NFR-06 | S-05 … S-09, S-11, S-12 | M | todo |
 
 ## Items
 
@@ -105,6 +106,19 @@ Sources: `context/prd.md`, `context/tech-stack.md`. Order follows risk: the prot
   - Path and position are stored per node on each sync (new migration); they are "as of the last sync", not live.
 - Size: M
 
+### S-12 App look (`app-look`)
+- Goal: the existing screens look like the mockup in `docs/design/mockup/`, built from a shared theme and components that every later slice reuses. Priority: right after S-11, before S-05 (user, 2026-10-13).
+- Covers: NFR-09; NFR-05 for the restyled screens.
+- Depends on: S-11
+- Acceptance: PRD NFR-09; theme tokens (colour, type, spacing, radius) in one module with light and dark values; shared components: status chip (icon + word, never colour only), node card, nearest-node card, primary/secondary button, segmented filter, bottom navigation (Dashboard, Connect, Settings); Connect, Dashboard, Node, Run and Result screens restyled; no change to texts, logic or stored data; every existing e2e flow still passes; e2e screenshots of each screen in light and dark next to the matching mockup artboard; text contrast ≥ 4.5:1 checked for every token pair used for text.
+- Unknowns: -
+- Decided up front:
+  - The mockup is a design reference; where it and a FR disagree, the FR wins (`docs/design/mockup/README.md`). Copy stays as in `en.json`; the mockup's sample texts are not copied. (user)
+  - Fonts IBM Plex Sans and IBM Plex Mono are bundled with the app (no font download at run time, NFR-02).
+  - Styling with React Native `StyleSheet` and our own theme module; no UI kit dependency unless the plan records why.
+  - Screens added by later slices (S-05 … S-09) use these components; their plans reference the theme.
+- Size: M
+
 ### S-05 Guest password (`guest-password`)
 - Goal: per-node optional guest password, stored only in secure storage and used by the login check.
 - Covers: FR-14, FR-05 AC2.
@@ -153,7 +167,7 @@ Sources: `context/prd.md`, `context/tech-stack.md`. Order follows risk: the prot
 ### S-10 Pilot release (`pilot-release`)
 - Goal: a signed AAB on the Play internal testing track and the non-functional checks for the pilot.
 - Covers: FR-20, NFR-05, NFR-06 (verification), Success criteria (definition of done).
-- Depends on: S-05, S-06, S-07, S-08, S-09, S-11
+- Depends on: S-05, S-06, S-07, S-08, S-09, S-11, S-12
 - Acceptance: PRD FR-20 AC1–AC2; accessibility audit (contrast, labels, 200 % font) recorded; profiler trace with 200 nodes / 1,000 runs; licenses screen including meshcore.js MIT notice; privacy policy text in `docs/privacy-policy.md`.
 - Unknowns: Play Console account readiness (R-05).
 - Decided up front: EAS Build `production` profile → AAB; upload to Play is a human step (credentials never in the repo).

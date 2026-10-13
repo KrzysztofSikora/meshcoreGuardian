@@ -206,6 +206,7 @@ understand what to test next." A missing reply never proves a node is offline.
 - **NFR-06 Performance:** on a mid-range reference phone, dashboard with 200 nodes and history with 1,000 runs scroll at ≥ 55 fps in a profiler trace (list virtualisation); cold start to dashboard ≤ 3 s.
 - **NFR-07 Background:** no BLE activity started while the app is backgrounded.
 - **NFR-08 Testability:** domain rules and protocol decoding run in unit tests without a device, using recorded fixtures.
+- **NFR-09 Visual design:** every screen follows the design reference in `docs/design/mockup/` (theme tokens for colour, type, spacing and radius; light and dark theme; shared components for status chips, node cards, buttons and navigation); where the mockup and a FR disagree, the FR wins.
 
 ## Non-goals
 NG-01 … NG-08 from shape notes: background/24/7 monitoring and outage push; cloud, accounts, sync,
@@ -253,6 +254,7 @@ several companions at once; guaranteed delivery or "online" claims.
 | B-29 §3 pilot success criteria | – | Success criteria | measured in pilot, not in CI |
 | B-30 §15 business validation | – | – | outside the app (NG-03) |
 | B-31 user request 2026-10-12: see the nearest repeater without searching | US-15 | FR-21 | not a map (NG maps) |
+| B-32 user request 2026-10-13: the app looks like the mockup | – | NFR-09 | `docs/design/mockup/` |
 
 ## Open questions
 - Q-01 Firmware versions and protocol revision to support — pinned by FR-00.
