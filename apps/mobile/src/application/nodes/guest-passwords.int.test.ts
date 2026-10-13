@@ -14,6 +14,10 @@ function setup() {
 }
 
 describe("GuestPasswords", () => {
+  it("starts with no password state", () => {
+    expect(setup().passwords.store.getState()).toEqual({ saved: {} });
+  });
+
   it("save writes the value under the node key and lists it in the index (FR-14 AC1)", async () => {
     const { secrets, passwords } = setup();
     expect(await passwords.save(A, "pw-LEAK-CANARY")).toEqual({ ok: true });
@@ -99,7 +103,7 @@ describe("GuestPasswords", () => {
     expect(await passwords.password(A)).toBe("one");
   });
 
-  it.each(["not json", '{"a":1}', "[1,2]"])("an unreadable index %s is an error", async (raw) => {
+  it.each(["not json", '{"a":1}', "[1,2]", '["a",1]'])("an unreadable index %s is an error", async (raw) => {
     const { secrets, passwords } = setup();
     await secrets.set(INDEX, raw);
     expect(await passwords.save(A, "one")).toEqual({ ok: false, reason: "STORAGE_ERROR" });
