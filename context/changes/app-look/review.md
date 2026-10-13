@@ -1,7 +1,7 @@
 # Review: app-look
 
 Verdict: APPROVE
-Gates: typecheck ok, lint ok, unit tests ok (63 files, 1152 tests), e2e ok (18/18 flows, 8m 18s) · Round: 2
+Gates: typecheck ok, lint ok, unit tests ok (63 files, 1152 tests), e2e ok (18/18 flows, 8m 25s) · Round: 3
 
 Invariants from the plan: `git diff main...HEAD -- apps/mobile/src/i18n/en.json` is empty; the
 hex grep `grep -rn "#[0-9a-fA-F]\{6\}" apps/mobile/src --include=*.tsx` finds nothing; every
@@ -24,7 +24,7 @@ evidence image is ≤ 300 KB (largest 245 KB).
 | `apps/mobile/src/components/ui/card.tsx` | done | |
 | `apps/mobile/src/components/ui/segmented.tsx` | done | `filter-*` testIDs kept |
 | `apps/mobile/src/components/ui/bottom-nav.tsx` | done | Round 2: `dismissTo("/")` / `push` / `replace` keep the stack at `[index, tab]` (R1 fixed) |
-| `apps/mobile/src/components/ui/screen.tsx` | done | |
+| `apps/mobile/src/components/ui/screen.tsx` | done | Round 3 (PR #21): scroll content uses `flexGrow: 1` (`scrollBody`), logged `[minor]` deviation |
 | `apps/mobile/src/application/diagnostics/presenter.ts` + test | done | `statusLook`, `connectionLook`, `RunDetails.look` (logged deviations) |
 | `apps/mobile/src/components/run-status.tsx`, `connection-status.tsx` | done | |
 | `apps/mobile/src/components/node-row.tsx` | done | |
@@ -34,7 +34,7 @@ evidence image is ≤ 300 KB (largest 245 KB).
 | `apps/mobile/src/components/placeholder-screen.tsx`, `app/settings.tsx` | done | Logged deviation: `nav` prop added |
 | `apps/mobile/src/app/node/[id].tsx` | done | |
 | `apps/mobile/src/app/run/[id].tsx` | done | |
-| `apps/mobile/e2e/app-look.yaml`, `e2e/lib/look-screens.yaml` | done | Round 2: asserts "Supported" and "Not tested", plus a Settings → Connect → back check for R1 |
+| `apps/mobile/e2e/app-look.yaml`, `e2e/lib/look-screens.yaml` | done | Round 2: asserts "Supported" and "Not tested", plus a Settings → Connect → back check for R1; round 3 adds scroll-to-last-element steps on Node and Run result |
 | `scripts/mockup-shots.sh` | done | |
 | `context/changes/app-look/evidence/*` | done | |
 | `context/test-plan.md` | done | |
@@ -48,7 +48,7 @@ evidence image is ≤ 300 KB (largest 245 KB).
 | Correctness | ok | Round 2: tab taps keep the stack at `[index, tab]`; verified in code and by the new back step in `app-look` |
 | Design | ok | Tokens in one module, components read named roles, the application layer stays free of RN, icons sit behind one switch |
 | Safety | ok | Debug theme route does nothing in BLE builds; no secrets, no new I/O |
-| Tests | ok | Contrast test covers the pressed pair; the look flow asserts status words on every status screen and the back stack |
+| Tests | ok | Contrast test covers the pressed pair; the look flow asserts status words, the back stack and Run result scrolling (Node scroll step is vacuous, R5) |
 | Simplicity | ok | Small components; `useStyles` factories use only the theme, so memoising on the scheme is safe |
 | Plan fidelity | ok | R1 and R2 divergences fixed in round 2 |
 | Agent decisions | ok | D-1 (`react-native-svg`) sits in `icons.tsx` only, D-2/D-3 in `app.json` + `package.json` only, so each swap stays local; D-8 route is fake-only |
@@ -63,6 +63,15 @@ evidence image is ≤ 300 KB (largest 245 KB).
 - R3 fixed (1b6ddd4): `[text, segmentTrack, "secondary button pressed"]` is in `textPairs`.
 - R4 fixed (1b6ddd4): the look flow asserts "Supported" (Connect) and "Not tested" (Dashboard, Node).
 - No new findings.
+
+## Round 3 check
+- PR #21 fix (97e2d41): `screen.tsx:27,48` gives the ScrollView `contentContainerStyle` `flexGrow: 1`
+  instead of `flex: 1`, so content taller than the viewport can grow and scroll; the non-scroll body
+  keeps `flex: 1`. Only `connect.tsx`, `node/[id].tsx` and `run/[id].tsx` pass `scroll`; all three
+  benefit. Logged as a `[minor]` deviation in `plan.md`.
+- The Run result step is a real guard: "Next steps" is the last section and lies below the fold in
+  `look-result-light.png`. The Node step is not (R5).
+- New: R5 (minor).
 
 ## Findings
 ### R1: Bottom navigation pushes a new screen on every tab tap
@@ -125,3 +134,21 @@ evidence image is ≤ 300 KB (largest 245 KB).
 - Effort: small
 - Lesson candidate: no
 - Decision: fixed (1b6ddd4)
+
+### R5: The Node scroll step runs before the screen overflows, so it does not guard the PR #21 fix
+- Severity: minor
+- Where: `apps/mobile/e2e/lib/look-screens.yaml:43-48`
+- Problem: The new `scrollUntilVisible: "Node details will appear here."` runs in the not-tested
+  state, before the diagnostic. In that state the whole Node screen fits on the `guardian` emulator:
+  `evidence/look-node-light.png` (taken by this flow at the same point) shows the placeholder already
+  on screen above empty space. `scrollUntilVisible` passes at once when the element is visible, so
+  with `flex: 1` restored the Node step would still pass. The screen overflows only after a run
+  (`look-node-result-light.png` cuts off at "Use reported role"), which is the state the step skips.
+  The Run result step ("Next steps", below the fold) does catch a regression, since both screens use
+  the same `Screen`, so the fix itself is covered; the Node step's comment claims more than it checks.
+- Fix: move the Node scroll pair after `takeScreenshot: look-node-result-${THEME}` (scroll down to
+  "Node details will appear here.", then up to "View details" before tapping it), and drop the
+  pre-run pair.
+- Effort: small
+- Lesson candidate: When an e2e step asserts that a screen scrolls, run it in a state where the target is below the fold (check the screenshot); `scrollUntilVisible` passes without scrolling when the element is already visible.
+- Decision: open
