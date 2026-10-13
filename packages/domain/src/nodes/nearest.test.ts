@@ -31,12 +31,18 @@ function node(overrides: Partial<Node> = {}): Node {
 const keys = (nodes: readonly { node: Node }[]) => nodes.map((r) => r.node.publicKey);
 
 describe("rankRepeaters candidates", () => {
-  it("keeps contact repeaters only", () => {
+  it("keeps contact repeaters and room servers only", () => {
     const rep = node();
     const room = node({ reportedRole: "room_server" });
     const chat = node({ reportedRole: "chat" });
     const gone = node({ inContacts: false });
-    expect(keys(rankRepeaters([room, chat, gone, rep], null))).toEqual([rep.publicKey]);
+    expect(keys(rankRepeaters([room, chat, gone, rep], null))).toEqual([rep.publicKey, room.publicKey]);
+  });
+
+  it("ranks a room server by the same rules as a repeater", () => {
+    const rep = node({ pathHops: 2 });
+    const room = node({ reportedRole: "room_server", pathHops: 0 });
+    expect(keys(rankRepeaters([rep, room], null))).toEqual([room.publicKey, rep.publicKey]);
   });
 
   it("counts a user role override in both directions", () => {

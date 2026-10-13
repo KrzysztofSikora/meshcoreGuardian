@@ -23,7 +23,7 @@ function byNullLast(a: number | null, b: number | null, sign: 1 | -1): number {
 }
 
 /**
- * Contact repeaters, best first: fewest known hops, then shortest distance from the companion,
+ * Contact repeaters and room servers (they rank by the same rules), best first: fewest known hops, then shortest distance from the companion,
  * then most recently heard, then public key. Unknown values sort last. `companionKey` restricts the
  * list to the nodes whose path came from that companion, because hops from another companion say
  * nothing about this one (plan-review 1); a partial sync from the same companion keeps the rest.
@@ -37,7 +37,7 @@ export function rankRepeaters(
     .filter(
       (n) =>
         n.inContacts &&
-        effectiveRole(n) === "repeater" &&
+        (effectiveRole(n) === "repeater" || effectiveRole(n) === "room_server") &&
         (companionKey === null || n.pathCompanionKey === companionKey),
     )
     .map((node): RankedRepeater => {

@@ -1,11 +1,12 @@
 import {
+  effectiveRole,
   nearestRepeaters,
   type Node,
   type RankedRepeater,
   type SyncOrigin,
 } from "@guardian/domain";
 
-import { lastHeardText, nameText, type Text } from "./presenter";
+import { lastHeardText, nameText, roleText, type Text } from "./presenter";
 
 /** A compass word is a catalog key, so a distance line carries it as a nested `Text`. */
 export interface NearestText {
@@ -16,6 +17,7 @@ export interface NearestText {
 export interface CandidateModel {
   publicKey: string;
   name: Text;
+  role: Text;
   path: Text;
   position: NearestText;
   lastHeard: Text;
@@ -58,7 +60,7 @@ function positionText(ranked: RankedRepeater, companionKnown: boolean): NearestT
 }
 
 /**
- * The Dashboard's "Nearest repeater" card: a pure function of stored contacts and the sync origin,
+ * The Dashboard's "Nearest node" card: a pure function of stored contacts and the sync origin,
  * so it never costs a radio request. Every value is "as of the last contact sync" (FR-21 AC4).
  */
 export function nearestCard(
@@ -78,6 +80,7 @@ export function nearestCard(
   const model = (ranked: RankedRepeater): CandidateModel => ({
     publicKey: ranked.node.publicKey,
     name: nameText(ranked.node),
+    role: roleText(effectiveRole(ranked.node)),
     path: pathText(ranked.hops),
     position: positionText(ranked, companion !== null),
     lastHeard: lastHeardText(ranked.node, formatTime),

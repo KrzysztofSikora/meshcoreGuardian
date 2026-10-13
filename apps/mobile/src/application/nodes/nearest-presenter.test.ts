@@ -53,13 +53,23 @@ describe("formatDistance (D-7)", () => {
 });
 
 describe("nearestCard", () => {
-  it("is empty without a repeater and points at Sync contacts (AC5)", () => {
+  it("is empty without a repeater or room server and points at Sync contacts (AC5)", () => {
     const card = nearestCard([node({ publicKey: "a", reportedRole: "chat", reportedType: 1 })], null, fmt);
     expect(card).toEqual({
       kind: "empty",
       text: { key: "nearest.empty" },
       syncHint: { key: "nearest.syncHint" },
     });
+  });
+
+  it("shows a room server with its own role, never as a repeater", () => {
+    const room = node({ publicKey: "a", reportedRole: "room_server", reportedType: 3, pathHops: 0 });
+    const rep = node({ publicKey: "b", pathHops: 1 });
+    const card = nearestCard([rep, room], null, fmt);
+    if (card.kind !== "found") throw new Error("expected found");
+    expect(card.nearest.publicKey).toBe("a");
+    expect(card.nearest.role).toEqual({ key: "roles.room_server" });
+    expect(card.others[0]?.role).toEqual({ key: "roles.repeater" });
   });
 
   it("names path, position, last heard and as-of for the nearest (AC1, AC4)", () => {

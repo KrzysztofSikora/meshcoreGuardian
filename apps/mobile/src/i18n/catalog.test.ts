@@ -142,7 +142,7 @@ describe("en catalog", () => {
       const texts =
         card.kind === "empty"
           ? [card.text, card.syncHint]
-          : [card.asOf, ...[card.nearest, ...card.others].flatMap((c) => [c.name, c.path, c.position, c.lastHeard])];
+          : [card.asOf, ...[card.nearest, ...card.others].flatMap((c) => [c.name, c.role, c.path, c.position, c.lastHeard])];
       for (const text of texts) {
         if (text === null) continue;
         expect(i18n.exists(text.key, { count: 2 }), text.key).toBe(true);

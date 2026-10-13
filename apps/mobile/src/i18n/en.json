@@ -417,8 +417,8 @@
     }
   },
   "nearest": {
-    "heading": "Nearest repeater",
-    "empty": "No repeater in the companion's contacts.",
+    "heading": "Nearest node",
+    "empty": "No repeater or room server in the companion's contacts.",
     "syncHint": "Use Sync contacts to update the list.",
     "asOf": "As of the last contact sync, {{time}}",
     "path": {

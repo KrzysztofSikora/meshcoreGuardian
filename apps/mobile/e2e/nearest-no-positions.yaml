@@ -5,8 +5,8 @@ appId: io.github.krzysztofsikora.guardian
 - launchApp:
     clearState: true
 - assertVisible: "Known nodes will appear here."
-- assertVisible: "Nearest repeater"
-- assertVisible: "No repeater in the companion's contacts."
+- assertVisible: "Nearest node"
+- assertVisible: "No repeater or room server in the companion's contacts."
 - assertVisible: "Use Sync contacts to update the list."
 - takeScreenshot: nearest-empty
 - openLink: guardian://debug/scenario/connect-ok

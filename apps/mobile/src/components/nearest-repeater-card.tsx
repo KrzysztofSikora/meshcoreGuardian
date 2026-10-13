@@ -33,8 +33,8 @@ function nt(t: T, text: NearestText): string {
 }
 
 /**
- * The nearest contact repeater by last known path, then advertised distance (FR-21). Everything
- * here comes from the last contact sync; nothing says the repeater is in range or online (AC4).
+ * The nearest contact repeater or room server by last known path, then advertised distance (FR-21). Everything
+ * here comes from the last contact sync; nothing says the node is in range or online (AC4).
  */
 export function NearestRepeaterCard() {
   const { t } = useTranslation();
@@ -76,7 +76,11 @@ export function NearestRepeaterCard() {
       <Text accessibilityRole="header" style={styles.heading}>
         {t("nearest.heading")}
       </Text>
-      <Candidate model={nearest} t={t} large />
+      <Link href={{ pathname: "/node/[id]", params: { id: nearest.publicKey } }} asChild>
+        <Pressable accessibilityRole="button">
+          <Candidate model={nearest} t={t} large />
+        </Pressable>
+      </Link>
       {card.asOf !== null && <Text>{tr(t, card.asOf)}</Text>}
       <Button
         title={t("diagnostic.run")}
@@ -121,6 +125,7 @@ function Candidate({ model, t, large }: { model: CandidateModel; t: T; large?: b
   return (
     <View style={styles.body}>
       <Text style={large ? styles.name : styles.otherName}>{tr(t, model.name)}</Text>
+      <Text>{tr(t, model.role)}</Text>
       <Text>{tr(t, model.path)}</Text>
       <Text>{nt(t, model.position)}</Text>
       {large && <Text>{tr(t, model.lastHeard)}</Text>}
