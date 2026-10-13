@@ -1,7 +1,7 @@
 # Review: app-look
 
-Verdict: APPROVE WITH FOLLOW-UPS
-Gates: typecheck ok, lint ok, unit tests ok (63 files, 1150 tests), e2e ok (18/18 flows, 8m 14s) · Round: 1
+Verdict: APPROVE
+Gates: typecheck ok, lint ok, unit tests ok (63 files, 1152 tests), e2e ok (18/18 flows, 8m 18s) · Round: 2
 
 Invariants from the plan: `git diff main...HEAD -- apps/mobile/src/i18n/en.json` is empty; the
 hex grep `grep -rn "#[0-9a-fA-F]\{6\}" apps/mobile/src --include=*.tsx` finds nothing; every
@@ -13,7 +13,7 @@ evidence image is ≤ 300 KB (largest 245 KB).
 | `apps/mobile/package.json`, `pnpm-lock.yaml` | done | `expo-font`, `expo-system-ui`, `react-native-svg` (D-1, D-2, D-3) |
 | `apps/mobile/app.json` | done | `userInterfaceStyle: automatic`, `expo-font` plugin with both families |
 | `apps/mobile/assets/fonts/*` (6 TTF, `OFL.txt`, `README.md`) | done | |
-| `apps/mobile/src/theme/tokens.ts` | done | Light/dark tokens, `TEXT_PAIRS`; one pair in use is missing (R3) |
+| `apps/mobile/src/theme/tokens.ts` | done | Light/dark tokens, `TEXT_PAIRS`; round 2 adds the pressed secondary pair (R3 fixed) |
 | `apps/mobile/src/theme/contrast.ts`, `contrast.test.ts` | done | |
 | `apps/mobile/src/theme/theme-provider.tsx` | done | |
 | `apps/mobile/src/app/_layout.tsx` | done | Themed Stack, top-level headers hidden (D-6, logged deviation on timing) |
@@ -23,34 +23,46 @@ evidence image is ≤ 300 KB (largest 245 KB).
 | `apps/mobile/src/components/ui/button.tsx` | done | |
 | `apps/mobile/src/components/ui/card.tsx` | done | |
 | `apps/mobile/src/components/ui/segmented.tsx` | done | `filter-*` testIDs kept |
-| `apps/mobile/src/components/ui/bottom-nav.tsx` | diverged | D-5 says the back behaviour stays the same; `router.navigate` stacks a new screen per tab tap (R1) |
+| `apps/mobile/src/components/ui/bottom-nav.tsx` | done | Round 2: `dismissTo("/")` / `push` / `replace` keep the stack at `[index, tab]` (R1 fixed) |
 | `apps/mobile/src/components/ui/screen.tsx` | done | |
 | `apps/mobile/src/application/diagnostics/presenter.ts` + test | done | `statusLook`, `connectionLook`, `RunDetails.look` (logged deviations) |
 | `apps/mobile/src/components/run-status.tsx`, `connection-status.tsx` | done | |
 | `apps/mobile/src/components/node-row.tsx` | done | |
 | `apps/mobile/src/components/nearest-repeater-card.tsx` | done | |
 | `apps/mobile/src/app/index.tsx` | done | |
-| `apps/mobile/src/app/connect.tsx` | diverged | Plan: failure detail and link-lost note as `warn` notes; code uses the `info` note (R2) |
+| `apps/mobile/src/app/connect.tsx` | done | Round 2: failure detail and link-lost note use `banner.warn` (R2 fixed) |
 | `apps/mobile/src/components/placeholder-screen.tsx`, `app/settings.tsx` | done | Logged deviation: `nav` prop added |
 | `apps/mobile/src/app/node/[id].tsx` | done | |
 | `apps/mobile/src/app/run/[id].tsx` | done | |
-| `apps/mobile/e2e/app-look.yaml`, `e2e/lib/look-screens.yaml` | diverged | Plan: "asserts the status words on each screen"; several screens assert none (R4) |
+| `apps/mobile/e2e/app-look.yaml`, `e2e/lib/look-screens.yaml` | done | Round 2: asserts "Supported" and "Not tested", plus a Settings → Connect → back check for R1 |
 | `scripts/mockup-shots.sh` | done | |
 | `context/changes/app-look/evidence/*` | done | |
 | `context/test-plan.md` | done | |
 | `context/roadmap.md` | done | Status line only |
+| `context/lessons.md` | unplanned | Round 2: R1 lesson proposed by `/fix-review` (status `proposed`), expected |
 | `context/changes/app-look/{plan,plan-review,mutation}.md` | done | Workflow artifacts |
 
 ## Areas
 | Area | Result | One-line reason |
 |------|--------|-----------------|
-| Correctness | concern | Bottom nav adds a new stack entry on every tab tap, so Android back walks back through tabs (R1) |
+| Correctness | ok | Round 2: tab taps keep the stack at `[index, tab]`; verified in code and by the new back step in `app-look` |
 | Design | ok | Tokens in one module, components read named roles, the application layer stays free of RN, icons sit behind one switch |
 | Safety | ok | Debug theme route does nothing in BLE builds; no secrets, no new I/O |
-| Tests | concern | The contrast test and D-9 tables are solid; the look flow asserts fewer status words than the plan and the test-plan claim (R4) |
+| Tests | ok | Contrast test covers the pressed pair; the look flow asserts status words on every status screen and the back stack |
 | Simplicity | ok | Small components; `useStyles` factories use only the theme, so memoising on the scheme is safe |
-| Plan fidelity | concern | Two silent divergences (R1, R2) |
+| Plan fidelity | ok | R1 and R2 divergences fixed in round 2 |
 | Agent decisions | ok | D-1 (`react-native-svg`) sits in `icons.tsx` only, D-2/D-3 in `app.json` + `package.json` only, so each swap stays local; D-8 route is fake-only |
+
+## Round 2 check
+- R1 fixed (c804c5e): `bottom-nav.tsx:44-48` uses `dismissTo("/")` for Dashboard, `push` from the
+  Dashboard and `replace` between Connect and Settings. The new tail of `look-screens.yaml`
+  (Settings → Connect → `back` → Dashboard) passes in both schemes.
+- R2 fixed (1b6ddd4): `Note tone="warn"` uses `banner.warn` (already in `TEXT_PAIRS`) for the
+  failure detail and the link-lost note. No evidence screenshot shows these notes, so none needs
+  re-taking.
+- R3 fixed (1b6ddd4): `[text, segmentTrack, "secondary button pressed"]` is in `textPairs`.
+- R4 fixed (1b6ddd4): the look flow asserts "Supported" (Connect) and "Not tested" (Dashboard, Node).
+- No new findings.
 
 ## Findings
 ### R1: Bottom navigation pushes a new screen on every tab tap
