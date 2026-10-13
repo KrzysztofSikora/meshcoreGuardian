@@ -213,7 +213,9 @@ function GuestPasswordCard({ publicKey }: { publicKey: string }) {
         disabled={input === ""}
         onPress={save}
       />
-      {saved === "yes" && <AppButton title={t("password.remove")} variant="secondary" onPress={remove} />}
+      {(saved === "yes" || saved === "error") && (
+        <AppButton title={t("password.remove")} variant="secondary" onPress={remove} />
+      )}
       {problem !== null && (
         <Text accessibilityRole="alert" style={[styles.body, { color: colors.danger }]}>
           {tr(t, passwordErrorText(problem))}
