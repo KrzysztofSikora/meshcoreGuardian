@@ -21,6 +21,8 @@ describe("contrastRatio", () => {
   it("rejects colours that are not #RRGGBB", () => {
     expect(() => contrastRatio("#fff", "#000000")).toThrow();
     expect(() => contrastRatio("white", "#000000")).toThrow();
+    expect(() => contrastRatio("#FFFFFFAA", "#000000")).toThrow();
+    expect(() => contrastRatio("x#FFFFFF", "#000000")).toThrow(/Expected #RRGGBB, got x#FFFFFF/);
   });
 });
 
