@@ -1,9 +1,18 @@
 # Review: nearest-repeater
 
-Verdict: APPROVE
-Gates: typecheck ok, lint ok, unit tests ok, e2e ok (17/17), mutation `nearest.ts` ok (83.5 %, 13 survivors on lines 22/49/59, as decided in `mutation.md`), mutation `contacts.ts` ok (96.8 %, 1 survivor, as decided) · Round: 2
+Verdict: APPROVE WITH FOLLOW-UPS
+Gates: typecheck ok, lint ok, unit tests ok, e2e ok (17/17), mutation `nearest.ts` ok (84.5 %, 71 killed / 13 survived, all on lines 22/49/59 as decided in `mutation.md`; the changed candidate filter on line 40 has no survivor) · Round: 3
 
-Round 1 (gates then: e2e 16/17): R1 blocker, R2 major, R3 minor. Round 2 re-checks those fixes and the new `path_companion_key` design.
+Round 1 (gates then: e2e 16/17): R1 blocker, R2 major, R3 minor. Round 2 re-checked those fixes and the new `path_companion_key` design (R4, R5). Round 3 reviews 945f395, which applies the PR #19 decision on D-3 (room servers are candidates, the card shows the role, heading "Nearest node").
+
+## Round 3 re-check (945f395, PR #19 D-3)
+| Asked at PR #19 | Implemented | Verified |
+|-----------------|-------------|----------|
+| Candidates: effective role repeater or room server | `nearest.ts:40` | yes: domain tests "keeps contact repeaters and room servers only", "ranks a room server by the same rules"; user role override test still passes |
+| Same ranking rules | unchanged sort | yes |
+| Card shows the node's role | `CandidateModel.role` via `roleText(effectiveRole(node))`, rendered in `Candidate` | yes in unit tests (presenter, catalog); not shown in any e2e flow or screenshot (R6) |
+| Heading fits both roles | `nearest.heading` "Nearest node", `nearest.empty` "No repeater or room server …" | yes; e2e flows updated and pass. Evidence, PRD, plan text and PR body still say "Nearest repeater" (R6, R7) |
+| D-1, D-2, rest unchanged | | yes. One unrequested addition: the nearest candidate became a link (R8) |
 
 ## Round 2 re-check
 | Finding | Fix | Verified |
@@ -40,17 +49,20 @@ Round 1 (gates then: e2e 16/17): R1 blocker, R2 major, R3 minor. Round 2 re-chec
 | `context/roadmap.md` | unplanned | status line only |
 | `context/lessons.md` | unplanned | two lessons proposed from R1 and R2 |
 | `apps/mobile/e2e/diag-responded.yaml` | unplanned | R1 fix |
+| D-3 change (945f395): `nearest.ts`, `nearest-presenter.ts`, card, `en.json`, catalog/domain/presenter tests, both `nearest-*.yaml` | done | matches the PR #19 decision and the updated D-3 row |
+| `context/changes/nearest-repeater/evidence/*.png` (round 3) | diverged | not re-taken after 945f395: show "Nearest repeater" and no role line (R6) |
+| `apps/mobile/src/components/nearest-repeater-card.tsx:79-83` | unplanned | nearest candidate wrapped in a `Link` to `/node/[id]`; not asked at PR #19, not logged (R8) |
 
 ## Areas
 | Area | Result | One-line reason |
 |------|--------|-----------------|
-| Correctness | ok | R2 fixed. A row kept from an earlier same-companion sync is labelled with the last sync's time (R4, minor) |
+| Correctness | ok | R2, R4 fixed; round 3 D-3 change is correct and tested at domain and presenter level |
 | Design | ok | layers respected: domain is import-free, card reads stored state only, no extra radio request |
 | Safety | ok | positions validated at decode (`advertisedPosition`), by SQL CHECKs and by Zod on read; no secrets; privacy export risk logged as `[FOLLOW-UP]` for S-08 |
-| Tests | ok | round 2: e2e 17/17; same-companion partial-sync tests added at domain, presenter and storage level. Round 1: behaviour-level ranking, presenter, storage and controller tests, the disconnect-during-fetch lesson test and the AC6 frame assertion are good. Mutation re-run on `nearest.ts`: 13 survivors as recorded; the table says line 49 "x6" but there are 7, all the same redundant-guard equivalence, so the decision holds |
+| Tests | concern | round 3: no e2e flow or scenario contains a ranked room server, so the role line is only unit-tested (R6). Round 2: e2e 17/17; same-companion partial-sync tests added at domain, presenter and storage level. Round 1: behaviour-level ranking, presenter, storage and controller tests, the disconnect-during-fetch lesson test and the AC6 frame assertion are good. Mutation re-run on `nearest.ts`: 13 survivors as recorded; the table says line 49 "x6" but there are 7, all the same redundant-guard equivalence, so the decision holds |
 | Simplicity | ok | small, cohesive modules |
-| Plan fidelity | ok | every planned file changed; divergences logged |
-| Agent decisions | concern | the R2 `[REVIEW]` deviation replaces the `syncedAt` filter and is logged; D-1's row still describes the old column set (R5, minor) |
+| Plan fidelity | concern | evidence screenshots, PRD FR-21, plan Goal/Design and PR body describe the pre-PR-#19 card (R6, R7); unlogged link on the nearest candidate (R8) |
+| Agent decisions | ok | D-1 updated (R5); D-3 row records the user's PR #19 choice and is implemented in one place (`rankRepeaters` filter) |
 
 ## Findings
 ### R1: `diag-responded` e2e flow fails because the card pushes Room K's status below the fold
@@ -97,3 +109,30 @@ Round 1 (gates then: e2e 16/17): R1 blocker, R2 major, R3 minor. Round 2 re-chec
 - Effort: small
 - Lesson candidate: no
 - Decision: fixed (plan.md D-1 row and superseded note updated, no code)
+
+### R6: Evidence screenshots and the fake scenario predate the PR #19 change, so the human check reviews a card that no longer exists
+- Severity: major
+- Where: `context/changes/nearest-repeater/evidence/nearest-with-positions.png`, `nearest-without-positions.png`, `nearest-empty.png`; `packages/meshcore-adapter/src/transport/nearest-script.ts:79-87`
+- Problem: the evidence PNGs were last committed in 16ab227; 945f395 did not touch them. `nearest-with-positions.png` shows the heading "Nearest repeater" and no role line under the name. The plan's first human check ("wording reads as last known/advertised … the card does not crowd the list") points the person at these files, so they would approve old wording and a card one line shorter per candidate than the shipped one. Also, the `nearest` scenario edits only seven repeaters; no room server gets a path or position, so neither the e2e flows nor any screenshot ever show a room server ranked on the card or its "Room server" role, which is the behaviour the PR #19 decision asked for ("must never call a room server a repeater"). `nearest-positions.yaml` asserts only `"Repeater"`.
+- Fix: add one recorded room server (e.g. Room K) to `NEAREST_CONTACT_EDITS` with a known path so it ranks inside the first six (update `nearest-script.int.test.ts`), assert its name and "Room server" in `nearest-positions.yaml` (inside "Other nearby" or as nearest), run `pnpm e2e`, and copy the three new screenshots into `evidence/` (< 300 KB each).
+- Effort: small
+- Lesson candidate: When a PR decision changes visible text or layout, re-take every evidence screenshot that shows it in the same commit
+- Decision: open
+
+### R7: PRD FR-21, the plan's Goal/Design and the PR body still describe a repeaters-only "Nearest repeater" card
+- Severity: minor
+- Where: `context/prd.md:163-168`, `context/changes/nearest-repeater/plan.md:4-10,146,149`, `context/changes/nearest-repeater/pr-body.md:1-3`
+- Problem: after 945f395 the code ranks room servers and the heading is "Nearest node", but FR-21 AC1 still requires a "Nearest repeater" card naming one repeater and AC5 says "no repeater"; the plan Goal and Design (`nearest.empty` "No repeater in the companion's contacts.", header "Nearest repeater") and the PR body title and summary say the same. The D-3 row is updated and the user made the decision, but no `[REVIEW]` deviation records that the PRD text is now overruled (lesson "log a PRD or roadmap conflict as a `[REVIEW]` deviation"), so the artifacts and the code disagree.
+- Fix: update FR-21 (title "Nearest node", AC1/AC2/AC5 "repeater or room server", role shown) citing PR #19, or log a `[REVIEW]` deviation pointing at D-3; update the plan Goal/Design texts and regenerate the PR body.
+- Effort: small
+- Lesson candidate: no
+- Decision: open
+
+### R8: The nearest candidate became a link to the node screen without a request, deviation or test
+- Severity: minor
+- Where: `apps/mobile/src/components/nearest-repeater-card.tsx:79-83`
+- Problem: 945f395 wraps the nearest `Candidate` in `<Link …><Pressable accessibilityRole="button">`. PR #19 asked only for room servers, the role line and the heading; D-6/D-9 give links only to "Other nearby" entries. The change is not logged under *Deviations*, and no flow taps it. It is harmless (same target as the Run diagnostic navigation), but it is unplanned behaviour the person did not see in the plan.
+- Fix: log it as a `[minor]` deviation (and optionally tap the name in `nearest-positions.yaml` and assert the node screen), or remove the wrapper.
+- Effort: small
+- Lesson candidate: no
+- Decision: open
