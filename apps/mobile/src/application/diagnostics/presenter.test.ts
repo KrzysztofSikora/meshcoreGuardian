@@ -11,7 +11,15 @@ import {
 import { tr } from "../../components/translate";
 import { i18n } from "../../i18n";
 import type { Text } from "../nodes/presenter";
-import { connectionLook, progressText, runButton, runDetails, statusLook, statusText } from "./presenter";
+import {
+  adminSessionLimitation,
+  connectionLook,
+  progressText,
+  runButton,
+  runDetails,
+  statusLook,
+  statusText,
+} from "./presenter";
 
 const sayText = (text: Text) => tr(i18n.t, text);
 
@@ -298,26 +306,51 @@ describe("runDetails", () => {
     expect(details.checks[1]!.evidence.map(say)).toEqual(["No telemetry values"]);
   });
 
-  it("renders login evidence", () => {
+  const login = (
+    permissions: number,
+    aclPermissions: number | null,
+    extra: { passwordSent?: boolean; firmwareLevel?: number | null } = {},
+  ) =>
+    check({
+      kind: "login",
+      evidence: { kind: "login", permissions, aclPermissions, firmwareLevel: null, ...extra },
+    });
+
+  it("renders the session role from the ACL byte, not the raw value", () => {
     const details = runDetails(
       run({
         checks: [
           check({
             kind: "login",
-            evidence: { kind: "login", permissions: 1, aclPermissions: null, firmwareLevel: 2 },
+            evidence: { kind: "login", permissions: 1, aclPermissions: 3, firmwareLevel: 2 },
           }),
-          check({
-            kind: "login",
-            evidence: { kind: "login", permissions: 0, aclPermissions: null, firmwareLevel: null },
-          }),
+          login(0, 0),
+          login(0, 1),
+          login(0, 2),
+          login(0, null),
         ],
       }),
     );
-    expect(details.checks[0]!.evidence.map(say)).toEqual([
-      "Permissions: 1",
-      "Node firmware level: 2",
+    expect(details.checks.map((c) => c.evidence.map(say))).toEqual([
+      ["Session role: administrator", "Node firmware level: 2"],
+      ["Session role: guest"],
+      ["Session role: read-only"],
+      ["Session role: read-write"],
+      ["Session role: unknown"],
     ]);
-    expect(details.checks[1]!.evidence.map(say)).toEqual(["Permissions: 0"]);
+  });
+
+  it("adds a limitation for an admin session, worded by where the rights came from", () => {
+    const limitation = (passwordSent?: boolean) =>
+      adminSessionLimitation({
+        checks: [login(1, 3, passwordSent === undefined ? {} : { passwordSent })],
+      });
+    expect(say(limitation(true)!)).toMatch(/password you saved gives administrator rights/);
+    expect(say(limitation(false)!)).toMatch(/from its own access list/);
+    expect(say(limitation()!)).toMatch(/administrator session/);
+    expect(adminSessionLimitation({ checks: [login(0, 0)] })).toBeNull();
+    const details = runDetails(run({ checks: [login(1, 3, { passwordSent: false })] }));
+    expect(details.limitations.map(say).join(" ")).toMatch(/access list/);
   });
 
   it("falls back to a neutral text for a result the app does not know", () => {

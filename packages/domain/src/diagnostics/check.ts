@@ -14,6 +14,8 @@ export type CheckEvidence =
       permissions: number;
       aclPermissions: number | null;
       firmwareLevel: number | null;
+      /** Whether a non-empty password was sent with the login; absent in runs stored before S-05. */
+      passwordSent?: boolean | undefined;
     }
   | {
       kind: "status";
@@ -59,8 +61,7 @@ export interface CheckOutcome {
 }
 
 export type CheckPlan =
-  | { run: CheckKind[]; skipped: CheckOutcome[] }
-  | { unsupported: CheckOutcome };
+  { run: CheckKind[]; skipped: CheckOutcome[] } | { unsupported: CheckOutcome };
 
 function unsupportedCheck(kind: CheckKind): CheckOutcome {
   return {

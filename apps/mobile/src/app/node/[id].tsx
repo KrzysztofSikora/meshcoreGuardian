@@ -13,14 +13,19 @@ import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
 import {
+  adminSessionLimitation,
   progressText,
   runButton,
   runDetails,
   statusOf,
 } from "../../application/diagnostics/presenter";
 import {
+  adminDiscardedText,
   lastHeardText,
   nameText,
+  passwordErrorText,
+  passwordStatusText,
+  type PasswordProblem,
   reportedAsText,
   reportedNameText,
   roleText,
@@ -35,7 +40,7 @@ import { useNow } from "../../components/use-now";
 import { container } from "../../composition";
 import { useStyles, useTheme } from "../../theme/theme-provider";
 
-const { nodes: controller, runs, session } = container;
+const { nodes: controller, runs, session, passwords } = container;
 
 const COUNTDOWN_TICK_MS = 1000;
 
@@ -148,12 +153,84 @@ function NodeDetails({ node }: { node: Node }) {
           onPress={() => void controller.pin(node.publicKey).then(report)}
         />
       )}
+      <GuestPasswordCard publicKey={node.publicKey} />
       {error !== null && (
         <Text accessibilityRole="alert" style={[styles.body, { color: colors.danger }]}>
           {t(error === "nodes.labelTooLong" ? "nodes.labelTooLong" : "nodes.saveFailed")}
         </Text>
       )}
     </View>
+  );
+}
+
+function GuestPasswordCard({ publicKey }: { publicKey: string }) {
+  const { t } = useTranslation();
+  const [input, setInput] = useState("");
+  const [problem, setProblem] = useState<PasswordProblem | null>(null);
+  const { saved: savedByNode, adminDiscarded } = useStore(passwords.store);
+  const saved = savedByNode[publicKey];
+  const adminNotice = adminDiscardedText(adminDiscarded[publicKey]);
+  const { colors } = useTheme();
+  const styles = useNodeStyles();
+  const status = passwordStatusText(saved);
+
+  useEffect(() => {
+    void passwords.load(publicKey);
+  }, [publicKey]);
+
+  const save = () =>
+    void passwords.save(publicKey, input).then((result) => {
+      if (result.ok) {
+        setInput("");
+        return setProblem(null);
+      }
+      setProblem(result.reason);
+    });
+  const remove = () =>
+    void passwords.remove(publicKey).then((result) => setProblem(result.ok ? null : "REMOVE_FAILED"));
+
+  return (
+    <Card>
+      <SectionHeading>{t("password.heading")}</SectionHeading>
+      {status !== null && (
+        <Text
+          accessibilityRole={saved === "error" ? "alert" : undefined}
+          style={[styles.body, { color: saved === "error" ? colors.danger : colors.text }]}
+        >
+          {tr(t, status)}
+        </Text>
+      )}
+      {adminNotice !== null && (
+        <Text accessibilityRole="alert" style={[styles.body, { color: colors.danger }]}>
+          {tr(t, adminNotice)}
+        </Text>
+      )}
+      <TextInput
+        testID="password-input"
+        accessibilityLabel={t("password.heading")}
+        style={[styles.input, { color: colors.text, borderColor: colors.borderStrong, backgroundColor: colors.ground }]}
+        value={input}
+        onChangeText={setInput}
+        secureTextEntry
+        autoCapitalize="none"
+        autoCorrect={false}
+      />
+      <Muted>{t("password.help")}</Muted>
+      <AppButton
+        title={t("password.save")}
+        variant="secondary"
+        disabled={input === ""}
+        onPress={save}
+      />
+      {(saved === "yes" || saved === "error") && (
+        <AppButton title={t("password.remove")} variant="secondary" onPress={remove} />
+      )}
+      {problem !== null && (
+        <Text accessibilityRole="alert" style={[styles.body, { color: colors.danger }]}>
+          {tr(t, passwordErrorText(problem))}
+        </Text>
+      )}
+    </Card>
   );
 }
 
@@ -175,6 +252,7 @@ function RunPanel({ node }: { node: Node }) {
   });
   const refusal = state.refusal?.publicKey === node.publicKey ? state.refusal.text : null;
   const details = latest === undefined ? null : runDetails(latest);
+  const adminLimitation = latest === undefined ? null : adminSessionLimitation(latest);
   const unsaved = state.last?.publicKey === node.publicKey && state.last.runId === null;
 
   return (
@@ -219,6 +297,7 @@ function RunPanel({ node }: { node: Node }) {
         <View style={styles.section}>
           <Text style={[styles.strong, { color: colors.text }]}>{tr(t, details.summary)}</Text>
           <Text style={[styles.body, { color: colors.text }]}>{tr(t, details.explanation)}</Text>
+          {adminLimitation !== null && <Muted>{tr(t, adminLimitation)}</Muted>}
           {unsaved && <Muted>{t("diagnostic.notSaved")}</Muted>}
           {latest.id !== undefined && (
             <Link href={{ pathname: "/run/[id]", params: { id: String(latest.id) } }} asChild>

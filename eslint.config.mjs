@@ -94,6 +94,18 @@ export default defineConfig([
   layer(["packages/storage/**"], [...storageForbidden, forbid.nodeSqlite]),
   layer(["packages/storage/test/**"], storageForbidden),
   layer(["apps/mobile/**"], [forbid.deepImport, forbid.meshcoreJs, forbid.nodeSqlite]),
+  // Mobile unit tests may open a file-backed test database (plan D-9); app code may not.
+  layer(
+    ["apps/mobile/**/*.test.ts"],
+    [
+      {
+        regex: "^@guardian/(?!storage/testing$)[^/]+/.+",
+        message: "Import workspace packages through their entry point only.",
+      },
+      forbid.meshcoreJs,
+      forbid.nodeSqlite,
+    ],
+  ),
   // Dev tools (tools/capture) reach meshcore.js only through the adapter.
   layer(
     ["tools/**"],

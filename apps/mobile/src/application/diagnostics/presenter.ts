@@ -1,8 +1,10 @@
 import {
   actionAvailability,
   ageBucket,
+  loginEvidence,
   lastRunStatus,
   ruleFor,
+  sessionRole,
   type Capabilities,
   type CheckEvidence,
   type CheckOutcome,
@@ -155,7 +157,7 @@ function evidenceLines(evidence: CheckEvidence | null): Text[] {
   switch (evidence.kind) {
     case "login":
       return [
-        text("diagnostic.evidence.login.permissions", { value: evidence.permissions }),
+        text(`diagnostic.evidence.login.role.${sessionRole(evidence)}`),
         ...(evidence.firmwareLevel === null
           ? []
           : [text("diagnostic.evidence.login.firmwareLevel", { value: evidence.firmwareLevel })]),
@@ -205,6 +207,18 @@ function evidenceLines(evidence: CheckEvidence | null): Text[] {
   }
 }
 
+/**
+ * The admin-session limitation (PR #22): the node replied, but the session was an admin one.
+ * Guardian takes only a guest password and sent only read requests either way.
+ */
+export function adminSessionLimitation(run: Pick<DiagnosticRun, "checks">): Text | null {
+  const login = loginEvidence(run.checks);
+  if (login === null || sessionRole(login) !== "admin") return null;
+  const source =
+    login.passwordSent === true ? "password" : login.passwordSent === false ? "acl" : "unknown";
+  return text(`diagnostic.limitation.adminSession.${source}`);
+}
+
 function checkDetails(check: CheckOutcome): CheckDetails {
   return {
     name: text(`diagnostic.check.${check.kind}`),
@@ -224,6 +238,7 @@ function checkDetails(check: CheckOutcome): CheckDetails {
 export function runDetails(run: DiagnosticRun): RunDetails {
   const rule = ruleFor(run.result, run.reason);
   const key = (value: string): Text => ({ key: value });
+  const adminLimitation = adminSessionLimitation(run);
   return {
     summary: key(rule?.summary ?? "diagnostic.rule.unknown.summary"),
     explanation: key(rule?.explanation ?? "diagnostic.rule.unknown.explanation"),
@@ -234,6 +249,7 @@ export function runDetails(run: DiagnosticRun): RunDetails {
         text(`diagnostic.limitation.${item.check}`, { reason: item.reason }),
       ),
       ...(rule?.limitations ?? []).map(key),
+      ...(adminLimitation === null ? [] : [adminLimitation]),
     ],
     causesNote: rule?.causesNote ? key(rule.causesNote) : null,
     causes: (rule?.causes ?? []).map(key),

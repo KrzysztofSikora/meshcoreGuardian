@@ -11,8 +11,14 @@ export interface AirtimeNoticeStore {
   markSeen(): Promise<void>;
 }
 
-/** The guest password for a node. Empty until S-05 stores real ones (plan D-16). */
+/** The guest password stored for a node, or "" for the open guest login. Rejects when storage fails. */
 export type GuestPasswordSource = (publicKey: string) => Promise<string>;
+
+/**
+ * Called when a password opened an admin session; Guardian takes only guest passwords. `sent` is
+ * the value the run sent, so a password saved meanwhile is not removed.
+ */
+export type AdminPasswordHandler = (publicKey: string, sent: string) => Promise<void>;
 
 /** What the controller needs from the session; it never sees the `MeshClient` (plan D-10). */
 export interface RunSession {
@@ -26,6 +32,7 @@ export interface RunPorts {
   appState: AppStatePort;
   notice: AirtimeNoticeStore;
   password: GuestPasswordSource;
+  adminPassword: AdminPasswordHandler;
   policy: () => DiagnosticPolicy;
   clock: () => number;
 }

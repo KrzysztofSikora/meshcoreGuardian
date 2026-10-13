@@ -7,6 +7,8 @@ export interface RemoteScriptSpec {
   login?: RemoteStep;
   status?: RemoteStep;
   telemetry?: RemoteStep;
+  /** Replaces the admin flag and ACL byte in the login success push (the recording is an admin session). */
+  loginSession?: { permissions: number; acl: number };
 }
 
 interface RecordedStep {
@@ -84,7 +86,26 @@ function stepFrames(recorded: RecordedStep, step: RemoteStep): ScriptFrame[] {
  * `malformed` truncates the push.
  */
 export function remoteScript(spec: RemoteScriptSpec = {}): ScriptFrame[] {
-  return ORDER.flatMap((name) => stepFrames(RECORDED[name], spec[name] ?? "ok"));
+  return ORDER.flatMap((name) => {
+    const recorded: RecordedStep =
+      name === "login" && spec.loginSession !== undefined
+        ? { ...RECORDED.login, push: withSession(RECORDED.login.push, spec.loginSession) }
+        : RECORDED[name];
+    return stepFrames(recorded, spec[name] ?? "ok");
+  });
+}
+
+const LOGIN_FLAG_AT = 1;
+const LOGIN_ACL_AT = 12;
+
+function withSession(
+  push: ScriptFrame,
+  session: { permissions: number; acl: number },
+): ScriptFrame {
+  const bytes = push.hex.match(/../g)!;
+  bytes[LOGIN_FLAG_AT] = session.permissions.toString(16).padStart(2, "0");
+  bytes[LOGIN_ACL_AT] = session.acl.toString(16).padStart(2, "0");
+  return { ...push, hex: bytes.join("") };
 }
 
 /** Every request answered, exactly as recorded. */

@@ -85,3 +85,9 @@ Rules from reviews. Binding for planning, implementing and reviewing once accept
 - Seen in: app-look, R5
 - Scope: `apps/mobile/e2e/**`
 - Status: proposed in the PR for app-look
+
+## When a flat-config block narrows a restricted-imports rule, restate every entry of the broader block and add a layer-rules case for each one
+- Why: flat config replaces the rule options of the earlier block, so an omitted entry silently stops applying.
+- Seen in: guest-password, R2
+- Scope: `eslint.config.mjs`, `tooling/lint/layer-rules.test.ts`
+- Status: proposed in the PR for guest-password

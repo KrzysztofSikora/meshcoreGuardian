@@ -24,6 +24,11 @@ export const SCENARIOS = {
   nearest: { ...base, attempts: [{ nearest: true }] },
   // Diagnostics against Room K (plan D-17). Cancel uses `diag-no-reply`.
   "diag-ok": { ...base, attempts: [{ diagnostic: {} }] },
+  // The recorded login is an admin session; this one is a guest session (PR #22).
+  "diag-guest": {
+    ...base,
+    attempts: [{ diagnostic: { loginSession: { permissions: 0, acl: 0 } } }],
+  },
   "diag-no-reply": { ...base, attempts: [{ diagnostic: { login: "no-reply" } }] },
   "diag-drop": { ...base, attempts: [{ diagnostic: {}, dropAfterRemoteWrites: 1 }, "ok"] },
   "diag-unsupported": {

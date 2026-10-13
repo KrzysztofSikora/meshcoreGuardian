@@ -1,3 +1,4 @@
+import type { SecretStore } from "@guardian/domain";
 import type { Unsubscribe } from "@guardian/meshcore-adapter";
 
 import type { AirtimeNoticeStore } from "../../application/diagnostics/ports";
@@ -47,5 +48,33 @@ export class InMemoryAirtimeNoticeStore implements AirtimeNoticeStore {
 
   async markSeen(): Promise<void> {
     this.value = true;
+  }
+}
+
+export class InMemorySecretStore implements SecretStore {
+  private readonly values = new Map<string, string>();
+  /** When set, every call rejects with it (error-path tests). */
+  failWith: Error | null = null;
+  /** When set, only `set` rejects with it. */
+  failSetWith: Error | null = null;
+
+  async get(key: string): Promise<string | null> {
+    if (this.failWith !== null) throw this.failWith;
+    return this.values.get(key) ?? null;
+  }
+
+  async set(key: string, value: string): Promise<void> {
+    if (this.failWith !== null) throw this.failWith;
+    if (this.failSetWith !== null) throw this.failSetWith;
+    this.values.set(key, value);
+  }
+
+  async delete(key: string): Promise<void> {
+    if (this.failWith !== null) throw this.failWith;
+    this.values.delete(key);
+  }
+
+  keys(): string[] {
+    return [...this.values.keys()];
   }
 }
