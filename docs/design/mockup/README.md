@@ -6,7 +6,7 @@ PRD. It is a design reference, not a spec: where it disagrees with `context/prd.
 | Screen | Files | Shows |
 |--------|-------|-------|
 | Connect | `Connect.dc.html` | connected companion, capabilities (FR-03), technical details, scan |
-| Dashboard | `Main.dc.html` | sync, Dashboard / All contacts filter, node statuses (FR-04, FR-11) |
+| Dashboard | `Main.dc.html` | sync, Dashboard / All contacts filter, node statuses, nearest node card (FR-04, FR-11, FR-21) |
 | Node details | `Node.dc.html` | telemetry with units and "last hop" (FR-07), voltage chart and trend text (FR-12), recent runs |
 | Diagnostic run | `Run.dc.html` | step, attempt n of m, airtime notice, Cancel (FR-05, FR-10) |
 | Result | `Result.dc.html` | `NO_RESPONSE` with unconfirmed causes, next steps, cooldown (FR-06, FR-09, FR-10) |
