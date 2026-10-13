@@ -40,6 +40,12 @@ appId: io.github.krzysztofsikora.guardian
 - assertVisible: "Diagnostic"
 - assertVisible: "Not tested"
 - takeScreenshot: look-node-${THEME}
+# The content must scroll to its last element (PR #21: flex: 1 on the scroll content pinned it).
+- scrollUntilVisible:
+    element: "Node details will appear here."
+- scrollUntilVisible:
+    element: "Run diagnostic"
+    direction: UP
 - tapOn: "Run diagnostic"
 - tapOn: "Run diagnostic"
 - extendedWaitUntil:
@@ -56,6 +62,8 @@ appId: io.github.krzysztofsikora.guardian
     timeout: 10000
 - assertNotVisible: ".*[Oo]ffline.*"
 - takeScreenshot: look-result-${THEME}
+- scrollUntilVisible:
+    element: "Next steps"
 - back
 - back
 - tapOn: "Settings"

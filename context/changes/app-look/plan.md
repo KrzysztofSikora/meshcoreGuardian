@@ -311,6 +311,10 @@ checks WCAG contrast ≥ 4.5:1 for every token pair the theme declares as text-o
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
+- [minor] PR #21: `Screen` gave the ScrollView content `flex: 1`, which pinned Node and Run result to the
+  viewport height so lower details could not be reached. Scroll content now uses `flexGrow: 1`
+  (`scrollBody`); the non-scroll body keeps `flex: 1`. `look-screens.yaml` scrolls Node and Run result
+  to their last element. Consequence: none beyond two scroll steps in the look flow.
 - [minor] The test-plan asks to keep the e2e suite under ~15 flows; it has 17 and this change adds
   `app-look.yaml` (D-13). Consequence: e2e runtime grows by one flow of about two minutes.
 - [minor] Phase 1: plan says the three top-level screens get `headerShown: false` in Phase 1; code shows

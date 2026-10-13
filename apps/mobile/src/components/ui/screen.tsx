@@ -24,6 +24,7 @@ export function Screen({
   const styles = useStyles((th) => ({
     root: { flex: 1 },
     body: { flex: 1, paddingHorizontal: th.space.xl, gap: th.space.md },
+    scrollBody: { flexGrow: 1, paddingHorizontal: th.space.xl, gap: th.space.md },
     titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: th.space.md },
     title: { ...th.type.title, flexShrink: 1 },
   }));
@@ -44,7 +45,7 @@ export function Screen({
   return (
     <View style={[styles.root, { backgroundColor: colors.ground }]}>
       {scroll ? (
-        <ScrollView style={styles.root} contentContainerStyle={[styles.body, { paddingTop: top, paddingBottom: 24 }]}>
+        <ScrollView style={styles.root} contentContainerStyle={[styles.scrollBody, { paddingTop: top, paddingBottom: 24 }]}>
           {content}
         </ScrollView>
       ) : (
