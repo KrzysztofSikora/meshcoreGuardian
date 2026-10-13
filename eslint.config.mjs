@@ -103,6 +103,7 @@ export default defineConfig([
         message: "Import workspace packages through their entry point only.",
       },
       forbid.meshcoreJs,
+      forbid.nodeSqlite,
     ],
   ),
   // Dev tools (tools/capture) reach meshcore.js only through the adapter.

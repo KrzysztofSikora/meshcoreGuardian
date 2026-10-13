@@ -61,6 +61,7 @@ describe("layer rules (TR-22)", () => {
     [mobileFile, "@guardian/storage/testing"],
     [mobileTestFile, "@guardian/domain/src/diagnostics/result-code"],
     [mobileTestFile, "@liamcottle/meshcore.js"],
+    [mobileTestFile, "node:sqlite"],
     [captureFile, "@liamcottle/meshcore.js"],
     [captureFile, "@guardian/storage"],
     [captureFile, "@guardian/meshcore-adapter/src/decode/decode-frame"],
