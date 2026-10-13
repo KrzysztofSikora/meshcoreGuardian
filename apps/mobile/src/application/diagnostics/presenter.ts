@@ -6,6 +6,7 @@ import {
   type Capabilities,
   type CheckEvidence,
   type CheckOutcome,
+  type ConnectionState,
   type DiagnosticRun,
   type RunStatus,
 } from "@guardian/domain";
@@ -70,19 +71,54 @@ export function statusText(status: RunStatus): Text {
   return { key: `diagnostic.status.${status.kind}` };
 }
 
-const GLYPHS = {
-  not_tested: "–",
-  responded: "✓",
-  no_reply: "?",
-  transport_error: "⚠",
-  unsupported: "✕",
-  cancelled: "–",
-  incomplete: "–",
-} as const satisfies Record<RunStatus["kind"], string>;
+export type IconName =
+  | "check"
+  | "question"
+  | "alert"
+  | "slash"
+  | "dash"
+  | "circle"
+  | "clock"
+  | "sync"
+  | "play"
+  | "bluetooth"
+  | "grid"
+  | "sliders"
+  | "compass"
+  | "info"
+  | "search";
 
-/** A text glyph for the status; decoration only, the label carries the meaning (plan D-15). */
-export function statusGlyph(status: RunStatus): string {
-  return GLYPHS[status.kind];
+export type Tone = "ok" | "warn" | "unsupported" | "info" | "neutral";
+
+export interface Look {
+  icon: IconName;
+  tone: Tone;
+}
+
+const STATUS_LOOK = {
+  not_tested: { icon: "dash", tone: "neutral" },
+  responded: { icon: "check", tone: "ok" },
+  no_reply: { icon: "question", tone: "warn" },
+  transport_error: { icon: "alert", tone: "warn" },
+  unsupported: { icon: "slash", tone: "unsupported" },
+  cancelled: { icon: "dash", tone: "neutral" },
+  incomplete: { icon: "dash", tone: "neutral" },
+} as const satisfies Record<RunStatus["kind"], Look>;
+
+/** Icon and tone for the status chip; decoration only, the words carry the meaning (plan D-9, NFR-05). */
+export function statusLook(status: RunStatus): Look {
+  return STATUS_LOOK[status.kind];
+}
+
+const CONNECTION_LOOK = {
+  disconnected: { icon: "circle", tone: "neutral" },
+  connecting: { icon: "clock", tone: "info" },
+  connected: { icon: "check", tone: "ok" },
+  failed: { icon: "alert", tone: "warn" },
+} as const satisfies Record<ConnectionState["kind"], Look>;
+
+export function connectionLook(kind: ConnectionState["kind"]): Look {
+  return CONNECTION_LOOK[kind];
 }
 
 export function statusOf(run: DiagnosticRun | null | undefined, now: number): RunStatus {

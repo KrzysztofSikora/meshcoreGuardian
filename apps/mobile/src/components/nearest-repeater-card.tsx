@@ -1,7 +1,7 @@
 import { cooldownRemaining } from "@guardian/domain";
 import { Link, useIsFocused, useRouter } from "expo-router";
 import { useState } from "react";
-import { Button, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
@@ -12,8 +12,12 @@ import {
   type NearestText,
 } from "../application/nodes/nearest-presenter";
 import { container } from "../composition";
+import { useStyles, useTheme } from "../theme/theme-provider";
 import { formatTime } from "./node-row";
 import { tr } from "./translate";
+import { Icon } from "./ui/icons";
+import { AppButton } from "./ui/button";
+import { Card } from "./ui/card";
 import { useNow } from "./use-now";
 
 const { nodes: controller, session, runs } = container;
@@ -43,6 +47,16 @@ export function NearestRepeaterCard() {
   const connection = useStore(session.store);
   const runState = useStore(runs.store);
   const [open, setOpen] = useState(false);
+  const { colors } = useTheme();
+  const styles = useCardStyles();
+  const heading = (
+    <View style={styles.headingRow}>
+      <Icon name="compass" size={15} color={colors.accent} />
+      <Text accessibilityRole="header" style={[styles.heading, { color: colors.accent }]}>
+        {t("nearest.heading")}
+      </Text>
+    </View>
+  );
   const now = useNow(useIsFocused(), COUNTDOWN_TICK_MS);
 
   if (!nodes.loaded || nodes.storage !== "ok") return null;
@@ -50,13 +64,11 @@ export function NearestRepeaterCard() {
 
   if (card.kind === "empty") {
     return (
-      <View style={styles.card} testID="nearest-card">
-        <Text accessibilityRole="header" style={styles.heading}>
-          {t("nearest.heading")}
-        </Text>
-        <Text>{tr(t, card.text)}</Text>
-        <Text>{tr(t, card.syncHint)}</Text>
-      </View>
+      <Card variant="accent" testID="nearest-card">
+        {heading}
+        <Text style={[styles.text, { color: colors.text }]}>{tr(t, card.text)}</Text>
+        <Text style={[styles.text, { color: colors.textMuted }]}>{tr(t, card.syncHint)}</Text>
+      </Card>
     );
   }
 
@@ -72,18 +84,18 @@ export function NearestRepeaterCard() {
   const name = tr(t, nearest.name);
 
   return (
-    <View style={styles.card} testID="nearest-card">
-      <Text accessibilityRole="header" style={styles.heading}>
-        {t("nearest.heading")}
-      </Text>
+    <Card variant="accent" testID="nearest-card">
+      {heading}
       <Link href={{ pathname: "/node/[id]", params: { id: nearest.publicKey } }} asChild>
         <Pressable accessibilityRole="button">
           <Candidate model={nearest} t={t} large />
         </Pressable>
       </Link>
-      {card.asOf !== null && <Text>{tr(t, card.asOf)}</Text>}
-      <Button
+      {card.asOf !== null && <Text style={[styles.small, { color: colors.textMuted }]}>{tr(t, card.asOf)}</Text>}
+      <AppButton
         title={t("diagnostic.run")}
+        icon="play"
+        fullWidth
         accessibilityLabel={t("nearest.runLabel", { name })}
         disabled={!button.enabled}
         onPress={() => {
@@ -91,7 +103,7 @@ export function NearestRepeaterCard() {
           router.push({ pathname: "/node/[id]", params: { id: nearest.publicKey } });
         }}
       />
-      {button.reason !== null && <Text>{tr(t, button.reason)}</Text>}
+      {button.reason !== null && <Text style={[styles.small, { color: colors.textMuted }]}>{tr(t, button.reason)}</Text>}
       {card.others.length > 0 && (
         <View style={styles.others}>
           <Pressable
@@ -99,7 +111,7 @@ export function NearestRepeaterCard() {
             accessibilityState={{ expanded: open }}
             onPress={() => setOpen(!open)}
           >
-            <Text style={styles.link}>
+            <Text style={[styles.link, { color: colors.accent }]}>
               {t(open ? "nearest.otherHide" : "nearest.otherShow", { count: card.others.length })}
             </Text>
           </Pressable>
@@ -110,36 +122,43 @@ export function NearestRepeaterCard() {
                 href={{ pathname: "/node/[id]", params: { id: other.publicKey } }}
                 asChild
               >
-                <Pressable accessibilityRole="button" style={styles.other}>
+                <Pressable accessibilityRole="button" style={[styles.other, { borderTopColor: colors.divider }]}>
                   <Candidate model={other} t={t} />
                 </Pressable>
               </Link>
             ))}
         </View>
       )}
-    </View>
+    </Card>
   );
 }
 
 function Candidate({ model, t, large }: { model: CandidateModel; t: T; large?: boolean }) {
+  const { colors } = useTheme();
+  const styles = useCardStyles();
+  const muted = [styles.small, { color: colors.textMuted }];
   return (
     <View style={styles.body}>
-      <Text style={large ? styles.name : styles.otherName}>{tr(t, model.name)}</Text>
-      <Text>{tr(t, model.role)}</Text>
-      <Text>{tr(t, model.path)}</Text>
-      <Text>{nt(t, model.position)}</Text>
-      {large && <Text>{tr(t, model.lastHeard)}</Text>}
+      <Text style={[large ? styles.name : styles.otherName, { color: colors.text }]}>{tr(t, model.name)}</Text>
+      <Text style={muted}>{tr(t, model.role)}</Text>
+      <Text style={muted}>{tr(t, model.path)}</Text>
+      <Text style={muted}>{nt(t, model.position)}</Text>
+      {large && <Text style={muted}>{tr(t, model.lastHeard)}</Text>}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderColor: "#6b7280", borderRadius: 8, padding: 12, gap: 8 },
-  heading: { fontSize: 16, fontWeight: "600" },
-  body: { gap: 2 },
-  name: { fontSize: 18, fontWeight: "600" },
-  otherName: { fontSize: 16, fontWeight: "600" },
-  others: { gap: 8 },
-  other: { paddingVertical: 6, borderTopWidth: StyleSheet.hairlineWidth },
-  link: { fontSize: 16, textDecorationLine: "underline" },
-});
+function useCardStyles() {
+  return useStyles((th) => ({
+    headingRow: { flexDirection: "row", alignItems: "center", gap: th.space.sm },
+    heading: { ...th.type.section },
+    text: { ...th.type.body },
+    small: { ...th.type.small },
+    body: { gap: 2 },
+    name: { ...th.type.name, fontSize: 18 },
+    otherName: { ...th.type.bodyStrong },
+    others: { gap: th.space.sm },
+    other: { paddingVertical: th.space.sm, borderTopWidth: 1 },
+    link: { ...th.type.bodyStrong },
+  }));
+}

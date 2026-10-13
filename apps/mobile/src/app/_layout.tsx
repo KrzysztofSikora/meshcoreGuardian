@@ -20,7 +20,7 @@ function Navigator() {
           headerShadowVisible: false,
         }}
       >
-        <Stack.Screen name="index" options={{ title: t("dashboard.title") }} />
+        <Stack.Screen name="index" options={{ title: t("dashboard.title"), headerShown: false }} />
         <Stack.Screen name="connect" options={{ title: t("connect.title") }} />
         <Stack.Screen name="node/[id]" options={{ title: t("node.title") }} />
         <Stack.Screen name="run/[id]" options={{ title: t("run.title") }} />

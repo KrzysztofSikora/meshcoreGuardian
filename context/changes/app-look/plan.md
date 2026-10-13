@@ -294,13 +294,14 @@ checks WCAG contrast ≥ 4.5:1 for every token pair the theme declares as text-o
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
 - [x] Phase 1: Theme, fonts and dark mode
-- [ ] Phase 2: Shared components and the Dashboard
+- [x] Phase 2: Shared components and the Dashboard
 - [ ] Phase 3: Connect and Settings
 - [ ] Phase 4: Node, run panel and Run result
 - [ ] Phase 5: Look flow and side-by-side evidence
 
 ## Human checks
 <!-- Filled by /implement: one open checkbox per human check, with how to run it and evidence. -->
+- [ ] (Phase 2) Dashboard light/dark next to the mockup: spacing, type, chips, node cards, nearest card, segmented filter, bottom nav — run: `EXPO_PUBLIC_TRANSPORT=fake pnpm --filter mobile android` on the `guardian` emulator, compare with `docs/design/mockup/preview/Main.html` — evidence: `context/changes/app-look/evidence/look.md` (written in Phase 5)
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
@@ -313,6 +314,8 @@ checks WCAG contrast ≥ 4.5:1 for every token pair the theme declares as text-o
 - [minor] Phase 1: review finding 7 checked without a screenshot: after `pnpm e2e` the prebuilt
   `android/app/src/main/res/font/` holds `xml_ibm_plex_sans.xml`, `xml_ibm_plex_mono.xml` and the six
   TTFs, so the font plugin is active. Dark mode is first seen in Phase 5 screenshots.
+- [minor] Phase 2: plan lists `statusLook` types in the presenter or `application/look.ts`; code declares `IconName`, `Tone` and `Look` in `diagnostics/presenter.ts`, and `icons.tsx` re-exports `IconName`. Consequence: none; `theme/tokens.ts` keeps its own `Tone` (same literals, structurally compatible).
+- [minor] Phase 2: `headerShown: false` for `index` is set now (Dashboard uses `Screen` with safe-area padding); `connect` and `settings` follow in Phase 3.
 - [FOLLOW-UP] Licences screen listing IBM Plex (OFL) and meshcore.js (MIT) — S-10 pilot release.
 - [FOLLOW-UP] In-app theme choice (system / light / dark) on the Settings screen — S-09.
 

@@ -11,7 +11,7 @@ import {
 import { tr } from "../../components/translate";
 import { i18n } from "../../i18n";
 import type { Text } from "../nodes/presenter";
-import { progressText, runButton, runDetails, statusGlyph, statusText } from "./presenter";
+import { connectionLook, progressText, runButton, runDetails, statusLook, statusText } from "./presenter";
 
 const sayText = (text: Text) => tr(i18n.t, text);
 
@@ -100,7 +100,7 @@ describe("statusText", () => {
     expect(say(kind, ageMs)).toBe(expected);
   });
 
-  it("gives every status a glyph that is not the only carrier of meaning", () => {
+  it("gives every status an icon and a tone next to its words (D-9)", () => {
     const kinds: StatusKind[] = [
       "not_tested",
       "responded",
@@ -111,7 +111,7 @@ describe("statusText", () => {
       "incomplete",
     ];
     for (const kind of kinds) {
-      expect(statusGlyph({ kind, ageMs: null })).not.toBe("");
+      expect(statusLook({ kind, ageMs: null }).icon).toBeTruthy();
       expect(say(kind, 1_000).length).toBeGreaterThan(3);
     }
   });
@@ -318,5 +318,25 @@ describe("runDetails", () => {
     expect(say(details.summary)).toBe("Result not recognised");
     expect(details.nextSteps.map(say)).toEqual(["Run the diagnostic again."]);
     expect(details.causesNote).toBeNull();
+  });
+});
+
+describe("status and connection looks (plan D-9)", () => {
+  it("maps each run status to its icon and tone", () => {
+    const look = (kind: StatusKind) => statusLook({ kind, ageMs: null });
+    expect(look("responded")).toEqual({ icon: "check", tone: "ok" });
+    expect(look("no_reply")).toEqual({ icon: "question", tone: "warn" });
+    expect(look("transport_error")).toEqual({ icon: "alert", tone: "warn" });
+    expect(look("unsupported")).toEqual({ icon: "slash", tone: "unsupported" });
+    for (const kind of ["not_tested", "cancelled", "incomplete"] as const) {
+      expect(look(kind)).toEqual({ icon: "dash", tone: "neutral" });
+    }
+  });
+
+  it("maps each connection state to its icon and tone", () => {
+    expect(connectionLook("connected")).toEqual({ icon: "check", tone: "ok" });
+    expect(connectionLook("connecting")).toEqual({ icon: "clock", tone: "info" });
+    expect(connectionLook("failed")).toEqual({ icon: "alert", tone: "warn" });
+    expect(connectionLook("disconnected")).toEqual({ icon: "circle", tone: "neutral" });
   });
 });
