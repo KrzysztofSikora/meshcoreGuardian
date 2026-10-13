@@ -71,7 +71,7 @@ evidence image is ≤ 300 KB (largest 245 KB).
   asserts the Dashboard.
 - Effort: small
 - Lesson candidate: When you build navigation with expo-router `navigate`, check the resulting stack (back button) in an e2e flow; `navigate` pushes unless the target is the current route.
-- Decision: open
+- Decision: fixed (c804c5e) + lesson proposed
 
 ### R2: Connection failure and link-lost notes use the calm `info` look, not `warn` as planned
 - Severity: minor
@@ -84,7 +84,7 @@ evidence image is ≤ 300 KB (largest 245 KB).
   failure and link-lost notes; or log a `[minor]` deviation if blue was a deliberate choice.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (1b6ddd4)
 
 ### R3: `TEXT_PAIRS` misses the pressed secondary button (text on segment track)
 - Severity: minor
@@ -96,7 +96,7 @@ evidence image is ≤ 300 KB (largest 245 KB).
 - Fix: add `[c.text, c.segmentTrack, "secondary button pressed"]` to `textPairs`.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (1b6ddd4)
 
 ### R4: The look flow asserts status words on fewer screens than the plan and test-plan claim
 - Severity: minor
@@ -112,4 +112,4 @@ evidence image is ≤ 300 KB (largest 245 KB).
   the flow checks.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (1b6ddd4)
