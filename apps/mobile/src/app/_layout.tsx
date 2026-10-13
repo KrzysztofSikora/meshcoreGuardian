@@ -21,12 +21,12 @@ function Navigator() {
         }}
       >
         <Stack.Screen name="index" options={{ title: t("dashboard.title"), headerShown: false }} />
-        <Stack.Screen name="connect" options={{ title: t("connect.title") }} />
+        <Stack.Screen name="connect" options={{ title: t("connect.title"), headerShown: false }} />
         <Stack.Screen name="node/[id]" options={{ title: t("node.title") }} />
         <Stack.Screen name="run/[id]" options={{ title: t("run.title") }} />
         <Stack.Screen name="debug/scenario/[name]" options={{ headerShown: false }} />
         <Stack.Screen name="debug/theme/[scheme]" options={{ headerShown: false }} />
-        <Stack.Screen name="settings" options={{ title: t("settings.title") }} />
+        <Stack.Screen name="settings" options={{ title: t("settings.title"), headerShown: false }} />
       </Stack>
     </>
   );

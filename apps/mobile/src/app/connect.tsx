@@ -1,17 +1,31 @@
 import type { Capability, ConnectionState } from "@guardian/domain";
 import { CAPABILITIES } from "@guardian/domain";
-import { useEffect, useState } from "react";
-import { Button, FlatList, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState, type ReactNode } from "react";
+import { FlatList, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
 import { ConnectionStatus } from "../components/connection-status";
+import { AppButton } from "../components/ui/button";
+import { Card, SectionHeading } from "../components/ui/card";
+import { Screen } from "../components/ui/screen";
+import { StatusChip } from "../components/ui/status-chip";
 import { container } from "../composition";
+import { useStyles, useTheme } from "../theme/theme-provider";
 
 const { session } = container;
 
 export default function ConnectScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useStyles((th) => ({
+    name: { ...th.type.name },
+    body: { ...th.type.body },
+    mono: { ...th.type.monoSmall },
+    device: { gap: th.space.xs, paddingVertical: th.space.sm },
+    untested: { gap: th.space.xs },
+    technical: { gap: th.space.xs },
+  }));
   const state = useStore(session.store);
   // Until the user has answered the system dialog once, "denied" only means "not asked yet".
   const [asked, setAsked] = useState(false);
@@ -38,75 +52,82 @@ export default function ConnectScreen() {
     setAsked(true);
   };
 
+  const text = [styles.body, { color: colors.text }];
+  const muted = [styles.body, { color: colors.textMuted }];
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text accessibilityRole="header" style={styles.title}>
-        {t("connect.title")}
-      </Text>
+    <Screen title={t("connect.title")} nav="connect" scroll>
       <ConnectionStatus connection={connection} />
       <FailureDetail connection={connection} />
-      {state.linkLostNote && <Text>{t("connect.linkLost")}</Text>}
+      {state.linkLostNote && <Note>{t("connect.linkLost")}</Note>}
 
       {!granted && !showRequired && permission !== "unknown" && (
-        <View style={styles.card}>
-          <Text>{t("connect.permission.explain")}</Text>
-          <Button title={t("connect.permission.grant")} onPress={grant} />
-        </View>
+        <Card>
+          <Text style={text}>{t("connect.permission.explain")}</Text>
+          <AppButton title={t("connect.permission.grant")} onPress={grant} />
+        </Card>
       )}
       {showRequired && (
-        <View style={styles.card}>
-          <Text style={styles.heading}>{t("connect.permission.required")}</Text>
-          <Text>{t("connect.permission.requiredBody")}</Text>
-          <Button
+        <Card>
+          <Text style={[styles.name, { color: colors.text }]}>{t("connect.permission.required")}</Text>
+          <Text style={text}>{t("connect.permission.requiredBody")}</Text>
+          <AppButton
             title={t("connect.permission.openSettings")}
             onPress={() => void session.openSettings()}
           />
-          <Button title={t("connect.permission.tryAgain")} onPress={grant} />
-        </View>
+          <AppButton variant="secondary" title={t("connect.permission.tryAgain")} onPress={grant} />
+        </Card>
       )}
 
       {granted && bluetooth === "off" && (
-        <View style={styles.card}>
-          <Text style={styles.heading}>{t("connect.bluetoothOff")}</Text>
-          <Text>{t("connect.bluetoothOffBody")}</Text>
-        </View>
+        <Card>
+          <Text style={[styles.name, { color: colors.text }]}>{t("connect.bluetoothOff")}</Text>
+          <Text style={text}>{t("connect.bluetoothOffBody")}</Text>
+        </Card>
       )}
       {granted && bluetooth === "unavailable" && (
-        <Text style={styles.heading}>{t("connect.bluetoothUnavailable")}</Text>
+        <Text style={[styles.name, { color: colors.text }]}>{t("connect.bluetoothUnavailable")}</Text>
       )}
 
       {granted && !connected && (
-        <View style={styles.card}>
+        <Card>
           {lastCompanion !== null && !busy && (
-            <Button
+            <AppButton
               title={t("connect.connectLast", { name: lastCompanion.name })}
               onPress={() => void session.connect(lastCompanion.id, lastCompanion.name)}
             />
           )}
           {connection.kind === "failed" && (
-            <Button title={t("connect.retry")} onPress={() => void session.retry()} />
+            <AppButton title={t("connect.retry")} onPress={() => void session.retry()} />
           )}
           {state.linkLostNote && (
-            <Button title={t("connect.reconnect")} onPress={() => void session.reconnect()} />
+            <AppButton title={t("connect.reconnect")} onPress={() => void session.reconnect()} />
           )}
-          <Button
+          <AppButton
+            variant="secondary"
+            icon="search"
             title={scan.status === "scanning" ? t("connect.scanning") : t("connect.scan")}
             disabled={scan.status === "scanning" || busy}
             onPress={() => void session.startScan()}
           />
           {scan.status === "done" && scan.devices.length === 0 && bluetooth === "on" && (
-            <Text>{t("connect.noneFound")}</Text>
+            <Text style={muted}>{t("connect.noneFound")}</Text>
           )}
-          {scan.status === "failed" && bluetooth === "on" && <Text>{t("connect.scanFailed")}</Text>}
+          {scan.status === "failed" && bluetooth === "on" && (
+            <Text style={muted}>{t("connect.scanFailed")}</Text>
+          )}
           <FlatList
             scrollEnabled={false}
             data={scan.devices}
             keyExtractor={(device) => device.id}
             renderItem={({ item }) => (
               <View style={styles.device}>
-                <Text style={styles.heading}>{item.name ?? t("connect.unnamed")}</Text>
-                <Text>{item.id}</Text>
-                <Button
+                <Text style={[styles.name, { color: colors.text }]}>
+                  {item.name ?? t("connect.unnamed")}
+                </Text>
+                <Text style={[styles.mono, { color: colors.textMuted }]}>{item.id}</Text>
+                <AppButton
+                  variant="secondary"
                   title={t("connect.connectTo", { name: item.name ?? t("connect.unnamed") })}
                   disabled={busy}
                   onPress={() => void session.connect(item.id, item.name ?? undefined)}
@@ -114,45 +135,76 @@ export default function ConnectScreen() {
               </View>
             )}
           />
-        </View>
+        </Card>
       )}
 
       {connection.kind === "connected" && (
-        <View style={styles.card}>
-          <Text style={styles.heading}>{connection.companion.name}</Text>
-          <Text>{t("connect.model", { model: connection.companion.model })}</Text>
-          <Text>{t("connect.firmware", { version: connection.companion.firmwareVersion })}</Text>
-          {state.firmwareTested === false && (
-            <View>
-              <Text style={styles.heading}>{t("connect.untested")}</Text>
-              <Text>{t("connect.untestedBody")}</Text>
+        <>
+          <Card>
+            <Text style={[styles.name, { color: colors.text }]}>{connection.companion.name}</Text>
+            <Text style={muted}>{t("connect.model", { model: connection.companion.model })}</Text>
+            <Text style={[styles.mono, { color: colors.textMuted }]}>
+              {t("connect.firmware", { version: connection.companion.firmwareVersion })}
+            </Text>
+            {state.firmwareTested === false && (
+              <View style={styles.untested}>
+                <Text style={[styles.name, { color: colors.text }]}>{t("connect.untested")}</Text>
+                <Text style={text}>{t("connect.untestedBody")}</Text>
+              </View>
+            )}
+            <AppButton
+              variant="secondary"
+              title={t("connect.disconnect")}
+              onPress={() => void session.disconnect()}
+            />
+          </Card>
+          <Card>
+            <SectionHeading>{t("connect.capabilities")}</SectionHeading>
+            {capabilities !== null &&
+              CAPABILITIES.map((capability) => (
+                <CapabilityRow
+                  key={capability}
+                  capability={capability}
+                  status={capabilities[capability]}
+                />
+              ))}
+          </Card>
+          <Card>
+            <SectionHeading>{t("connect.technical")}</SectionHeading>
+            <View style={styles.technical}>
+              <Text style={[styles.mono, { color: colors.text }]}>
+                {state.mtu === null ? t("connect.mtuUnknown") : t("connect.mtu", { mtu: state.mtu })}
+              </Text>
+              <Text style={[styles.mono, { color: colors.text }]}>
+                {t("connect.build", { date: connection.companion.buildDate })}
+              </Text>
             </View>
-          )}
-          <Text style={styles.heading}>{t("connect.capabilities")}</Text>
-          {capabilities !== null &&
-            CAPABILITIES.map((capability) => (
-              <CapabilityRow
-                key={capability}
-                capability={capability}
-                status={capabilities[capability]}
-              />
-            ))}
-          <Text style={styles.heading}>{t("connect.technical")}</Text>
-          <Text>
-            {state.mtu === null ? t("connect.mtuUnknown") : t("connect.mtu", { mtu: state.mtu })}
-          </Text>
-          <Text>{t("connect.build", { date: connection.companion.buildDate })}</Text>
-          <Button title={t("connect.disconnect")} onPress={() => void session.disconnect()} />
-        </View>
+          </Card>
+        </>
       )}
-    </ScrollView>
+    </Screen>
+  );
+}
+
+function Note({ children }: { children: ReactNode }) {
+  const { colors } = useTheme();
+  const styles = useStyles((th) => ({
+    note: { borderWidth: 1, borderRadius: th.radius.button, padding: th.space.md },
+    text: { ...th.type.body },
+  }));
+  return (
+    <View
+      style={[styles.note, { backgroundColor: colors.note.bg, borderColor: colors.note.border }]}
+    >
+      <Text style={[styles.text, { color: colors.note.fg }]}>{children}</Text>
+    </View>
   );
 }
 
 function FailureDetail({ connection }: { connection: ConnectionState }) {
   const { t } = useTranslation();
   if (connection.kind !== "failed") return null;
-  return <Text>{t(`connection.reason.${connection.reason}`)}</Text>;
+  return <Note>{t(`connection.reason.${connection.reason}`)}</Note>;
 }
 
 function CapabilityRow({
@@ -163,28 +215,29 @@ function CapabilityRow({
   status: NonNullable<ReturnType<typeof session.getState>["capabilities"]>[Capability];
 }) {
   const { t } = useTranslation();
-  const mark = status.supported ? "✓" : "✕";
+  const { colors } = useTheme();
+  const styles = useStyles((th) => ({
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: th.space.sm,
+      paddingVertical: th.space.xs,
+    },
+    name: { ...th.type.bodyStrong, flexShrink: 1 },
+  }));
   return (
     <View style={styles.row}>
-      <Text accessibilityElementsHidden importantForAccessibility="no">
-        {mark}
-      </Text>
-      <Text style={styles.capability}>{t(`capability.${capability}`)}</Text>
-      <Text>
-        {status.supported
-          ? t("capability.supported")
-          : t("capability.unsupported", { version: status.firmwareVersion })}
-      </Text>
+      <Text style={[styles.name, { color: colors.text }]}>{t(`capability.${capability}`)}</Text>
+      <StatusChip
+        tone={status.supported ? "ok" : "unsupported"}
+        icon={status.supported ? "check" : "slash"}
+        label={
+          status.supported
+            ? t("capability.supported")
+            : t("capability.unsupported", { version: status.firmwareVersion })
+        }
+      />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { padding: 24, gap: 12 },
-  title: { fontSize: 24, fontWeight: "600" },
-  heading: { fontSize: 16, fontWeight: "600" },
-  card: { gap: 8 },
-  device: { gap: 4, paddingVertical: 8 },
-  row: { flexDirection: "row", gap: 8, alignItems: "center", flexWrap: "wrap" },
-  capability: { fontWeight: "600" },
-});

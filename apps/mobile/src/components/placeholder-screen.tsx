@@ -1,27 +1,25 @@
 import type { ReactNode } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text } from "react-native";
+
+import { useStyles, useTheme } from "../theme/theme-provider";
+import type { NavTab } from "./ui/bottom-nav";
+import { Screen } from "./ui/screen";
 
 type Props = {
   title: string;
   placeholder: string;
+  nav: NavTab;
   children?: ReactNode;
 };
 
 /** Heading plus one line of text; real screens replace it slice by slice. */
-export function PlaceholderScreen({ title, placeholder, children }: Props) {
+export function PlaceholderScreen({ title, placeholder, nav, children }: Props) {
+  const { colors } = useTheme();
+  const styles = useStyles((th) => ({ body: { ...th.type.body } }));
   return (
-    <View style={styles.container}>
-      <Text accessibilityRole="header" style={styles.title}>
-        {title}
-      </Text>
-      <Text style={styles.body}>{placeholder}</Text>
+    <Screen title={title} nav={nav}>
+      <Text style={[styles.body, { color: colors.text }]}>{placeholder}</Text>
       {children}
-    </View>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, gap: 12 },
-  title: { fontSize: 24, fontWeight: "600" },
-  body: { fontSize: 16 },
-});

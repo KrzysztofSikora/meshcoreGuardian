@@ -295,13 +295,14 @@ checks WCAG contrast ≥ 4.5:1 for every token pair the theme declares as text-o
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
 - [x] Phase 1: Theme, fonts and dark mode
 - [x] Phase 2: Shared components and the Dashboard
-- [ ] Phase 3: Connect and Settings
+- [x] Phase 3: Connect and Settings
 - [ ] Phase 4: Node, run panel and Run result
 - [ ] Phase 5: Look flow and side-by-side evidence
 
 ## Human checks
 <!-- Filled by /implement: one open checkbox per human check, with how to run it and evidence. -->
 - [ ] (Phase 2) Dashboard light/dark next to the mockup: spacing, type, chips, node cards, nearest card, segmented filter, bottom nav — run: `EXPO_PUBLIC_TRANSPORT=fake pnpm --filter mobile android` on the `guardian` emulator, compare with `docs/design/mockup/preview/Main.html` — evidence: `context/changes/app-look/evidence/look.md` (written in Phase 5)
+- [ ] (Phase 3) Connect (idle, connected with capabilities, failure) and Settings light/dark next to the mockup — run: `EXPO_PUBLIC_TRANSPORT=fake pnpm --filter mobile android` on the `guardian` emulator, compare with `docs/design/mockup/preview/Connect.html` — evidence: `context/changes/app-look/evidence/look.md` (written in Phase 5)
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
@@ -316,6 +317,7 @@ checks WCAG contrast ≥ 4.5:1 for every token pair the theme declares as text-o
   TTFs, so the font plugin is active. Dark mode is first seen in Phase 5 screenshots.
 - [minor] Phase 2: plan lists `statusLook` types in the presenter or `application/look.ts`; code declares `IconName`, `Tone` and `Look` in `diagnostics/presenter.ts`, and `icons.tsx` re-exports `IconName`. Consequence: none; `theme/tokens.ts` keeps its own `Tone` (same literals, structurally compatible).
 - [minor] Phase 2: `headerShown: false` for `index` is set now (Dashboard uses `Screen` with safe-area padding); `connect` and `settings` follow in Phase 3.
+- [minor] Phase 3: plan says capability rows use chip-coloured icon + word; code uses a `StatusChip` (ok/check, unsupported/slash) per row, so all colours stay in listed text pairs. `PlaceholderScreen` gained a required `nav` prop. Consequence: none.
 - [FOLLOW-UP] Licences screen listing IBM Plex (OFL) and meshcore.js (MIT) — S-10 pilot release.
 - [FOLLOW-UP] In-app theme choice (system / light / dark) on the Settings screen — S-09.
 
