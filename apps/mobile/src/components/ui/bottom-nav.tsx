@@ -41,7 +41,11 @@ export function BottomNav({ current }: { current: NavTab }) {
             accessibilityRole="tab"
             accessibilityState={{ selected }}
             onPress={() => {
-              if (!selected) router.navigate(item.href);
+              if (selected) return;
+              // Keep the stack at [index, tab]: back from any tab ends at the Dashboard.
+              if (item.id === "dashboard") router.dismissTo("/");
+              else if (current === "dashboard") router.push(item.href);
+              else router.replace(item.href);
             }}
             style={styles.item}
           >
