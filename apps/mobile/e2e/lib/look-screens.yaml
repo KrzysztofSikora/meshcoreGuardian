@@ -26,16 +26,19 @@ appId: io.github.krzysztofsikora.guardian
 - extendedWaitUntil:
     visible: "Connected"
     timeout: 20000
+- assertVisible: "Supported"
 - takeScreenshot: look-connect-connected-${THEME}
 - back
 - extendedWaitUntil:
     visible: "Contacts synced: 32"
     timeout: 30000
+- assertVisible: "Not tested"
 - takeScreenshot: look-dashboard-${THEME}
 - scrollUntilVisible:
     element: "Room K"
 - tapOn: "Room K"
 - assertVisible: "Diagnostic"
+- assertVisible: "Not tested"
 - takeScreenshot: look-node-${THEME}
 - tapOn: "Run diagnostic"
 - tapOn: "Run diagnostic"
@@ -60,3 +63,12 @@ appId: io.github.krzysztofsikora.guardian
     visible: "Settings will appear here."
     timeout: 10000
 - takeScreenshot: look-settings-${THEME}
+# Tabs must not grow the stack: Settings -> Connect -> back lands on the Dashboard (R1).
+- tapOn: "Connect"
+- extendedWaitUntil:
+    visible: "Scan for companions|Disconnect"
+    timeout: 10000
+- back
+- extendedWaitUntil:
+    visible: "Contacts synced: 32"
+    timeout: 10000

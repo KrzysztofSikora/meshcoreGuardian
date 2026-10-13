@@ -159,6 +159,7 @@ function textPairs(c: Colors): readonly TextPair[] {
     [c.accent, c.surface, "accent on surface (nav, links, headings)"],
     [c.accent, c.ground, "accent on ground"],
     [c.onAccent, c.accent, "primary button"],
+    [c.text, c.segmentTrack, "secondary button pressed"],
     [c.accentPressed, c.surface, "accent pressed on surface"],
     [c.onAccent, c.accentPressed, "primary button pressed"],
     [c.danger, c.surface, "danger text on surface"],

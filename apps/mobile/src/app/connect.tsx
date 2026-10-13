@@ -59,7 +59,7 @@ export default function ConnectScreen() {
     <Screen title={t("connect.title")} nav="connect" scroll>
       <ConnectionStatus connection={connection} />
       <FailureDetail connection={connection} />
-      {state.linkLostNote && <Note>{t("connect.linkLost")}</Note>}
+      {state.linkLostNote && <Note tone="warn">{t("connect.linkLost")}</Note>}
 
       {!granted && !showRequired && permission !== "unknown" && (
         <Card>
@@ -186,17 +186,19 @@ export default function ConnectScreen() {
   );
 }
 
-function Note({ children }: { children: ReactNode }) {
+function Note({ children, tone = "note" }: { children: ReactNode; tone?: "note" | "warn" }) {
   const { colors } = useTheme();
+  const palette =
+    tone === "warn" ? { ...colors.banner.warn, border: colors.banner.warn.fg } : colors.note;
   const styles = useStyles((th) => ({
     note: { borderWidth: 1, borderRadius: th.radius.button, padding: th.space.md },
     text: { ...th.type.body },
   }));
   return (
     <View
-      style={[styles.note, { backgroundColor: colors.note.bg, borderColor: colors.note.border }]}
+      style={[styles.note, { backgroundColor: palette.bg, borderColor: palette.border }]}
     >
-      <Text style={[styles.text, { color: colors.note.fg }]}>{children}</Text>
+      <Text style={[styles.text, { color: palette.fg }]}>{children}</Text>
     </View>
   );
 }
@@ -204,7 +206,7 @@ function Note({ children }: { children: ReactNode }) {
 function FailureDetail({ connection }: { connection: ConnectionState }) {
   const { t } = useTranslation();
   if (connection.kind !== "failed") return null;
-  return <Note>{t(`connection.reason.${connection.reason}`)}</Note>;
+  return <Note tone="warn">{t(`connection.reason.${connection.reason}`)}</Note>;
 }
 
 function CapabilityRow({
