@@ -117,7 +117,7 @@ Round 1 (gates then: e2e 16/17): R1 blocker, R2 major, R3 minor. Round 2 re-chec
 - Fix: add one recorded room server (e.g. Room K) to `NEAREST_CONTACT_EDITS` with a known path so it ranks inside the first six (update `nearest-script.int.test.ts`), assert its name and "Room server" in `nearest-positions.yaml` (inside "Other nearby" or as nearest), run `pnpm e2e`, and copy the three new screenshots into `evidence/` (< 300 KB each).
 - Effort: small
 - Lesson candidate: When a PR decision changes visible text or layout, re-take every evidence screenshot that shows it in the same commit
-- Decision: open
+- Decision: fixed (c04c661) + lesson proposed
 
 ### R7: PRD FR-21, the plan's Goal/Design and the PR body still describe a repeaters-only "Nearest repeater" card
 - Severity: minor
@@ -126,7 +126,7 @@ Round 1 (gates then: e2e 16/17): R1 blocker, R2 major, R3 minor. Round 2 re-chec
 - Fix: update FR-21 (title "Nearest node", AC1/AC2/AC5 "repeater or room server", role shown) citing PR #19, or log a `[REVIEW]` deviation pointing at D-3; update the plan Goal/Design texts and regenerate the PR body.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (prd.md FR-21, plan.md Goal/Design and pr-body.md updated, [REVIEW] deviation logged)
 
 ### R8: The nearest candidate became a link to the node screen without a request, deviation or test
 - Severity: minor
@@ -135,4 +135,4 @@ Round 1 (gates then: e2e 16/17): R1 blocker, R2 major, R3 minor. Round 2 re-chec
 - Fix: log it as a `[minor]` deviation (and optionally tap the name in `nearest-positions.yaml` and assert the node screen), or remove the wrapper.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (logged as [minor] deviation in plan.md, link kept)
