@@ -198,7 +198,7 @@ login frame. Nothing about the password goes to `DiagnosticRunRepository`.
 
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
-- [ ] Phase 1: Secret storage and run wiring
+- [x] Phase 1: Secret storage and run wiring
 - [ ] Phase 2: Guest password card, e2e and docs
 
 ## Human checks
@@ -206,6 +206,10 @@ login frame. Nothing about the password goes to `DiagnosticRunRepository`.
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
+- [minor] Phase 1: domain has no `TextEncoder` type (no DOM/node lib), so `validateGuestPassword` counts UTF-8 bytes by code point instead.
+- [minor] Phase 1: `apps/mobile/tsconfig.json` gained `"types": ["node"]` so the leak test and the storage test helper typecheck. Node globals are now visible to app code at type level; the lint rules still forbid `node:sqlite` there.
+- [minor] Phase 1: `expo install` reformatted `app.json`; reverted and added the `expo-secure-store` plugin line by hand (pinned `~57.0.4`).
+- [minor] Phase 1: the lint block for `@guardian/storage/testing` is a separate `apps/mobile/**/*.test.ts` layer restating the full list (plan-review 1); `layer-rules.test.ts` covers test file allowed / app file rejected.
 - [REVIEW] FR-14 AC3 / roadmap S-05: the roadmap says "deleting a node or clearing data deletes its secret",
   but neither a node delete nor "clear all data" exists before S-09. S-05 proves AC3 at the use-case level
   (`GuestPasswords.remove` / `clearAll`), and S-09 wires it into its flows (D-3). Alternative: build both
@@ -217,3 +221,7 @@ login frame. Nothing about the password goes to `DiagnosticRunRepository`.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->
+- Plan-review 1 (lint for `/testing`): handled in Phase 1 as a mobile test-file lint block plus two layer-rule cases.
+- Plan-review 2 (leak test deletes files): the test closes `testDb.db`, scans, and `testDb.close()` runs in `afterEach`; it asserts the DB holds the synced public key.
+- Plan-review 5, 7 (promise chain poisoning, bad index): covered by tests in `guest-passwords.int.test.ts`.
+- Plan-review 3, 4, 6: Phase 2 (e2e) and D-10 wording; D-10 is an explicit default.

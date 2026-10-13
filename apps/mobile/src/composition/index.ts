@@ -3,9 +3,11 @@ import { SqliteDiagnosticRunRepository, SqliteNodeRepository } from "@guardian/s
 
 import { CompanionSession } from "../application/connection/companion-session";
 import { RunController } from "../application/diagnostics/run-controller";
+import { GuestPasswords } from "../application/nodes/guest-passwords";
 import { NodesController } from "../application/nodes/nodes-controller";
 import { parseTransportMode } from "../config/transport-mode";
 import { KvAirtimeNoticeStore } from "../platform/airtime-notice-store";
+import { ExpoSecretStore } from "../platform/secure-store";
 import { openGuardianDb } from "../platform/sqlite/open-guardian-db";
 import { createPlatform } from "./platform";
 
@@ -24,6 +26,9 @@ const session = new CompanionSession({
 let opened: ReturnType<typeof openGuardianDb> | null = null;
 const db = () => (opened ??= openGuardianDb());
 
+// Real Keystore storage in both modes; only the radio is faked (plan D-6).
+const passwords = new GuestPasswords(new ExpoSecretStore());
+
 export const container = {
   mode,
   platform,
@@ -35,14 +40,14 @@ export const container = {
     clock: Date.now,
     repository: async () => new SqliteNodeRepository(await db()),
   }),
-  // Guest login with an empty password until S-05 stores real ones (plan D-16, D-18).
+  passwords,
   runs: new RunController({
     session,
     appState: platform.appState,
     clock: Date.now,
     repository: async () => new SqliteDiagnosticRunRepository(await db()),
     notice: new KvAirtimeNoticeStore(),
-    password: async () => "",
+    password: (publicKey) => passwords.password(publicKey),
     policy: () => DEFAULT_DIAGNOSTIC_POLICY,
   }),
 };

@@ -25,7 +25,9 @@ import {
   InMemoryAirtimeNoticeStore,
   InMemoryAppState,
   InMemoryLastCompanionStore,
+  InMemorySecretStore,
 } from "../../platform/fake/in-memory";
+import { GuestPasswords } from "../nodes/guest-passwords";
 import { CompanionSession, type SessionState } from "../connection/companion-session";
 import type { AirtimeNoticeStore, RunPorts, RunSession } from "./ports";
 import { RunController } from "./run-controller";
@@ -87,7 +89,11 @@ const remoteWrites = (platform: DiagPlatform) =>
 
 function setup(
   specs: RemoteScriptSpec[],
-  options: { noticeSeen?: boolean; firmware?: { verCode: number; version: string } } = {},
+  options: {
+    noticeSeen?: boolean;
+    firmware?: { verCode: number; version: string };
+    password?: (publicKey: string) => Promise<string>;
+  } = {},
 ) {
   const platform = new DiagPlatform(specs, options.firmware);
   const appState = new InMemoryAppState();
@@ -103,7 +109,7 @@ function setup(
     appState,
     notice,
     repository: async () => runs,
-    password: async () => "",
+    password: options.password ?? (async () => ""),
     policy: () => DEFAULT_DIAGNOSTIC_POLICY,
     clock: Date.now,
   });
@@ -167,6 +173,49 @@ describe("RunController", () => {
       reason: "ALL_CHECKS_REPLIED",
     });
     expect(state.latest[ROOM_K]?.id).toBe(1);
+  });
+
+  it("sends the stored guest password in the login frame (FR-05 AC2)", async () => {
+    const passwords = new GuestPasswords(new InMemorySecretStore());
+    await passwords.save(ROOM_K, "pw-LEAK-CANARY");
+    const { session, controller, platform } = setup([{}], {
+      password: (key) => passwords.password(key),
+    });
+    await connect(session);
+    const done = controller.start(ROOM_K);
+    await vi.runAllTimersAsync();
+    await done;
+    const login = (platform.transport?.writtenFrames ?? []).find((frame) => frame[0] === 0x1a)!;
+    expect(login).toHaveLength(33 + "pw-LEAK-CANARY".length);
+    expect(new TextDecoder().decode(login.slice(33))).toBe("pw-LEAK-CANARY");
+  });
+
+  it("sends an open guest login when no password is stored (FR-05 AC2)", async () => {
+    const passwords = new GuestPasswords(new InMemorySecretStore());
+    const { session, controller, platform } = setup([{}], {
+      password: (key) => passwords.password(key),
+    });
+    await connect(session);
+    const done = controller.start(ROOM_K);
+    await vi.runAllTimersAsync();
+    await done;
+    const login = (platform.transport?.writtenFrames ?? []).find((frame) => frame[0] === 0x1a)!;
+    expect(login).toHaveLength(33);
+  });
+
+  it("a failing secret store stores NOT_TESTED/UNEXPECTED_ERROR and sends nothing (D-7)", async () => {
+    const secrets = new InMemorySecretStore();
+    secrets.failWith = new Error("keystore");
+    const passwords = new GuestPasswords(secrets);
+    const { session, controller, platform, runs } = setup([{}], {
+      password: (key) => passwords.password(key),
+    });
+    await connect(session);
+    const done = controller.start(ROOM_K);
+    await vi.runAllTimersAsync();
+    await done;
+    expect(remoteWrites(platform)).toBe(0);
+    expect(runs.saved[0]).toMatchObject({ result: "NOT_TESTED", reason: "UNEXPECTED_ERROR" });
   });
 
   it("sends nothing until start is called (FR-10 AC6)", async () => {

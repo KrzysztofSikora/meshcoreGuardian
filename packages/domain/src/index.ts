@@ -75,3 +75,6 @@ export {
 export type { CompassPoint, GeoPoint } from "./geo/geo";
 export { OTHER_NEARBY_COUNT, nearestRepeaters, rankRepeaters } from "./nodes/nearest";
 export type { RankedRepeater } from "./nodes/nearest";
+export { GUEST_PASSWORD_MAX_BYTES, validateGuestPassword } from "./nodes/guest-password";
+export type { GuestPasswordResult } from "./nodes/guest-password";
+export type { SecretStore } from "./secrets/secret-store";

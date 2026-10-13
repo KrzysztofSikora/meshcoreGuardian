@@ -11,7 +11,7 @@ export interface AirtimeNoticeStore {
   markSeen(): Promise<void>;
 }
 
-/** The guest password for a node. Empty until S-05 stores real ones (plan D-16). */
+/** The guest password stored for a node, or "" for the open guest login. Rejects when storage fails. */
 export type GuestPasswordSource = (publicKey: string) => Promise<string>;
 
 /** What the controller needs from the session; it never sees the `MeshClient` (plan D-10). */
