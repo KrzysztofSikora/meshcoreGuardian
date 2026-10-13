@@ -52,7 +52,7 @@ Gates: typecheck ok, lint ok, unit tests ok (66 files, 1204 tests), e2e ok (19/1
 - Fix: render Remove when `saved === "yes" || saved === "error"`, and add a presenter or e2e-free unit assertion if the condition moves to the presenter (e.g. a `canRemovePassword(saved)` helper with a table test).
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (60a6010)
 
 ### R2: Mobile test-file lint block allows `node:sqlite`, and the deviation says it restates the full list
 - Severity: minor
@@ -61,7 +61,7 @@ Gates: typecheck ok, lint ok, unit tests ok (66 files, 1204 tests), e2e ok (19/1
 - Fix: add `forbid.nodeSqlite` to the block and a `[mobileTestFile, "node:sqlite"]` rejected case in `tooling/lint/layer-rules.test.ts`.
 - Effort: small
 - Lesson candidate: When a flat-config block narrows a restricted-imports rule, restate every entry of the broader block and add a layer-rules case for each one.
-- Decision: open
+- Decision: fixed (e0c617f) + lesson proposed
 
 ### R3: D-10 still gives the pre-review reason, although *Review response* says it was reworded
 - Severity: minor
@@ -70,4 +70,4 @@ Gates: typecheck ok, lint ok, unit tests ok (66 files, 1204 tests), e2e ok (19/1
 - Fix: reword D-10: "explicit default (excludes SecureStore prefs from auto-backup; restored values could not be decrypted anyway)", and drop or restate alternative B.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (see triage commit; plan.md D-10 reworded)
