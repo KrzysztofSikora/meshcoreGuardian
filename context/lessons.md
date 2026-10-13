@@ -67,3 +67,9 @@ Rules from reviews. Binding for planning, implementing and reviewing once accept
 - Seen in: nearest-repeater, R1
 - Scope: `apps/mobile/e2e/**`, `apps/mobile/src/app/**`
 - Status: proposed in the PR for nearest-repeater
+
+## When a PR decision changes visible text or layout, re-take every evidence screenshot that shows it in the same commit
+- Why: stale screenshots make the human check approve wording and layout that no longer ship
+- Seen in: nearest-repeater, R6
+- Scope: `context/changes/*/evidence/`, e2e flows with `takeScreenshot`
+- Status: proposed in the PR for nearest-repeater
