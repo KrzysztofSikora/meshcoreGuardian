@@ -136,6 +136,8 @@ export interface CheckDetails {
 export interface RunDetails {
   summary: Text;
   explanation: Text;
+  /** Icon and tone for the result banner; decoration, the summary words carry the meaning. */
+  look: Look;
   checks: CheckDetails[];
   limitations: Text[];
   causesNote: Text | null;
@@ -225,6 +227,7 @@ export function runDetails(run: DiagnosticRun): RunDetails {
   return {
     summary: key(rule?.summary ?? "diagnostic.rule.unknown.summary"),
     explanation: key(rule?.explanation ?? "diagnostic.rule.unknown.explanation"),
+    look: statusLook(lastRunStatus(run, run.finishedAt)),
     checks: run.checks.map(checkDetails),
     limitations: [
       ...run.limitations.map((item) =>

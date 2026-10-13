@@ -203,6 +203,13 @@ describe("runDetails", () => {
     ]);
   });
 
+  it("gives the result banner the look of the run's status (NFR-09)", () => {
+    const noReply = runDetails(run({ result: "NO_RESPONSE", reason: "NO_REPLY" }));
+    expect(noReply.look).toEqual({ icon: "question", tone: "warn" });
+    const responded = runDetails(run({ result: "RESPONDED", reason: "ALL_CHECKS_REPLIED" }));
+    expect(responded.look).toEqual({ icon: "check", tone: "ok" });
+  });
+
   it("says no response with unknown cause and lists unconfirmed causes and next steps (FR-09 AC3)", () => {
     const details = runDetails(
       run({

@@ -8,7 +8,7 @@ import {
 } from "@guardian/domain";
 import { Link, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Button, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
@@ -28,8 +28,12 @@ import {
 import { formatTime } from "../../components/node-row";
 import { RunStatus } from "../../components/run-status";
 import { tr } from "../../components/translate";
+import { AppButton } from "../../components/ui/button";
+import { Card, SectionHeading } from "../../components/ui/card";
+import { Screen } from "../../components/ui/screen";
 import { useNow } from "../../components/use-now";
 import { container } from "../../composition";
+import { useStyles, useTheme } from "../../theme/theme-provider";
 
 const { nodes: controller, runs, session } = container;
 
@@ -47,18 +51,24 @@ export default function NodeScreen() {
 
   const node = state.nodes.find((candidate) => candidate.publicKey === id);
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text accessibilityRole="header" style={styles.title}>
-        {t("node.title")}
-      </Text>
+    <Screen scroll>
       {node === undefined ? (
-        state.loaded && <Text>{t("nodes.notFound")}</Text>
+        state.loaded && <Muted>{t("nodes.notFound")}</Muted>
       ) : (
         <NodeDetails node={node} />
       )}
-      <Text>{t("node.placeholder")}</Text>
-    </ScrollView>
+      <Muted>{t("node.placeholder")}</Muted>
+    </Screen>
   );
+}
+
+function Muted({ children, mono = false }: { children: string; mono?: boolean }) {
+  const { colors } = useTheme();
+  const styles = useStyles((th) => ({
+    body: { ...th.type.small },
+    mono: { ...th.type.monoSmall },
+  }));
+  return <Text style={[mono ? styles.mono : styles.body, { color: colors.textMuted }]}>{children}</Text>;
 }
 
 function NodeDetails({ node }: { node: Node }) {
@@ -70,6 +80,8 @@ function NodeDetails({ node }: { node: Node }) {
   const reported = reportedAsText(node);
   const reportedName = reportedNameText(node);
   const heard = lastHeardText(node, formatTime);
+  const { colors } = useTheme();
+  const styles = useNodeStyles();
 
   const report = (result: Awaited<ReturnType<typeof controller.setLabel>>) => {
     if (result.ok) return setError(null);
@@ -78,54 +90,66 @@ function NodeDetails({ node }: { node: Node }) {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.name}>{tr(t, name)}</Text>
-      <Text>{t("nodes.keyPrefix", { prefix: keyPrefix(node.publicKey) })}</Text>
-      <Text>{t("nodes.role", { role: tr(t, roleText(effectiveRole(node))) })}</Text>
-      {reportedName !== null && <Text>{tr(t, reportedName)}</Text>}
-      {reported !== null && <Text>{tr(t, reported)}</Text>}
-      <Text>{tr(t, heard)}</Text>
-      {!node.inContacts && <Text>{t("nodes.notInContacts")}</Text>}
+      <Text accessibilityRole="header" style={[styles.heading, { color: colors.text }]}>
+        {tr(t, name)}
+      </Text>
+      <Muted mono>{t("nodes.keyPrefix", { prefix: keyPrefix(node.publicKey) })}</Muted>
+      <Muted>{t("nodes.role", { role: tr(t, roleText(effectiveRole(node))) })}</Muted>
+      {reportedName !== null && <Muted>{tr(t, reportedName)}</Muted>}
+      {reported !== null && <Muted>{tr(t, reported)}</Muted>}
+      <Muted>{tr(t, heard)}</Muted>
+      {!node.inContacts && <Muted>{t("nodes.notInContacts")}</Muted>}
 
       <RunPanel node={node} />
 
-      <Text style={styles.heading}>{t("nodes.label")}</Text>
-      <TextInput
-        testID="label-input"
-        accessibilityLabel={t("nodes.label")}
-        style={styles.input}
-        value={label}
-        onChangeText={setLabel}
-        autoCapitalize="none"
-      />
-      <Text>{t("nodes.labelHelp")}</Text>
-      <Button
-        title={t("nodes.saveLabel")}
-        onPress={() => void controller.setLabel(node.publicKey, label).then(report)}
-      />
-
-      <Text style={styles.heading}>{t("nodes.setRole")}</Text>
-      {NODE_ROLES.map((role) => (
-        <Button
-          key={role}
-          title={tr(t, roleText(role))}
-          accessibilityState={{ selected: node.userRole === role }}
-          onPress={() => void controller.setRole(node.publicKey, role).then(report)}
+      <Card>
+        <SectionHeading>{t("nodes.label")}</SectionHeading>
+        <TextInput
+          testID="label-input"
+          accessibilityLabel={t("nodes.label")}
+          style={[styles.input, { color: colors.text, borderColor: colors.borderStrong, backgroundColor: colors.ground }]}
+          value={label}
+          onChangeText={setLabel}
+          autoCapitalize="none"
         />
-      ))}
-      <Button
-        title={t("nodes.useReportedRole")}
-        disabled={node.userRole === null}
-        onPress={() => void controller.setRole(node.publicKey, null).then(report)}
-      />
+        <Muted>{t("nodes.labelHelp")}</Muted>
+        <AppButton
+          title={t("nodes.saveLabel")}
+          variant="secondary"
+          onPress={() => void controller.setLabel(node.publicKey, label).then(report)}
+        />
+      </Card>
+
+      <Card>
+        <SectionHeading>{t("nodes.setRole")}</SectionHeading>
+        <View style={styles.roles}>
+          {NODE_ROLES.map((role) => (
+            <AppButton
+              key={role}
+              title={tr(t, roleText(role))}
+              variant={node.userRole === role ? "primary" : "secondary"}
+              accessibilityState={{ selected: node.userRole === role }}
+              onPress={() => void controller.setRole(node.publicKey, role).then(report)}
+            />
+          ))}
+        </View>
+        <AppButton
+          title={t("nodes.useReportedRole")}
+          variant="secondary"
+          disabled={node.userRole === null}
+          onPress={() => void controller.setRole(node.publicKey, null).then(report)}
+        />
+      </Card>
 
       {!isOnDashboard(node) && (
-        <Button
+        <AppButton
           title={t("nodes.addToDashboard")}
+          variant="secondary"
           onPress={() => void controller.pin(node.publicKey).then(report)}
         />
       )}
       {error !== null && (
-        <Text accessibilityRole="alert">
+        <Text accessibilityRole="alert" style={[styles.body, { color: colors.danger }]}>
           {t(error === "nodes.labelTooLong" ? "nodes.labelTooLong" : "nodes.saveFailed")}
         </Text>
       )}
@@ -139,6 +163,8 @@ function RunPanel({ node }: { node: Node }) {
   const state = useStore(runs.store);
   const latest = state.latest[node.publicKey];
   const now = useNow(true, COUNTDOWN_TICK_MS);
+  const { colors } = useTheme();
+  const styles = useNodeStyles();
   const active = state.active?.publicKey === node.publicKey ? state.active : null;
   const button = runButton({
     connected: connection.connection.kind === "connected",
@@ -152,53 +178,80 @@ function RunPanel({ node }: { node: Node }) {
   const unsaved = state.last?.publicKey === node.publicKey && state.last.runId === null;
 
   return (
-    <View style={styles.section}>
-      <Text accessibilityRole="header" style={styles.heading}>
-        {t("diagnostic.heading")}
-      </Text>
+    <Card>
+      <SectionHeading>{t("diagnostic.heading")}</SectionHeading>
       <RunStatus status={statusOf(latest, now)} />
       {state.notice === node.publicKey ? (
-        <View style={styles.section}>
-          <Text style={styles.heading}>{t("diagnostic.notice.title")}</Text>
-          <Text>{t("diagnostic.notice.body")}</Text>
-          <Button title={t("diagnostic.run")} onPress={() => void runs.confirmNotice()} />
-          <Button title={t("diagnostic.notice.notNow")} onPress={() => runs.dismissNotice()} />
+        <View style={[styles.note, { backgroundColor: colors.note.bg, borderColor: colors.note.border }]}>
+          <Text style={[styles.strong, { color: colors.note.fg }]}>{t("diagnostic.notice.title")}</Text>
+          <Text style={[styles.body, { color: colors.note.fg }]}>{t("diagnostic.notice.body")}</Text>
+          <AppButton title={t("diagnostic.run")} icon="play" fullWidth onPress={() => void runs.confirmNotice()} />
+          <AppButton
+            title={t("diagnostic.notice.notNow")}
+            variant="secondary"
+            fullWidth
+            onPress={() => runs.dismissNotice()}
+          />
         </View>
       ) : active !== null ? (
         <View style={styles.section}>
-          <Text accessibilityLiveRegion="polite">{tr(t, progressText(active))}</Text>
-          <Button title={t("diagnostic.cancel")} onPress={() => runs.cancel()} />
+          <Text accessibilityLiveRegion="polite" style={[styles.body, { color: colors.text }]}>
+            {tr(t, progressText(active))}
+          </Text>
+          <AppButton title={t("diagnostic.cancel")} variant="danger" fullWidth onPress={() => runs.cancel()} />
         </View>
       ) : (
-        <Button
+        <AppButton
           title={t("diagnostic.run")}
+          icon="play"
+          fullWidth
           disabled={!button.enabled}
           onPress={() => void runs.start(node.publicKey)}
         />
       )}
-      {active === null && button.reason !== null && <Text>{tr(t, button.reason)}</Text>}
-      {refusal !== null && <Text accessibilityRole="alert">{tr(t, refusal)}</Text>}
+      {active === null && button.reason !== null && <Muted>{tr(t, button.reason)}</Muted>}
+      {refusal !== null && (
+        <Text accessibilityRole="alert" style={[styles.body, { color: colors.danger }]}>
+          {tr(t, refusal)}
+        </Text>
+      )}
       {active === null && latest !== undefined && details !== null && (
         <View style={styles.section}>
-          <Text style={styles.name}>{tr(t, details.summary)}</Text>
-          <Text>{tr(t, details.explanation)}</Text>
-          {unsaved && <Text>{t("diagnostic.notSaved")}</Text>}
+          <Text style={[styles.strong, { color: colors.text }]}>{tr(t, details.summary)}</Text>
+          <Text style={[styles.body, { color: colors.text }]}>{tr(t, details.explanation)}</Text>
+          {unsaved && <Muted>{t("diagnostic.notSaved")}</Muted>}
           {latest.id !== undefined && (
             <Link href={{ pathname: "/run/[id]", params: { id: String(latest.id) } }} asChild>
-              <Button title={t("diagnostic.viewDetails")} />
+              <AppButton title={t("diagnostic.viewDetails")} variant="secondary" />
             </Link>
           )}
         </View>
       )}
-    </View>
+    </Card>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { padding: 24, gap: 12 },
-  title: { fontSize: 24, fontWeight: "600" },
-  section: { gap: 8 },
-  name: { fontSize: 18, fontWeight: "600" },
-  heading: { fontSize: 16, fontWeight: "600", marginTop: 8 },
-  input: { borderWidth: 1, borderColor: "#6b7280", padding: 8, fontSize: 16 },
-});
+function useNodeStyles() {
+  return useStyles((th) => ({
+    section: { gap: th.space.sm },
+    heading: { ...th.type.detailTitle },
+    body: { ...th.type.body },
+    strong: { ...th.type.bodyStrong },
+    roles: { flexDirection: "row", flexWrap: "wrap", gap: th.space.sm },
+    input: {
+      borderWidth: 1,
+      borderRadius: th.radius.button,
+      paddingHorizontal: th.space.md,
+      paddingVertical: th.space.sm,
+      minHeight: 44,
+      fontFamily: th.font.sans,
+      fontSize: 16,
+    },
+    note: {
+      borderWidth: 1,
+      borderRadius: th.radius.button,
+      padding: th.space.md,
+      gap: th.space.sm,
+    },
+  }));
+}
