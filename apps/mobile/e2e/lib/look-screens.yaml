@@ -40,12 +40,6 @@ appId: io.github.krzysztofsikora.guardian
 - assertVisible: "Diagnostic"
 - assertVisible: "Not tested"
 - takeScreenshot: look-node-${THEME}
-# The content must scroll to its last element (PR #21: flex: 1 on the scroll content pinned it).
-- scrollUntilVisible:
-    element: "Node details will appear here."
-- scrollUntilVisible:
-    element: "Run diagnostic"
-    direction: UP
 - tapOn: "Run diagnostic"
 - tapOn: "Run diagnostic"
 - extendedWaitUntil:
@@ -56,6 +50,13 @@ appId: io.github.krzysztofsikora.guardian
     visible: "No response — cause unknown"
     timeout: 90000
 - takeScreenshot: look-node-result-${THEME}
+# After a run the Node screen overflows; its content must scroll to the last element
+# (PR #21: flex: 1 on the scroll content pinned it). Not earlier: it fits before the run.
+- scrollUntilVisible:
+    element: "Node details will appear here."
+- scrollUntilVisible:
+    element: "View details"
+    direction: UP
 - tapOn: "View details"
 - extendedWaitUntil:
     visible: "Possible causes. None of them is confirmed."
