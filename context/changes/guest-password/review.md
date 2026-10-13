@@ -99,7 +99,7 @@ Round 2: verified. D-10 now reads "explicit default", and alternative B says the
 - Fix: pass what was sent to the handler, e.g. `AdminPasswordHandler = (publicKey, sentPassword) => Promise<void>`. `discardAdminPassword(publicKey, sent)` reads the stored value inside the serial chain and removes it and sets the notice only when the value still equals `sent`. Add a controller test that saves a different password while the run is in flight (the fake script awaits timers) and asserts that the new password survives.
 - Effort: small
 - Lesson candidate: no (covered by the run-diagnostic R1 lesson)
-- Decision: open
+- Decision: fixed (cbc5f15)
 
 ### R5: PR #22 code changes are not reflected in `mutation.md` or in `evidence/`
 - Severity: minor
@@ -108,4 +108,4 @@ Round 2: verified. D-10 now reads "explicit default", and alternative B says the
 - Fix: add a "PR #22 re-run" line to `mutation.md` with the scores above and the moved line number. Copy the `guest-password-admin` screenshot (under 300 KB) into `evidence/` and reference it from the PR #22 human check.
 - Effort: small
 - Lesson candidate: no (covered by the proposed nearest-repeater R6 and connect-companion R5 lessons)
-- Decision: open
+- Decision: fixed (see triage commit; mutation.md re-run line, evidence screenshot)

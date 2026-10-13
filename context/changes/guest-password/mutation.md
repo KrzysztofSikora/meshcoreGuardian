@@ -18,11 +18,14 @@ Not mutated: `presenter.ts` additions (`passwordStatusText`, `passwordErrorText`
 | guest-passwords.ts:102 | MethodExpression | `every` -> `some` on index entries | strengthen | killed: index `["a",1]` added to the unreadable-index table |
 | guest-passwords.ts:103 | StringLiteral | error message -> `""` | accept | Wording of an internal error that is caught and mapped to STORAGE_ERROR or a rejection; asserting it would mirror the implementation. Survives. |
 
+## PR #22 and R4 re-run
+`pnpm mutation --mutate apps/mobile/src/application/nodes/guest-passwords.ts` after `b8dd64f` and the R4 fix: 106 killed, 1 survived (99.07%). The survivor is the same accepted error-message literal, now at line 141 (was 103). The reviewer's run of `run-controller.ts` (211 killed, 7 survivors, none on lines this change touched) stands. New R4 tests: `discardAdminPassword` leaves a password saved since the run started (`guest-passwords.int.test.ts`; `run-controller.int.test.ts`).
+
 ## Dead-weight tests
 None found. The new byte-boundary rows are table rows in the existing `it.each`.
 
 ## Gaps for the test plan
-None. `run-controller.ts` and `presenter.ts` changes of this change were already covered by their own targets.
+None.
 
 ## Proposed lessons
 none
