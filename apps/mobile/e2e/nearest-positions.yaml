@@ -42,6 +42,8 @@ appId: io.github.krzysztofsikora.guardian
 - back
 - tapOn: "Other nearby \\(5\\)"
 - assertVisible: "Last known path: 1 hop"
+- assertVisible: "PL- RDE_Room_MXC"
+- assertVisible: "Room server"
 - scrollUntilVisible:
     element: "Last known path: 2 hops"
 - takeScreenshot: nearest-with-positions

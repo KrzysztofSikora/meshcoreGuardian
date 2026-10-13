@@ -72,9 +72,11 @@ export function withContactGeo(
 export const NEAREST_COMPANION_POSITION: GeoPoint = { lat: 50.0647, lon: 19.945 };
 
 /**
- * Seven repeaters with mixed paths and positions, keyed by the first 4 public-key bytes:
- * direct and near, 1 hop with and without position, 2 hops with and without, unknown path with
- * and without. The other recorded repeaters keep an unknown path and no position.
+ * Seven repeaters and one room server with mixed paths and positions, keyed by the first 4
+ * public-key bytes: direct and near, 1 hop with and without position, 2 hops with and without,
+ * unknown path with and without. The room server (1 hop, with position) ranks next to the nearest
+ * repeater so the card shows its role. The other recorded nodes keep an unknown path and no
+ * position.
  */
 export const NEAREST_CONTACT_GEO: Readonly<Record<string, ContactGeo>> = {
   "66b91ae6": { hops: 0, position: { lat: 50.07, lon: 19.96 } }, // PL-KR-WRBL-RPT
@@ -84,6 +86,7 @@ export const NEAREST_CONTACT_GEO: Readonly<Record<string, ContactGeo>> = {
   f6db508e: { hops: 2, position: null }, // TOS-Sarnowek(7PA)
   "4ade48a5": { hops: null, position: { lat: 50.3, lon: 19.2 } }, // PL-12-08-Kozlow_ADE
   "6183c924": { hops: null, position: null }, // PL-TSA Sandomierz
+  e96076d4: { hops: 1, position: { lat: 50.08, lon: 19.97 } }, // PL- RDE_Room_MXC (room server)
 };
 
 export const NEAREST_HANDSHAKE_FRAMES: readonly ScriptFrame[] = withSelfPosition(
