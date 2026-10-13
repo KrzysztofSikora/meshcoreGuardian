@@ -5,6 +5,8 @@ import {
   lastHeardText,
   nameText,
   nodeRowModel,
+  passwordErrorText,
+  passwordStatusText,
   reportedAsText,
   reportedNameText,
   syncButton,
@@ -179,5 +181,27 @@ describe("syncButton", () => {
     expect(
       syncButton({ connected: true, capabilities: supported, sync: { kind: "syncing" } }).enabled,
     ).toBe(false);
+  });
+});
+
+describe("passwordStatusText", () => {
+  it.each([
+    [undefined, null],
+    ["yes", { key: "password.saved" }],
+    ["no", { key: "password.none" }],
+    ["error", { key: "password.readFailed" }],
+  ] as const)("maps %s", (saved, text) => {
+    expect(passwordStatusText(saved)).toEqual(text);
+  });
+});
+
+describe("passwordErrorText", () => {
+  it.each([
+    ["EMPTY", "password.tooLong"],
+    ["TOO_LONG", "password.tooLong"],
+    ["STORAGE_ERROR", "password.saveFailed"],
+    ["REMOVE_FAILED", "password.removeFailed"],
+  ] as const)("maps %s", (problem, key) => {
+    expect(passwordErrorText(problem)).toEqual({ key });
   });
 });

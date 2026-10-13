@@ -26,7 +26,7 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | TR-06 | Frame decoding drifts from firmware (library upgrade or firmware change) | H | M | integration | fixture tests decode every file in `packages/meshcore-adapter/fixtures/` and compare with the values logged at capture time | covered (S-01) |
 | TR-07 | meshcore.js does not run under Hermes / RN (Node or Web globals) | H | M | hardware | human check in S-02: app on real phone connects and decodes contacts; recorded in PR evidence | planned (S-02 human check) |
 | TR-08 | Response matched to the wrong request (late reply from a previous run, different node) | H | L | integration | fixture with interleaved replies; reply carrying another node's key prefix is not attributed to the current run | covered (S-04) |
-| TR-09 | Guest password leaks to SQLite, logs, fixtures or export | H | L | integration | write known password `pw-LEAK-CANARY`, then scan the SQLite file bytes, captured log output and export output: none contain it; capture tool test asserts password field is never serialised | covered (S-01 capture part); planned (S-05, S-08) |
+| TR-09 | Guest password leaks to SQLite, logs, fixtures or export | H | L | integration | write known password `pw-LEAK-CANARY`, then scan the SQLite file bytes, captured log output and export output: none contain it; capture tool test asserts password field is never serialised | covered (S-01 capture, S-05 SQLite files and logs); planned (S-08 export) |
 | TR-10 | Export includes full public keys by default or omits redaction preview | M | M | unit | golden files for JSON and CSV with redaction on/off; default settings → 8 hex chars only | planned (S-08) |
 | TR-11 | Data lost on restart or on schema migration | H | L | integration | repository round-trip on file-backed `node:sqlite`; migration test applies every migration in order to a DB seeded at each earlier version and checks rows survive | covered S-03 (migration, restart round-trip); S-06 planned |
 | TR-12 | Link drop not surfaced; in-flight run hangs; reconnect needs app restart | H | M | integration + e2e | `FakeTransport.drop()` mid-request → run ends `TRANSPORT_UNAVAILABLE` within 5 s fake time; e2e `reconnect.yaml` | covered (S-02) |
@@ -38,7 +38,7 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | TR-18 | Background BLE activity or automatic remote requests | M | L | integration | use-case tests: app-state `background` → transport receives no writes; no timer schedules a run | covered (S-02, S-04: no write without a tap, none in the background) |
 | TR-19 | Status relies on colour only; missing accessibility labels | M | M | e2e + hardware | Maestro asserts accessibility labels on status chips; S-10 audit with contrast checker and 200 % font scale | covered for the run status (S-04: e2e asserts the status words); S-10 audits the rest |
 | TR-20 | Settings accept out-of-range values | L | M | unit | Zod schema boundary tests (4/5/60/61 s; 0/1/3/4 attempts) | planned (S-09) |
-| TR-21 | Delete/clear leaves secrets or rows behind | M | L | integration | after delete: repository queries empty and `SecretStore` fake has no key | planned (S-05, S-09) |
+| TR-21 | Delete/clear leaves secrets or rows behind | M | L | integration | after delete: repository queries empty and `SecretStore` fake has no key | covered (S-05 secrets); planned (S-09 rows) |
 | TR-22 | Layer boundary violated (domain imports RN, storage imports adapter) | M | M | lint | ESLint `no-restricted-imports` + one fixture file asserting lint fails | planned (F-01) |
 | TR-23 | Live capture spams the radio or runs unintentionally | M | L | unit | capture tool refuses to start without `HW_COMPANION`/`HW_REPEATER`; request budget and 60 s spacing enforced with fake clock | covered (S-01) |
 | TR-24 | Large history makes lists janky | L | M | hardware | S-10 profiler trace with seeded 200 nodes / 1,000 runs | planned (S-10) |
@@ -82,6 +82,7 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | `apps/mobile/src/application/connection/companion-session.ts` | connect/scan/drop state machine, background and no-auto-reconnect rules (FR-01, FR-02, TR-12, TR-13, TR-18) | 80 % | report |
 | `packages/domain/src/trend.ts` | no trend on thin data (TR-17) | 80 % | report |
 | `packages/storage/src/sync/contacts.ts` | merge rules for labels/roles and removed contacts (TR-15) | 70 % | report |
+| `apps/mobile/src/application/nodes/guest-passwords.ts` | secret key scheme, index and clear-all leave nothing behind (TR-09, TR-21) | 80 % | report |
 | `packages/domain/src/geo/geo.ts`, `packages/domain/src/nodes/nearest.ts` | distance, direction and the order of the nearest-repeater card (FR-21) | 80 % | report |
 
 File names are the intended layout; the plan of each slice may rename them and must then update
@@ -135,7 +136,7 @@ Tool setup (done in F-01, configuration fixed here): `@stryker-mutator/core` and
 3. Assert user-visible outcomes only (text, enabled/disabled, labels). Never assert colours.
 4. Run one flow: `pnpm e2e --flow apps/mobile/e2e/<flow>.yaml`; all: `pnpm e2e`.
 5. Keep the e2e suite under ~15 flows; push detail down to integration tests. Flows that need a connected companion share `apps/mobile/e2e/lib/connect-diag.yaml` (`runFlow` with `env: SCENARIO`); it sits in a subfolder so Maestro does not run it alone.
-6. The diagnostic flows (S-04) are `diag-responded`, `diag-no-response`, `diag-transport-drop`, `diag-unsupported`, `diag-malformed` and `diag-cancel`: 15 flows in all. S-12 adds `app-look` (look pass: every screen in light and dark via the fake-build `guardian://debug/theme/<light|dark>` link, status words asserted in both schemes, TR-19; shared steps in `lib/look-screens.yaml`): 18 flows, above the ~15 guideline (plan D-13).
+6. The diagnostic flows (S-04) are `diag-responded`, `diag-no-response`, `diag-transport-drop`, `diag-unsupported`, `diag-malformed` and `diag-cancel`: 15 flows in all. S-12 adds `app-look` (look pass: every screen in light and dark via the fake-build `guardian://debug/theme/<light|dark>` link, status words asserted in both schemes, TR-19; shared steps in `lib/look-screens.yaml`): 18 flows, above the ~15 guideline (plan D-13). S-05 adds `guest-password` (FR-14 AC1: save, persistence across `stopApp`/`launchApp`, remove; a smoke run with a password saved): 19 flows.
 
 Existing S-03 flows: `contacts-sync.yaml` (FR-04 AC1, AC2, AC4: sync after connect, Unknown role, chat contacts only under All contacts, pin to Dashboard, second sync) and `contacts-label-restart.yaml` (FR-04 AC3: label and role survive `stopApp`/`launchApp` without `clearState`).
 

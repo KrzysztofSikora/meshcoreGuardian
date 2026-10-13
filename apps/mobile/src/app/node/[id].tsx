@@ -21,6 +21,9 @@ import {
 import {
   lastHeardText,
   nameText,
+  passwordErrorText,
+  passwordStatusText,
+  type PasswordProblem,
   reportedAsText,
   reportedNameText,
   roleText,
@@ -35,7 +38,7 @@ import { useNow } from "../../components/use-now";
 import { container } from "../../composition";
 import { useStyles, useTheme } from "../../theme/theme-provider";
 
-const { nodes: controller, runs, session } = container;
+const { nodes: controller, runs, session, passwords } = container;
 
 const COUNTDOWN_TICK_MS = 1000;
 
@@ -148,12 +151,75 @@ function NodeDetails({ node }: { node: Node }) {
           onPress={() => void controller.pin(node.publicKey).then(report)}
         />
       )}
+      <GuestPasswordCard publicKey={node.publicKey} />
       {error !== null && (
         <Text accessibilityRole="alert" style={[styles.body, { color: colors.danger }]}>
           {t(error === "nodes.labelTooLong" ? "nodes.labelTooLong" : "nodes.saveFailed")}
         </Text>
       )}
     </View>
+  );
+}
+
+function GuestPasswordCard({ publicKey }: { publicKey: string }) {
+  const { t } = useTranslation();
+  const [input, setInput] = useState("");
+  const [problem, setProblem] = useState<PasswordProblem | null>(null);
+  const saved = useStore(passwords.store).saved[publicKey];
+  const { colors } = useTheme();
+  const styles = useNodeStyles();
+  const status = passwordStatusText(saved);
+
+  useEffect(() => {
+    void passwords.load(publicKey);
+  }, [publicKey]);
+
+  const save = () =>
+    void passwords.save(publicKey, input).then((result) => {
+      if (result.ok) {
+        setInput("");
+        return setProblem(null);
+      }
+      setProblem(result.reason);
+    });
+  const remove = () =>
+    void passwords.remove(publicKey).then((result) => setProblem(result.ok ? null : "REMOVE_FAILED"));
+
+  return (
+    <Card>
+      <SectionHeading>{t("password.heading")}</SectionHeading>
+      {status !== null && (
+        <Text
+          accessibilityRole={saved === "error" ? "alert" : undefined}
+          style={[styles.body, { color: saved === "error" ? colors.danger : colors.text }]}
+        >
+          {tr(t, status)}
+        </Text>
+      )}
+      <TextInput
+        testID="password-input"
+        accessibilityLabel={t("password.heading")}
+        style={[styles.input, { color: colors.text, borderColor: colors.borderStrong, backgroundColor: colors.ground }]}
+        value={input}
+        onChangeText={setInput}
+        secureTextEntry
+        autoCapitalize="none"
+        autoCorrect={false}
+      />
+      <Muted>{t("password.help")}</Muted>
+      <AppButton
+        title={t("password.save")}
+        variant="secondary"
+        disabled={input === ""}
+        onPress={save}
+      />
+      {saved === "yes" && <AppButton title={t("password.remove")} variant="secondary" onPress={remove} />}
+      {problem !== null && (
+        <Text accessibilityRole="alert" style={[styles.body, { color: colors.danger }]}>
+          {tr(t, passwordErrorText(problem))}
+        </Text>
+      )}
+    </Card>
   );
 }
 

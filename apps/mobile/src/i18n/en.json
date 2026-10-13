@@ -120,6 +120,18 @@
     "addToDashboard": "Add to dashboard",
     "notFound": "This node is not in local storage."
   },
+  "password": {
+    "heading": "Guest password",
+    "saved": "Guest password saved",
+    "none": "No guest password, the app tries an open guest login",
+    "readFailed": "Could not read the saved password",
+    "help": "Up to 15 bytes. Kept only in this phone's secure storage.",
+    "save": "Save password",
+    "remove": "Remove password",
+    "tooLong": "The password must be 1 to 15 bytes long.",
+    "saveFailed": "Could not save the password",
+    "removeFailed": "Could not remove the password"
+  },
   "sync": {
     "syncing": "Syncing contacts…",
     "done": "Contacts synced: {{count}}",

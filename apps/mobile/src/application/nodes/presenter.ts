@@ -59,6 +59,34 @@ export function reportedNameText(node: Node): Text | null {
   return { key: "nodes.reportedName", params: { name: node.reportedName } };
 }
 
+/** The saved/not saved line of the guest password card; always words, never the password. */
+export function passwordStatusText(saved: "yes" | "no" | "error" | undefined): Text | null {
+  switch (saved) {
+    case undefined:
+      return null;
+    case "yes":
+      return { key: "password.saved" };
+    case "no":
+      return { key: "password.none" };
+    case "error":
+      return { key: "password.readFailed" };
+  }
+}
+
+export type PasswordProblem = "EMPTY" | "TOO_LONG" | "STORAGE_ERROR" | "REMOVE_FAILED";
+
+export function passwordErrorText(problem: PasswordProblem): Text {
+  switch (problem) {
+    case "EMPTY":
+    case "TOO_LONG":
+      return { key: "password.tooLong" };
+    case "STORAGE_ERROR":
+      return { key: "password.saveFailed" };
+    case "REMOVE_FAILED":
+      return { key: "password.removeFailed" };
+  }
+}
+
 export interface NodeRowModel {
   name: Text;
   role: Text;

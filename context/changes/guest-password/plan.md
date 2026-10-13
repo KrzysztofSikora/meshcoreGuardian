@@ -199,10 +199,12 @@ login frame. Nothing about the password goes to `DiagnosticRunRepository`.
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
 - [x] Phase 1: Secret storage and run wiring
-- [ ] Phase 2: Guest password card, e2e and docs
+- [x] Phase 2: Guest password card, e2e and docs
 
 ## Human checks
 <!-- Filled by /implement: one open checkbox per human check, with how to run it and evidence. -->
+- [ ] (Phase 2) Real hardware, Room K, guest password: save the real password, Run diagnostic, login step responded; then save a deliberately wrong password, wait for the cooldown, run, expect "Login rejected"; then Remove password. Confirms the 15-byte limit (D-4) and the UNVERIFIED login behaviour — run: install the CI APK (`android-apk` artifact), connect the companion, open Room K — evidence: the run details screen (none yet)
+- [ ] (Phase 2) Card wording and look in light and dark: status reads clearly, the stored password is never shown, Remove appears only when a password is saved — run: open any node on the CI APK or the emulator build, toggle the theme — evidence: `context/changes/guest-password/evidence/guest-password-saved.png`, `guest-password-none.png` (light theme only; dark not captured)
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
@@ -210,6 +212,9 @@ login frame. Nothing about the password goes to `DiagnosticRunRepository`.
 - [minor] Phase 1: `apps/mobile/tsconfig.json` gained `"types": ["node"]` so the leak test and the storage test helper typecheck. Node globals are now visible to app code at type level; the lint rules still forbid `node:sqlite` there.
 - [minor] Phase 1: `expo install` reformatted `app.json`; reverted and added the `expo-secure-store` plugin line by hand (pinned `~57.0.4`).
 - [minor] Phase 1: the lint block for `@guardian/storage/testing` is a separate `apps/mobile/**/*.test.ts` layer restating the full list (plan-review 1); `layer-rules.test.ts` covers test file allowed / app file rejected.
+- [minor] Phase 2: the Guest password card sits at the bottom of the node screen, after "Add to dashboard", not directly below the role card. Plan says below the role card; the first e2e run showed `contacts-sync` could not find "Add to dashboard" (added height), so the card moved below it and no existing flow changed.
+- [minor] Phase 2: `guest-password.yaml` runs the diagnostic before the restart and checks only persistence after it (plan-review 3). The e2e is a smoke check for FR-05 AC2; the frame bytes are proved by the run-controller integration test (plan-review 4).
+- [minor] Phase 2: only light-theme screenshots were taken; dark is left to human check 2.
 - [REVIEW] FR-14 AC3 / roadmap S-05: the roadmap says "deleting a node or clearing data deletes its secret",
   but neither a node delete nor "clear all data" exists before S-09. S-05 proves AC3 at the use-case level
   (`GuestPasswords.remove` / `clearAll`), and S-09 wires it into its flows (D-3). Alternative: build both
