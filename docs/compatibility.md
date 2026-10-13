@@ -63,11 +63,25 @@ exercised.
 | `estTimeout` returned | login 3678 ms, status 2694 ms, telemetry 2694 ms | verified | `remote.json` summary |
 | Latency (request write → push) | login 2875 ms, status 1324 ms, telemetry 1088 ms. Every reply came within its `estTimeout` | verified (one sample each, direct path) | `remote.json` summary |
 | Correlation | Pushes carry the 6-byte key prefix `7c73a8cd01d9`. The status and telemetry pushes have no tag, and the login-success tag does not equal the SENT tag. Correlation is by key prefix, with one request in flight per companion | verified | `remote.json` frames 363–378 |
-| Guest login (empty password) | Accepted. `0x85` login success in the new format: prefix, permissions 1, tag, ACL permissions 3, firmware level 1. The login frame carried no password bytes | verified | `remote.json` frames 362, 365 |
+| Login with an empty password | Accepted, and **not** as a guest. The node let the companion in by its key from the node's ACL, with admin rights: `0x85` login success in the new format: prefix, permissions (admin flag) 1, tag, ACL permissions 3, firmware level 1. The login frame carried no password bytes. On Room K and on the node of the PR #22 runs below the empty-password login was an admin session. Guardian cannot prevent that, so it shows the session role and a limitation, and sends only read requests | verified for these two nodes; the guest-by-default assumption of S-05 was wrong | `remote.json` frames 362, 365; PR #22 runs |
+| Session role from the login reply | The app shows the role decoded from `aclPermissions` (lowest two bits: 0 guest, 1 read-only, 2 read-write, 3 admin; unknown if the byte is missing, and then the flag value 1 counts as admin). The raw flag and ACL byte stay in stored evidence | not verified: only ACL 3 (admin) and flag 0/1 were seen; the other three values come from firmware source | `session-role.ts` |
+| Logout after a run | Not used. The pinned meshcore.js codec has no logout call, and a raw frame would be an unverified command. The node keeps the session until its own timeout | not verified | `connection.js` command list |
 | Login failure push (`0x86`) | Not seen. The decoder follows firmware source (prefix only) | not verified | decoder tests only |
 | Status (`0x87`) | Repeater stats struct: battery 3353 mV, TX queue 0, noise floor −117, last RSSI −34, received/sent 458/159, air time 108 s, uptime 2837 s, flood/direct sent 157/2, flood/direct received 446/7, errors 0, `lastSnrX4` 53 (raw), direct/flood dups 0/283, then 12 extra bytes (all zero) from the room server, kept as `extraHex` | verified for a room server; repeater not verified; extra room fields' meaning not verified | `remote.json` frame 371 |
 | Telemetry (`0x8b`) | CayenneLPP: channel 1 type 116 (voltage) 3.35, channel 1 type 103 (temperature) 30. Raw `lppHex` is kept (D-11) | verified | `remote.json` frame 378 |
 | Status without login | Not exercised: the login succeeded, so the D-15 path where a guest has no session did not occur | not verified | — |
+
+### Login with and without a password (PR #22, same node, companion Krk PL v1.17.1-d929643, 2026-10-13)
+
+| Run | Password used | Login `permissions` byte | Reading |
+|-----|---------------|--------------------------|---------|
+| 20:41 | none (empty) | 1 | Admin session from the node's ACL for this companion's key |
+| 20:49 | guest password | 0 | Guest session |
+| 20:52 | the node's admin password, saved in the guest-password field | 1 | Admin session through the password |
+
+The byte shown as "Permissions" is the node's admin flag. An empty password is therefore not proof of a guest
+login. Guardian takes only a guest password: when a saved password returns an admin session it is removed from
+secure storage and the user is told. No password is recorded here.
 
 ## Other companion pushes seen
 

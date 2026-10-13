@@ -16,6 +16,7 @@ Reply in a review comment, e.g. `D-2: take B`, `drop the lessons commit`, then r
 
 ## Human checks
 - [ ] (Phase 2) Real hardware, Room K, guest password: save the real password, Run diagnostic, login step responded; then save a deliberately wrong password, wait for the cooldown, run, expect "Login rejected"; then Remove password. Confirms the 15-byte limit (D-4) and the UNVERIFIED login behaviour. Run: install the CI APK (`android-apk` artifact), connect the companion, open Room K. Evidence: the run details screen (none yet).
+- [ ] (PR #22) Real hardware, CI APK: save the node's admin password as the guest password, run: expect "Responded", "Session role: administrator", the limitation, and the password card saying the password was removed. Then save the guest password, run: expect "Session role: guest" and the password kept. The wrong-password "Login rejected" check above is still pending.
 - [ ] (Phase 2) Card wording and look in light and dark: status reads clearly, the stored password is never shown, Remove appears only when a password is saved. Run: open any node on the CI APK or the emulator build, toggle the theme. Evidence: [saved](evidence/guest-password-saved.png), [none](evidence/guest-password-none.png) (light theme only; dark not captured).
 
 ## Other decisions made by the agent (cheap to change)
