@@ -57,7 +57,7 @@ Gates: typecheck ok, lint ok, unit tests ok (74 files, 1308 tests), e2e ok (20/2
 - Fix: give the row a status without an age (`{ kind: "responded", ageMs: null }`, which `statusText` already renders as the plain result word), since the row shows its own time; or pass the real `now`. Add a unit test with a `RESPONDED` run that asserts the rendered status has no "just now", and make the e2e row assertion target text only the row has (its duration or a `testID`).
 - Effort: small
 - Lesson candidate: When a component that renders relative time is reused for a stored record, pass the real "now" or a status without age; test it with a record older than a minute.
-- Decision: open
+- Decision: fixed (7529a97) + lesson proposed
 
 ### R2: A failed history read is shown as "No response recorded" and "No telemetry recorded yet"
 - Severity: major
@@ -66,7 +66,7 @@ Gates: typecheck ok, lint ok, unit tests ok (74 files, 1308 tests), e2e ok (20/2
 - Fix: when `status` is `"error"`, render the telemetry card and the last-response line as the neutral load-failed text (or hide them and show the error near the top), and keep the previous data on a failed reload; while `"loading"`, show nothing for last response. Add a controller test for a failed reload after a good one.
 - Effort: small
 - Lesson candidate: Never render an empty-data message ("none recorded") from the default values of an error or loading state.
-- Decision: open
+- Decision: fixed (7529a97) + lesson proposed
 
 ### R3: Plan-review findings 3, 7 and 8 have no response, and a newest run without telemetry silently hides the group
 - Severity: major
@@ -75,4 +75,4 @@ Gates: typecheck ok, lint ok, unit tests ok (74 files, 1308 tests), e2e ok (20/2
 - Fix: add a *Review response* line for each plan-review finding. For the partial run, add a telemetry group with a "No telemetry reply in this run" row (and the same for a missing status group), with a presenter test for "status responded, telemetry no response".
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (7529a97)

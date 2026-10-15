@@ -229,3 +229,11 @@ GitHub issue: #7.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->
+- 1 (`MemoryRuns` fake): applied in Phase 2, see the deviation above.
+- 2 (backfill needs every check of the run): applied in Phase 1/2, see the deviation above.
+- 3 (newest run with a status sample but no telemetry reply): the repository returns the newest run's samples only; the presenter now shows the missing source as a group "No reply in this run" (review R3), with a presenter test for both directions.
+- 4 (failing backfill must not block start): applied in Phase 3 (`openGuardianDb` catches it).
+- 5 (total sample mapping): applied in Phase 1, see the deviation above.
+- 6 (`device_id` kept): applied in Phase 2, see the deviation above.
+- 7 (row assertion in e2e): the row assertion now matches the run duration, text only the row has (review R1), in `diag-responded.yaml`.
+- 8 (D-5 0 mV is inferred): kept as `costly` and `UNVERIFIED`; listed for the PR reviewer in *Decisions to confirm*.
