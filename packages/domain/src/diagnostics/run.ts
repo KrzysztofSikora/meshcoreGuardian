@@ -33,4 +33,8 @@ export interface DiagnosticRunRepository {
   get(id: number): Promise<DiagnosticRun | null>;
   /** The newest run per node; `checks` is empty. */
   latestPerNode(): Promise<Map<string, DiagnosticRun>>;
+  /** The newest `limit` runs of one node, newest first; `checks` is empty. */
+  recentForNode(publicKey: string, limit: number): Promise<DiagnosticRun[]>;
+  /** `finishedAt` of the node's newest `RESPONDED` run, or null when it never responded. */
+  lastRespondedAt(publicKey: string): Promise<number | null>;
 }

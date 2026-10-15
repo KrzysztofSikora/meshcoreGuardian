@@ -2,9 +2,9 @@ import { z } from "zod";
 
 import {
   CHECK_KINDS,
+  samplesFromChecks,
   RESULT_CODES,
   isReasonFor,
-  type CheckEvidence,
   type CheckOutcome,
   type DiagnosticRun,
   type DiagnosticRunRepository,
@@ -14,55 +14,11 @@ import {
 
 import type { SqlDriver } from "../driver";
 import { NodeNotFoundError } from "../nodes/node-repository";
+import { insertSamples } from "../telemetry/sample-rows";
+import { evidenceSchema } from "./evidence";
 
 const result = z.enum(RESULT_CODES);
 const kind = z.enum(CHECK_KINDS);
-
-const lppValue = z.object({
-  channel: z.number(),
-  type: z.number(),
-  value: z.union([
-    z.number(),
-    z.object({ latitude: z.number(), longitude: z.number(), altitude: z.number() }),
-  ]),
-});
-
-const evidenceSchema: z.ZodType<CheckEvidence> = z.discriminatedUnion("kind", [
-  z.object({
-    kind: z.literal("login"),
-    permissions: z.number(),
-    aclPermissions: z.number().nullable(),
-    firmwareLevel: z.number().nullable(),
-    passwordSent: z.boolean().optional(),
-  }),
-  z.object({
-    kind: z.literal("status"),
-    battMilliVolts: z.number(),
-    currTxQueueLen: z.number(),
-    noiseFloor: z.number(),
-    lastRssi: z.number(),
-    nPacketsRecv: z.number(),
-    nPacketsSent: z.number(),
-    totalAirTimeSecs: z.number(),
-    totalUpTimeSecs: z.number(),
-    nSentFlood: z.number(),
-    nSentDirect: z.number(),
-    nRecvFlood: z.number(),
-    nRecvDirect: z.number(),
-    errEvents: z.number(),
-    lastSnrX4: z.number(),
-    nDirectDups: z.number(),
-    nFloodDups: z.number(),
-  }),
-  z.object({ kind: z.literal("telemetry"), values: z.array(lppValue), lppHex: z.string() }),
-  z.object({
-    kind: z.literal("malformed"),
-    code: z.number(),
-    length: z.number(),
-    hex: z.string(),
-  }),
-  z.object({ kind: z.literal("rejected"), code: z.number().nullable() }),
-]);
 
 const limitationsSchema = z.array(z.object({ check: kind, result, reason: z.string() }));
 
@@ -215,6 +171,7 @@ export class SqliteDiagnosticRunRepository implements DiagnosticRunRepository {
           ],
         );
       }
+      await insertSamples(tx, device[0].id, runId, samplesFromChecks(run.checks, run.finishedAt));
       return runId;
     });
   }
@@ -242,5 +199,22 @@ export class SqliteDiagnosticRunRepository implements DiagnosticRunRepository {
       latest.set(run.nodePublicKey, run);
     }
     return latest;
+  }
+
+  async recentForNode(publicKey: string, limit: number): Promise<DiagnosticRun[]> {
+    const rows = await this.driver.all<unknown>(
+      `${RUN_SELECT} WHERE d.public_key = ? ORDER BY r.finished_at DESC, r.id DESC LIMIT ?`,
+      [publicKey, limit],
+    );
+    return rows.map((row) => toRun(row, []));
+  }
+
+  async lastRespondedAt(publicKey: string): Promise<number | null> {
+    const rows = await this.driver.all<{ at: number | null }>(
+      `SELECT MAX(r.finished_at) AS at FROM diagnostic_runs r JOIN devices d ON d.id = r.device_id
+       WHERE d.public_key = ? AND r.result = 'RESPONDED'`,
+      [publicKey],
+    );
+    return rows[0]?.at ?? null;
   }
 }
