@@ -1,9 +1,14 @@
 import { DEFAULT_DIAGNOSTIC_POLICY } from "@guardian/domain";
-import { SqliteDiagnosticRunRepository, SqliteNodeRepository } from "@guardian/storage";
+import {
+  SqliteDiagnosticRunRepository,
+  SqliteNodeRepository,
+  SqliteTelemetryRepository,
+} from "@guardian/storage";
 
 import { CompanionSession } from "../application/connection/companion-session";
 import { RunController } from "../application/diagnostics/run-controller";
 import { GuestPasswords } from "../application/nodes/guest-passwords";
+import { NodeHistoryController } from "../application/nodes/node-history";
 import { NodesController } from "../application/nodes/nodes-controller";
 import { parseTransportMode } from "../config/transport-mode";
 import { KvAirtimeNoticeStore } from "../platform/airtime-notice-store";
@@ -41,6 +46,10 @@ export const container = {
     repository: async () => new SqliteNodeRepository(await db()),
   }),
   passwords,
+  history: new NodeHistoryController({
+    runs: async () => new SqliteDiagnosticRunRepository(await db()),
+    telemetry: async () => new SqliteTelemetryRepository(await db()),
+  }),
   runs: new RunController({
     session,
     appState: platform.appState,

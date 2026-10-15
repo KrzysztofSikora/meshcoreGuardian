@@ -208,7 +208,7 @@ GitHub issue: #7.
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
 - [x] Phase 1: Telemetry samples in the domain
 - [x] Phase 2: Schema v4, sample storage and backfill
-- [ ] Phase 3: Node history controller and presenter
+- [x] Phase 3: Node history controller and presenter
 - [ ] Phase 4: Node details screen
 
 ## Human checks
