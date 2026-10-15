@@ -93,5 +93,5 @@ Round 2 re-checks R1-R3 against `7529a97` (fix), `60ef6dc` (lessons) and `68e8ff
 - Fix: use neutral wording that is true in every case, e.g. `telemetry.notInRun` = "Not received in this run" (and fix the comment). Alternatively pass the run's check results to `telemetryCard` and word each cause (no reply, not supported by the companion, cancelled); that is more precise but needs the newest run's checks, which `recentForNode` does not load.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (9f190af)
 
