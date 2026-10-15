@@ -33,7 +33,7 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | TR-13 | Permission denied / Bluetooth off shown as "no devices found" | M | M | e2e | `permission-denied.yaml`, `bluetooth-off.yaml` with fake transport scripted states | covered (S-02) |
 | TR-14 | Unsupported capability still callable or unlabelled | M | M | unit + e2e | capability → enabled-actions mapping; e2e asserts disabled button and reason text | covered (S-02: mapping + reason text); S-04: `runButton` unit tests and the `diag-unsupported.yaml` e2e |
 | TR-15 | Contact sync duplicates nodes, overwrites user label/role, or deletes history of removed contacts | M | M | integration | sync twice → one row per key; user label kept over protocol name; contact missing from companion → node kept with flag | covered (S-03) |
-| TR-16 | Telemetry shown without unit, 0 instead of N/A, RSSI/SNR presented as end-to-end | M | M | unit | mapping tests from decoded telemetry → domain samples; presenter tests for N/A and "last hop" labels | planned (S-06) |
+| TR-16 | Telemetry shown without unit, 0 instead of N/A, RSSI/SNR presented as end-to-end | M | M | unit | mapping tests from decoded telemetry → domain samples; presenter tests for N/A and "last hop" labels | partial (S-06: domain mapping `samples.test.ts`, `lpp.test.ts`; presenter and e2e pending) |
 | TR-17 | Trend or prediction shown on too little data | M | L | unit | trend rule: 4 samples / 23 h → "Not enough data"; 5 samples / 24 h → trend; no API returns a prediction | planned (S-07) |
 | TR-18 | Background BLE activity or automatic remote requests | M | L | integration | use-case tests: app-state `background` → transport receives no writes; no timer schedules a run | covered (S-02, S-04: no write without a tap, none in the background) |
 | TR-19 | Status relies on colour only; missing accessibility labels | M | M | e2e + hardware | Maestro asserts accessibility labels on status chips; S-10 audit with contrast checker and 200 % font scale | covered for the run status (S-04: e2e asserts the status words); S-10 audits the rest |
@@ -84,6 +84,8 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | `packages/storage/src/sync/contacts.ts` | merge rules for labels/roles and removed contacts (TR-15) | 70 % | report |
 | `apps/mobile/src/application/nodes/guest-passwords.ts` | secret key scheme, index and clear-all leave nothing behind (TR-09, TR-21) | 80 % | report |
 | `packages/domain/src/geo/geo.ts`, `packages/domain/src/nodes/nearest.ts` | distance, direction and the order of the nearest-repeater card (FR-21) | 80 % | report |
+| `packages/domain/src/telemetry/samples.ts` | check evidence → samples: units, N/A instead of 0, last-hop scope (TR-16) | 80 % | report |
+| `apps/mobile/src/application/nodes/history-presenter.ts` | N/A and last-hop labels on the node screen (TR-16) | 80 % | report |
 
 File names are the intended layout; the plan of each slice may rename them and must then update
 this table. After S-04 lands, revisit whether CI should break below 70 % on the domain targets.

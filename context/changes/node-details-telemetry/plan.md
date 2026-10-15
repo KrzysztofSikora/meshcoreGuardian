@@ -206,7 +206,7 @@ GitHub issue: #7.
 
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
-- [ ] Phase 1: Telemetry samples in the domain
+- [x] Phase 1: Telemetry samples in the domain
 - [ ] Phase 2: Schema v4, sample storage and backfill
 - [ ] Phase 3: Node history controller and presenter
 - [ ] Phase 4: Node details screen
@@ -217,6 +217,8 @@ GitHub issue: #7.
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
 - [REVIEW] (plan) PRD FR-08 AC2 lists "the voltage chart" on node details; the roadmap gives the chart to S-07 (FR-12). This change ships node details without the chart (D-8), so FR-08 AC2 is complete only when S-07 lands. Alternative: build the chart here, pulling S-07 scope forward.
+
+- [minor] (Phase 1) Plan-review findings 2 and 5 applied: `samplesFromChecks` needs every check of the run in stored order (`checkSeq` = index), so the Phase 2 backfill must load all checks of an affected run and filter the output by missing `(run_id, seq)`; the function is total (non-finite or negative values become null).
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->
