@@ -148,15 +148,15 @@ describe("telemetryCard", () => {
     expect(rows(t!)[1]).toEqual(["Humidity · channel 2", "45.68 %"]);
   });
 
-  it("states a source the run got no reply for instead of dropping its group (R3)", () => {
+  it("states a source the run has no sample for instead of dropping its group (R3)", () => {
     const noStatus = groups(telemetryCard([telemetry()], fmt));
     expect(noStatus.map((g) => render(g.title))).toEqual(["Status reply", "Telemetry reply"]);
     expect(noStatus[0]!.measured).toBeNull();
-    expect(rows(noStatus[0]!)).toEqual([["Reply", "No reply in this run"]]);
+    expect(rows(noStatus[0]!)).toEqual([["Reply", "Not received in this run"]]);
     const noTelemetry = groups(telemetryCard([status()], fmt));
     expect(noTelemetry.map((g) => render(g.title))).toEqual(["Status reply", "Telemetry reply"]);
     expect(noTelemetry[1]!.measured).toBeNull();
-    expect(rows(noTelemetry[1]!)).toEqual([["Reply", "No reply in this run"]]);
+    expect(rows(noTelemetry[1]!)).toEqual([["Reply", "Not received in this run"]]);
   });
 
   it.each([

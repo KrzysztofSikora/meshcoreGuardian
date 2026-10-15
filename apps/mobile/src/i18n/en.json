@@ -488,7 +488,7 @@
     "valueUnitUnknown": "{{value}} (unit unknown)",
     "uptime": "{{days}} d {{hours}} h {{minutes}} min",
     "noValues": "No values in the reply",
-    "noReply": "No reply in this run",
+    "notInRun": "Not received in this run",
     "empty": "No telemetry recorded yet. Run a diagnostic to get it.",
     "loadFailed": "Stored history could not be read.",
     "lastHopNote": "Measured by the node on the last packet it received. Not end-to-end link quality.",

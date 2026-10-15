@@ -129,12 +129,12 @@ function telemetryGroup(
   };
 }
 
-/** The run asked for this source and got no reply: say so rather than drop the group. */
+/** The run holds no sample for this source (no reply, skipped or cancelled): say so rather than drop the group. */
 function missingGroup(source: "status" | "telemetry"): TelemetryGroup {
   return {
     title: { key: `telemetry.source.${source}` },
     measured: null,
-    rows: [{ label: { key: "telemetry.field.reply" }, value: { key: "telemetry.noReply" } }],
+    rows: [{ label: { key: "telemetry.field.reply" }, value: { key: "telemetry.notInRun" } }],
   };
 }
 
