@@ -1,7 +1,16 @@
 # Review: node-details-telemetry
 
-Verdict: CHANGES REQUESTED
-Gates: typecheck ok, lint ok, unit tests ok (74 files, 1308 tests), e2e ok (20/20 flows) · Round: 1
+Verdict: APPROVE WITH FOLLOW-UPS
+Gates: typecheck ok, lint ok, unit tests ok (74 files, 1310 tests), e2e E2E_RESULT · Round: 2
+
+Round 2 re-checks R1-R3 against `7529a97` (fix), `60ef6dc` (lessons) and `68e8ffd` (triage).
+
+### Round 1 findings
+| Finding | Status | Evidence |
+|---------|--------|----------|
+| R1 | fixed | `recentRunRow(run, formatTime, now)` uses the real `now` (`history-presenter.ts:184`), ticked each minute via `useNow` + `extraData` (`node/[id].tsx:60,83`); unit test with a 3-day-old `RESPONDED` run asserts "Responded 3 days ago"; e2e row assertion now matches the duration text, which only `RunRow` renders bare |
+| R2 | fixed | `NodeHistory.loaded` gates the card, last-response line and empty text (`node/[id].tsx:96,130,158`); the error alert is shown at the top of the details; a failed reload keeps the last good data (`node-history.ts:71`) with an int test |
+| R3 | fixed, with a new wording problem | *Review response* now has one line per plan-review finding 1-8; the missing source is shown as a group, but its text claims "No reply" also when the check was never sent (R4) |
 
 ## Plan vs diff
 | File | Status | Note |
@@ -22,16 +31,16 @@ Gates: typecheck ok, lint ok, unit tests ok (74 files, 1308 tests), e2e ok (20/2
 | `packages/storage/test/{telemetry-repository,backfill}.int.test.ts` | done | |
 | `packages/storage/test/{run-repository,migrate}.int.test.ts` | done | |
 | `apps/mobile/src/application/diagnostics/run-controller.int.test.ts` | done | logged `[minor]` (plan-review 1) |
-| `apps/mobile/src/application/nodes/node-history.ts` | done | |
-| `apps/mobile/src/application/nodes/history-presenter.ts` | diverged | `recentRunRow` computes the status at `finishedAt`, so the age is always 0 (R1); a run with no telemetry group is not stated (R3) |
+| `apps/mobile/src/application/nodes/node-history.ts` | done | `loaded` flag; failed reload keeps last good data (R2 fix) |
+| `apps/mobile/src/application/nodes/history-presenter.ts` | done | R1 and R3 fixed; the missing-source text overclaims (R4) |
 | `apps/mobile/src/application/nodes/{history-presenter.test,node-history.int.test}.ts` | done | |
 | `apps/mobile/src/platform/sqlite/open-guardian-db.ts` | done | backfill errors caught (plan-review 4) |
 | `apps/mobile/src/composition/index.ts` | done | |
 | `apps/mobile/src/i18n/en.json`, `catalog.test.ts` | done | `catalog.test.ts` change logged `[minor]` |
-| `apps/mobile/src/app/node/[id].tsx` | diverged | `FlatList` as planned; the error state shows "no response" and "no telemetry" claims (R2) |
+| `apps/mobile/src/app/node/[id].tsx` | done | R2 fixed: data gated on `loaded`, error alert at the top, minute tick for row ages |
 | `apps/mobile/src/components/telemetry-card.tsx`, `run-row.tsx` | done | |
 | `apps/mobile/src/components/ui/screen.tsx` | absent | not needed: the screen uses `Screen` without `scroll` and owns the `FlatList` (allowed by the plan) |
-| `apps/mobile/e2e/diag-responded.yaml` | done | row assertion not specific (part of R1) |
+| `apps/mobile/e2e/diag-responded.yaml` | done | row assertion now matches the duration text only `RunRow` renders (R1 fix) |
 | `apps/mobile/e2e/{guest-password,guest-password-admin}.yaml`, `lib/look-screens.yaml` | done | logged `[minor]` |
 | `context/test-plan.md` | done | TR-11/TR-16 rows, mutation targets, Cookbook |
 | `context/changes/node-details-telemetry/evidence/*.png` | done | 274 KB and 210 KB |
@@ -41,12 +50,12 @@ Gates: typecheck ok, lint ok, unit tests ok (74 files, 1308 tests), e2e ok (20/2
 ## Areas
 | Area | Result | One-line reason |
 |------|--------|-----------------|
-| Correctness | fail | every responded row in "Recent runs" reads "Responded just now" (R1) |
+| Correctness | concern | R1-R3 fixed; a run whose telemetry check was skipped or cancelled says "No reply in this run" (R4) |
 | Design | ok | layers respected; one mapping shared by save and backfill; samples atomic with the run |
-| Safety | concern | a storage read failure is shown as "No response recorded" and "No telemetry recorded yet" (R2) |
-| Tests | concern | `recentRunRow` tested only with `NO_RESPONSE`; e2e row assertion also matches the panel chip (R1); mutation decisions plausible |
+| Safety | ok | a read failure is now an explicit alert; no empty-data claim from defaults |
+| Tests | ok | old responded row, partial run (both directions) and failed reload are tested; mutation decisions plausible |
 | Simplicity | ok | small, cohesive modules |
-| Plan fidelity | concern | plan-review findings 3, 7 and 8 have no *Review response* line; finding 3 only half applied (R3) |
+| Plan fidelity | ok | *Review response* covers plan-review findings 1-8 |
 | Agent decisions | ok | D-1..D-15 implemented in one place each; D-8 logged as `[REVIEW]` |
 
 ## Findings
@@ -76,3 +85,13 @@ Gates: typecheck ok, lint ok, unit tests ok (74 files, 1308 tests), e2e ok (20/2
 - Effort: small
 - Lesson candidate: no
 - Decision: fixed (7529a97)
+
+### R4: "No reply in this run" is shown for a telemetry check that was never sent
+- Severity: major
+- Where: `apps/mobile/src/application/nodes/history-presenter.ts:132-139,155-156`; `apps/mobile/src/i18n/en.json` (`telemetry.noReply`)
+- Problem: the R3 fix turns any source without a sample into `missingGroup`, commented "The run asked for this source and got no reply". The presenter only sees samples, and `samplesFromChecks` (`packages/domain/src/telemetry/samples.ts`) keeps only `RESPONDED` checks with evidence. So the telemetry group is also missing when the check was `UNSUPPORTED` (`planChecks` stores it as skipped when the companion firmware is below ver code 5, `packages/domain/src/diagnostics/check.ts:85-93`) or `NOT_TESTED`/`CANCELLED` (the user cancelled after the status reply). With a v<5 companion, every run's card says "Telemetry reply · Reply: No reply in this run", which tells the operator the node did not answer something that was never asked. That breaks the honest-status rule (CLAUDE.md) and the proposed lesson on empty-data messages. The new presenter test covers only the shape, not the cause.
+- Fix: use neutral wording that is true in every case, e.g. `telemetry.notInRun` = "Not received in this run" (and fix the comment). Alternatively pass the run's check results to `telemetryCard` and word each cause (no reply, not supported by the companion, cancelled); that is more precise but needs the newest run's checks, which `recentForNode` does not load.
+- Effort: small
+- Lesson candidate: no
+- Decision: open
+
