@@ -49,7 +49,6 @@
   },
   "node": {
     "title": "Node",
-    "placeholder": "Node details will appear here.",
     "lastResponse": "Last response: {{time}}",
     "lastResponseNone": "No response recorded"
   },

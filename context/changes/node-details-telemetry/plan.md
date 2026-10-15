@@ -209,10 +209,13 @@ GitHub issue: #7.
 - [x] Phase 1: Telemetry samples in the domain
 - [x] Phase 2: Schema v4, sample storage and backfill
 - [x] Phase 3: Node history controller and presenter
-- [ ] Phase 4: Node details screen
+- [x] Phase 4: Node details screen
 
 ## Human checks
 <!-- Filled by /implement: one open checkbox per human check, with how to run it and evidence. -->
+- [ ] (Phase 4) Real hardware (CI APK `android-apk`, companion + Room K): run a diagnostic on Room K, open the node; battery voltage, uptime, RSSI/SNR and temperature match the run screen's evidence, each group shows "From the run of <time>" and a measured time — run: install the CI APK, Run diagnostic on Room K, back to the node screen — evidence: context/changes/node-details-telemetry/evidence/node-details-telemetry.png (emulator, fake transport)
+- [ ] (Phase 4) Same phone: force-stop the app (Android App info → Force stop), reopen, open Room K: same telemetry and the run in "Recent runs" — run: as described — evidence: context/changes/node-details-telemetry/evidence/node-details-after-restart.png (emulator)
+- [ ] (Phase 4) Wording (D-6): read the last-hop labels and the note; they must not read as end-to-end link quality — run: open the node screen after a run — evidence: context/changes/node-details-telemetry/evidence/node-details-telemetry.png
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
@@ -221,6 +224,8 @@ GitHub issue: #7.
 - [minor] (Phase 1) Plan-review findings 2 and 5 applied: `samplesFromChecks` needs every check of the run in stored order (`checkSeq` = index), so the Phase 2 backfill must load all checks of an affected run and filter the output by missing `(run_id, seq)`; the function is total (non-finite or negative values become null).
 - [minor] (Phase 2) Plan-review finding 1 applied: `MemoryRuns` in `run-controller.int.test.ts` implements `DiagnosticRunRepository`, so it gets stubs for `recentForNode` and `lastRespondedAt`; the Findings claim that no fake exists was wrong. Only the test file changed.
 - [minor] (Phase 2) Plan-review finding 6 applied: `telemetry_samples.device_id` is kept for S-07, and `run-repository.int.test.ts` asserts it equals the run's device. Finding 4 (a failing backfill must not block app start) is handled in Phase 3 where `openGuardianDb` calls it.
+
+- [minor] (Phase 4) Existing flows changed because the node screen is now a `FlatList` and `node.placeholder` is gone: `lib/look-screens.yaml` scrolls to "Recent runs" instead of the placeholder; `guest-password` and `guest-password-admin` add one `scroll` after reaching the "Guest password" heading, since the heading alone now stops the scroll at the screen edge. `catalog.test.ts` drops `node` from the title+placeholder table and checks its title separately.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->

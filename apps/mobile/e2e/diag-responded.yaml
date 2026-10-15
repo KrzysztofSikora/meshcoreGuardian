@@ -1,4 +1,4 @@
-# FR-05 AC1, FR-06 AC1, FR-09 AC2, FR-10 AC2/AC5, FR-11: airtime notice, a run that answers, details, countdown, dashboard status.
+# FR-05 AC1, FR-06 AC1, FR-07, FR-08 AC1-AC2, FR-09 AC2, FR-10 AC2/AC5, FR-11: airtime notice, a run that answers, details, countdown, dashboard status.
 appId: io.github.krzysztofsikora.guardian
 ---
 - runFlow:
@@ -23,6 +23,32 @@ appId: io.github.krzysztofsikora.guardian
 - takeScreenshot: diag-responded-details
 - back
 - assertVisible: "Available again in .* s"
+- scrollUntilVisible:
+    element: "Latest telemetry"
+- assertVisible: "3.35 V"
+- scrollUntilVisible:
+    element: ".*Not end-to-end link quality.*"
+- assertVisible: "RSSI, last hop into the node"
+- takeScreenshot: node-details-telemetry
+- scrollUntilVisible:
+    element: "Recent runs"
+- scroll
+- assertVisible: "Responded.*"
 - back
 - scrollUntilVisible:
     element: "Responded just now"
+# FR-08 AC1: the node screen shows the same history after the process was killed.
+- stopApp
+- launchApp
+- scrollUntilVisible:
+    element: "Room K"
+- tapOn: "Room K"
+- scrollUntilVisible:
+    element: "Latest telemetry"
+- assertVisible: "3.35 V"
+- assertVisible: "RSSI, last hop into the node"
+- takeScreenshot: node-details-after-restart
+- scrollUntilVisible:
+    element: "Recent runs"
+- scroll
+- assertVisible: "Responded.*"
