@@ -48,6 +48,7 @@ import { useStyles, useTheme } from "../../theme/theme-provider";
 const { nodes: controller, runs, session, passwords, history } = container;
 
 const COUNTDOWN_TICK_MS = 1000;
+const RELATIVE_TICK_MS = 60_000;
 
 export default function NodeScreen() {
   const { t } = useTranslation();
@@ -56,6 +57,7 @@ export default function NodeScreen() {
 
   const lastRun = useStore(runs.store, (s) => s.last);
   const nodeHistory = useStore(history.store, (s) => (id === undefined ? undefined : s.byNode[id]));
+  const now = useNow(true, RELATIVE_TICK_MS);
   const { colors } = useTheme();
   const styles = useNodeStyles();
 
@@ -78,9 +80,10 @@ export default function NodeScreen() {
         style={styles.list}
         contentContainerStyle={styles.listContent}
         data={rows}
+        extraData={now}
         keyExtractor={(run) => String(run.id)}
         renderItem={({ item }) => (
-          <RunRow runId={item.id as number} row={recentRunRow(item, formatTime)} />
+          <RunRow runId={item.id as number} row={recentRunRow(item, formatTime, now)} />
         )}
         ListHeaderComponent={
           node === undefined ? (
@@ -90,13 +93,8 @@ export default function NodeScreen() {
           )
         }
         ListEmptyComponent={
-          node === undefined || nodeHistory === undefined || nodeHistory.status === "loading" ? null : (
-            <Text
-              accessibilityRole={nodeHistory.status === "error" ? "alert" : undefined}
-              style={[styles.body, { color: nodeHistory.status === "error" ? colors.danger : colors.textMuted }]}
-            >
-              {t(nodeHistory.status === "error" ? "telemetry.loadFailed" : "history.empty")}
-            </Text>
+          node === undefined || nodeHistory?.loaded !== true ? null : (
+            <Text style={[styles.body, { color: colors.textMuted }]}>{t("history.empty")}</Text>
           )
         }
       />
@@ -129,10 +127,11 @@ function NodeDetails({ node }: { node: Node }) {
   const reportedName = reportedNameText(node);
   const heard = lastHeardText(node, formatTime);
   const nodeHistory = useStore(history.store, (s) => s.byNode[node.publicKey]);
+  const shown = nodeHistory?.loaded === true ? nodeHistory : null;
   const card =
-    nodeHistory === undefined || nodeHistory.status === "loading"
+    shown === null
       ? null
-      : telemetryCard(nodeHistory.samples, formatTime, runTime(nodeHistory.runs, nodeHistory.samples));
+      : telemetryCard(shown.samples, formatTime, runTime(shown.runs, shown.samples));
   const { colors } = useTheme();
   const styles = useNodeStyles();
 
@@ -151,7 +150,12 @@ function NodeDetails({ node }: { node: Node }) {
       {reportedName !== null && <Muted>{tr(t, reportedName)}</Muted>}
       {reported !== null && <Muted>{tr(t, reported)}</Muted>}
       <Muted>{tr(t, heard)}</Muted>
-      <Muted>{tr(t, lastResponseText(nodeHistory?.lastRespondedAt ?? null, formatTime))}</Muted>
+      {nodeHistory?.status === "error" && (
+        <Text accessibilityRole="alert" style={[styles.body, { color: colors.danger }]}>
+          {t("telemetry.loadFailed")}
+        </Text>
+      )}
+      {shown !== null && <Muted>{tr(t, lastResponseText(shown.lastRespondedAt, formatTime))}</Muted>}
       {!node.inContacts && <Muted>{t("nodes.notInContacts")}</Muted>}
 
       <RunPanel node={node} />

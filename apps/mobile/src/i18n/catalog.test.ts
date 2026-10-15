@@ -216,7 +216,8 @@ describe("en catalog", () => {
       texts.push(model.heading, model.fromRun);
       if (model.note !== null) texts.push(model.note);
       for (const g of model.groups) {
-        texts.push(g.title, g.measured);
+        texts.push(g.title);
+        if (g.measured !== null) texts.push(g.measured);
         for (const r of g.rows) texts.push(r.label, r.value);
       }
     };
@@ -264,11 +265,14 @@ describe("en catalog", () => {
       );
     }
     collect(telemetryCard([sample("status", {}), sample("telemetry", {})] as never, fmt));
+    collect(telemetryCard([sample("status", {})] as never, fmt));
+    collect(telemetryCard([sample("telemetry", {})] as never, fmt));
     texts.push(lastResponseText(null, fmt), lastResponseText(1, fmt));
     for (const ms of [1000, 90_000]) {
       const row = recentRunRow(
         { result: "RESPONDED", reason: "ALL_CHECKS_REPLIED", finishedAt: 1, durationMs: ms },
         fmt,
+        1,
       );
       texts.push(row.time, row.duration);
     }

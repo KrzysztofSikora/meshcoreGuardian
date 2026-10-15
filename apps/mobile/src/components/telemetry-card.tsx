@@ -34,7 +34,9 @@ export function TelemetryCard({ model }: { model: TelemetryCardModel }) {
       {model.groups.map((group) => (
         <View key={group.title.key} style={styles.group}>
           <Text style={[styles.strong, { color: colors.text }]}>{tr(t, group.title)}</Text>
-          <Text style={[styles.small, { color: colors.textMuted }]}>{tr(t, group.measured)}</Text>
+          {group.measured !== null && (
+            <Text style={[styles.small, { color: colors.textMuted }]}>{tr(t, group.measured)}</Text>
+          )}
           {group.rows.map((row, index) => (
             <View key={index} style={styles.row}>
               <Text style={[styles.label, { color: colors.text }]}>{tr(t, row.label)}</Text>

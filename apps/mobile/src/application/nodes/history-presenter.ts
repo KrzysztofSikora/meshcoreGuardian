@@ -16,7 +16,7 @@ export interface TelemetryRow {
 
 export interface TelemetryGroup {
   title: Text;
-  measured: Text;
+  measured: Text | null;
   rows: TelemetryRow[];
 }
 
@@ -129,6 +129,15 @@ function telemetryGroup(
   };
 }
 
+/** The run asked for this source and got no reply: say so rather than drop the group. */
+function missingGroup(source: "status" | "telemetry"): TelemetryGroup {
+  return {
+    title: { key: `telemetry.source.${source}` },
+    measured: null,
+    rows: [{ label: { key: "telemetry.field.reply" }, value: { key: "telemetry.noReply" } }],
+  };
+}
+
 /**
  * The "latest telemetry" card (D-7): the samples of one run, one group per source. A value the
  * response lacked is "N/A", never 0 (FR-07 AC2). `runAt` is the run's finish time when known.
@@ -143,8 +152,8 @@ export function telemetryCard(
   if (status === undefined && telemetry === undefined) return { empty: { key: "telemetry.empty" } };
   const at = runAt ?? Math.min(...samples.map((s) => s.measuredAt));
   const groups = [
-    ...(status === undefined ? [] : [statusGroup(status, formatTime)]),
-    ...(telemetry === undefined ? [] : [telemetryGroup(telemetry, formatTime)]),
+    status === undefined ? missingGroup("status") : statusGroup(status, formatTime),
+    telemetry === undefined ? missingGroup("telemetry") : telemetryGroup(telemetry, formatTime),
   ];
   const showsSignal = status !== undefined && (status.rssiDbm !== null || status.snrDb !== null);
   return {
@@ -168,10 +177,11 @@ function durationText(ms: number): Text {
 export function recentRunRow(
   run: Pick<DiagnosticRun, "result" | "reason" | "finishedAt" | "durationMs">,
   formatTime: (ms: number) => string,
+  now: number,
 ): RecentRunRow {
   return {
     time: { key: "history.time", params: { time: formatTime(run.finishedAt) } },
-    status: lastRunStatus(run, run.finishedAt),
+    status: lastRunStatus(run, now),
     duration: durationText(run.durationMs),
   };
 }

@@ -11,6 +11,8 @@ export const RECENT_RUNS = 50;
 
 export interface NodeHistory {
   status: "loading" | "ok" | "error";
+  /** True once a read succeeded; the other fields are real data only then, never defaults. */
+  loaded: boolean;
   runs: DiagnosticRun[];
   lastRespondedAt: number | null;
   samples: TelemetrySample[];
@@ -25,7 +27,7 @@ export interface NodeHistoryPorts {
   telemetry: () => Promise<TelemetryRepository>;
 }
 
-const LOADING: NodeHistory = { status: "loading", runs: [], lastRespondedAt: null, samples: [] };
+const LOADING: NodeHistory = { status: "loading", loaded: false, runs: [], lastRespondedAt: null, samples: [] };
 
 /**
  * Reads what the node screen shows: recent runs, the last response and the latest telemetry
@@ -54,7 +56,7 @@ export class NodeHistoryController {
     const before = this.store.getState().byNode[publicKey];
     this.put(publicKey, {
       ...(before ?? LOADING),
-      status: before?.status === "ok" ? "ok" : "loading",
+      status: before?.loaded === true ? "ok" : "loading",
     });
     try {
       const [runs, telemetry] = await Promise.all([this.ports.runs(), this.ports.telemetry()]);
@@ -63,10 +65,10 @@ export class NodeHistoryController {
         runs.lastRespondedAt(publicKey),
         telemetry.latestForNode(publicKey),
       ]);
-      this.put(publicKey, { status: "ok", runs: recent, lastRespondedAt, samples });
+      this.put(publicKey, { status: "ok", loaded: true, runs: recent, lastRespondedAt, samples });
     } catch {
       // Neutral: the cause (corrupt row, closed database) is not known here.
-      this.put(publicKey, { ...LOADING, status: "error" });
+      this.put(publicKey, { ...(before ?? LOADING), status: "error" });
     }
   }
 

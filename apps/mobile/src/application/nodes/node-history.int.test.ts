@@ -98,6 +98,7 @@ describe("NodeHistoryController (FR-07, FR-08 AC2)", () => {
     await controller.load(ROOM_K);
     expect(controller.store.getState().byNode[ROOM_K]).toEqual({
       status: "ok",
+      loaded: true,
       runs: [],
       lastRespondedAt: null,
       samples: [],
@@ -111,6 +112,7 @@ describe("NodeHistoryController (FR-07, FR-08 AC2)", () => {
     await controller.load(ROOM_K);
     expect(controller.store.getState().byNode[ROOM_K]).toEqual({
       status: "error",
+      loaded: false,
       runs: [],
       lastRespondedAt: null,
       samples: [],
@@ -129,6 +131,7 @@ describe("NodeHistoryController (FR-07, FR-08 AC2)", () => {
     const first = controller.load(ROOM_K);
     expect(controller.store.getState().byNode[ROOM_K]).toEqual({
       status: "loading",
+      loaded: false,
       runs: [],
       lastRespondedAt: null,
       samples: [],
@@ -143,6 +146,21 @@ describe("NodeHistoryController (FR-07, FR-08 AC2)", () => {
     expect(controller.store.getState().byNode[ROOM_K]).toEqual(loaded);
     release();
     await again;
+  });
+
+  it("a failed reload keeps the data of the last good read and flags the error (R2)", async () => {
+    await runTwice();
+    let fail = false;
+    const controller = history(async () => {
+      if (fail) throw new Error("disk on fire");
+      return new SqliteDiagnosticRunRepository(testDb.driver);
+    });
+    await controller.load(ROOM_K);
+    const good = controller.store.getState().byNode[ROOM_K]!;
+    expect(good.runs).toHaveLength(2);
+    fail = true;
+    await controller.load(ROOM_K);
+    expect(controller.store.getState().byNode[ROOM_K]).toEqual({ ...good, status: "error" });
   });
 
   it("two concurrent loads of one node share one read", async () => {

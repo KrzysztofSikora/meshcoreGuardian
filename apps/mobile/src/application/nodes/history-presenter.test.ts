@@ -12,6 +12,7 @@ import {
   type TelemetryCardModel,
   type TelemetryGroup,
 } from "./history-presenter";
+import { statusText } from "../diagnostics/presenter";
 import type { Text } from "./presenter";
 
 const fmt = (ms: number) => `T${ms}`;
@@ -54,7 +55,7 @@ describe("telemetryCard", () => {
     if ("empty" in model) throw new Error("empty");
     expect(render(model.fromRun)).toBe("From the run of T5000");
     const [s, t] = model.groups;
-    expect(render(s!.measured)).toBe("Measured T1000");
+    expect(render(s!.measured!)).toBe("Measured T1000");
     expect(rows(s!)).toEqual([
       ["Battery voltage", "3.35 V"],
       ["Uptime", "0 d 0 h 47 min"],
@@ -62,7 +63,7 @@ describe("telemetryCard", () => {
       ["SNR, last hop into the node", "13.25 dB"],
       ["Noise floor", "-110 dBm"],
     ]);
-    expect(render(t!.measured)).toBe("Measured T2000");
+    expect(render(t!.measured!)).toBe("Measured T2000");
     expect(rows(t!)).toEqual([
       ["Battery voltage", "3.35 V"],
       ["Temperature · channel 1", "30 °C"],
@@ -133,12 +134,12 @@ describe("telemetryCard", () => {
   });
 
   it("a telemetry reply without values says so instead of showing 0", () => {
-    const [t] = groups(telemetryCard([telemetry({ voltageV: null, extra: [] })], fmt));
+    const [, t] = groups(telemetryCard([telemetry({ voltageV: null, extra: [] })], fmt));
     expect(rows(t!)).toEqual([["Values", "No values in the reply"]]);
   });
 
   it("rounds long decimals to two places", () => {
-    const [t] = groups(
+    const [, t] = groups(
       telemetryCard(
         [telemetry({ extra: [{ name: "humidity", value: 45.678, unit: "%", channel: 2 }] })],
         fmt,
@@ -147,13 +148,15 @@ describe("telemetryCard", () => {
     expect(rows(t!)[1]).toEqual(["Humidity · channel 2", "45.68 %"]);
   });
 
-  it("shows only the groups it has", () => {
-    const only = groups(telemetryCard([telemetry()], fmt));
-    expect(only).toHaveLength(1);
-    expect(render(only[0]!.title)).toBe(render({ key: "telemetry.source.telemetry" }));
-    const statusOnly = groups(telemetryCard([status()], fmt));
-    expect(statusOnly).toHaveLength(1);
-    expect(render(statusOnly[0]!.title)).toBe(render({ key: "telemetry.source.status" }));
+  it("states a source the run got no reply for instead of dropping its group (R3)", () => {
+    const noStatus = groups(telemetryCard([telemetry()], fmt));
+    expect(noStatus.map((g) => render(g.title))).toEqual(["Status reply", "Telemetry reply"]);
+    expect(noStatus[0]!.measured).toBeNull();
+    expect(rows(noStatus[0]!)).toEqual([["Reply", "No reply in this run"]]);
+    const noTelemetry = groups(telemetryCard([status()], fmt));
+    expect(noTelemetry.map((g) => render(g.title))).toEqual(["Status reply", "Telemetry reply"]);
+    expect(noTelemetry[1]!.measured).toBeNull();
+    expect(rows(noTelemetry[1]!)).toEqual([["Reply", "No reply in this run"]]);
   });
 
   it.each([
@@ -174,7 +177,7 @@ describe("telemetryCard", () => {
             [telemetry({ voltageV: null, extra: [{ name, value: 1, unit: "x", channel }] })],
             fmt,
           ),
-        )[0]!,
+        )[1]!,
       )[0]![0];
     expect(extra("lpp_7", null)).toBe("Sensor type 7");
     expect(extra("xlpp_7", null)).not.toContain("Sensor type");
@@ -213,14 +216,27 @@ describe("recentRunRow", () => {
     durationMs: 65_400,
   } as const;
   it("carries the result as a status word source, the time and the duration", () => {
-    const row = recentRunRow(run, fmt);
+    const row = recentRunRow(run, fmt, 9);
     expect(row.status.kind).toBe("no_reply");
     expect(render(row.time)).toBe("T9");
     expect(render(row.duration)).toBe("1 min 5 s");
   });
+  it("words the age of a stored responded run from the real now, not 'just now' (R1)", () => {
+    const responded = { ...run, result: "RESPONDED", reason: "ALL_CHECKS_REPLIED" } as const;
+    const days3 = 3 * 86_400_000;
+    const old = recentRunRow(responded, fmt, responded.finishedAt + days3);
+    expect(statusText(old.status)).toEqual({
+      key: "diagnostic.status.responded.day",
+      params: { count: 3 },
+    });
+    expect(render(statusText(old.status))).toBe("Responded 3 days ago");
+    expect(render(statusText(recentRunRow(responded, fmt, responded.finishedAt).status))).toBe(
+      "Responded just now",
+    );
+  });
   it("shows short durations in seconds", () => {
-    expect(render(recentRunRow({ ...run, durationMs: 4200 }, fmt).duration)).toBe("4 s");
-    expect(render(recentRunRow({ ...run, durationMs: 59_000 }, fmt).duration)).toBe("59 s");
-    expect(render(recentRunRow({ ...run, durationMs: 60_000 }, fmt).duration)).toBe("1 min 0 s");
+    expect(render(recentRunRow({ ...run, durationMs: 4200 }, fmt, 9).duration)).toBe("4 s");
+    expect(render(recentRunRow({ ...run, durationMs: 59_000 }, fmt, 9).duration)).toBe("59 s");
+    expect(render(recentRunRow({ ...run, durationMs: 60_000 }, fmt, 9).duration)).toBe("1 min 0 s");
   });
 });
