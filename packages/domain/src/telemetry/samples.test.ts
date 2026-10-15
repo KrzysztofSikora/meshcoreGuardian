@@ -179,6 +179,34 @@ describe("samplesFromChecks: telemetry", () => {
     ]);
   });
 
+  it("drops a non-finite GPS part but keeps the others", () => {
+    const [sample] = samplesFromChecks(
+      [
+        check(
+          "telemetry",
+          telemetry([
+            {
+              channel: 3,
+              type: 136,
+              value: { latitude: 52.1, longitude: 21, altitude: Number.NaN },
+            },
+          ]),
+        ),
+      ],
+      FALLBACK,
+    );
+    expect(sample?.extra.map((e) => e.name)).toEqual(["latitude", "longitude"]);
+  });
+
+  it("does not read channel 1 of another type as the battery voltage", () => {
+    const [sample] = samplesFromChecks(
+      [check("telemetry", telemetry([{ channel: 1, type: 103, value: 21 }]))],
+      FALLBACK,
+    );
+    expect(sample?.voltageV).toBeNull();
+    expect(sample?.extra).toEqual([{ name: "temperature", value: 21, unit: "°C", channel: 1 }]);
+  });
+
   it("gives an unknown LPP type no unit", () => {
     const [sample] = samplesFromChecks(
       [check("telemetry", telemetry([{ channel: 4, type: 200, value: 7 }]))],
@@ -247,6 +275,15 @@ describe("samplesFromChecks: selection and timing", () => {
     ).toEqual([]);
     expect(samplesFromChecks([check("status", telemetry([]))], FALLBACK)).toEqual([]);
     expect(samplesFromChecks([check("telemetry", status())], FALLBACK)).toEqual([]);
+  });
+
+  it("makes no sample from an unanswered check even when it carries evidence", () => {
+    expect(
+      samplesFromChecks(
+        [check("status", status(), { result: "NO_RESPONSE", reason: "NO_REPLY" })],
+        FALLBACK,
+      ),
+    ).toEqual([]);
   });
 
   it("falls back to the run time when a check has no timing", () => {

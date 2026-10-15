@@ -117,6 +117,34 @@ describe("NodeHistoryController (FR-07, FR-08 AC2)", () => {
     });
   });
 
+  it("shows loading with nothing on a first read, and keeps the previous data while reloading", async () => {
+    await runTwice();
+    let release: () => void = () => {};
+    let gate: Promise<void> = Promise.resolve();
+    const controller = history(async () => {
+      await gate;
+      return new SqliteDiagnosticRunRepository(testDb.driver);
+    });
+    gate = new Promise<void>((resolve) => (release = resolve));
+    const first = controller.load(ROOM_K);
+    expect(controller.store.getState().byNode[ROOM_K]).toEqual({
+      status: "loading",
+      runs: [],
+      lastRespondedAt: null,
+      samples: [],
+    });
+    release();
+    await first;
+    const loaded = controller.store.getState().byNode[ROOM_K]!;
+    expect(loaded.status).toBe("ok");
+
+    gate = new Promise<void>((resolve) => (release = resolve));
+    const again = controller.load(ROOM_K);
+    expect(controller.store.getState().byNode[ROOM_K]).toEqual(loaded);
+    release();
+    await again;
+  });
+
   it("two concurrent loads of one node share one read", async () => {
     let opened = 0;
     const controller = history(async () => {

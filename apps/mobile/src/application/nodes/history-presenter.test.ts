@@ -148,7 +148,37 @@ describe("telemetryCard", () => {
   });
 
   it("shows only the groups it has", () => {
-    expect(groups(telemetryCard([telemetry()], fmt))).toHaveLength(1);
+    const only = groups(telemetryCard([telemetry()], fmt));
+    expect(only).toHaveLength(1);
+    expect(render(only[0]!.title)).toBe(render({ key: "telemetry.source.telemetry" }));
+    const statusOnly = groups(telemetryCard([status()], fmt));
+    expect(statusOnly).toHaveLength(1);
+    expect(render(statusOnly[0]!.title)).toBe(render({ key: "telemetry.source.status" }));
+  });
+
+  it.each([
+    ["RSSI only", { snrDb: null }, true],
+    ["SNR only", { rssiDbm: null }, true],
+    ["neither", { rssiDbm: null, snrDb: null }, false],
+  ] as const)("last-hop note with %s: %s", (_name, over, shown) => {
+    const model = telemetryCard([status(over)], fmt);
+    if ("empty" in model) throw new Error("empty");
+    expect(model.note !== null).toBe(shown);
+  });
+
+  it("names only lpp_<type> as an unknown sensor and omits the channel when there is none", () => {
+    const extra = (name: string, channel: number | null) =>
+      rows(
+        groups(
+          telemetryCard(
+            [telemetry({ voltageV: null, extra: [{ name, value: 1, unit: "x", channel }] })],
+            fmt,
+          ),
+        )[0]!,
+      )[0]![0];
+    expect(extra("lpp_7", null)).toBe("Sensor type 7");
+    expect(extra("xlpp_7", null)).not.toContain("Sensor type");
+    expect(extra("lpp_7x", null)).not.toContain("Sensor type");
   });
 
   it("has an empty state without samples", () => {
@@ -190,5 +220,7 @@ describe("recentRunRow", () => {
   });
   it("shows short durations in seconds", () => {
     expect(render(recentRunRow({ ...run, durationMs: 4200 }, fmt).duration)).toBe("4 s");
+    expect(render(recentRunRow({ ...run, durationMs: 59_000 }, fmt).duration)).toBe("59 s");
+    expect(render(recentRunRow({ ...run, durationMs: 60_000 }, fmt).duration)).toBe("1 min 0 s");
   });
 });
