@@ -15,7 +15,7 @@ Sources: `context/prd.md`, `context/tech-stack.md`. Order follows risk: the prot
 | S-12 | #20 | app-look | slice | NFR-09, NFR-05 | S-11 | M | done |
 | S-05 | #6 | guest-password | slice | FR-14, FR-05 AC2 | S-04 | S | done |
 | S-06 | #7 | node-details-telemetry | slice | FR-07, FR-08 | S-04 | M | done |
-| S-07 | #8 | battery-history | slice | FR-12 | S-06 | M | planned |
+| S-07 | #8 | battery-history | slice | FR-12 | S-06 | M | in-progress |
 | S-08 | #9 | export-report | slice | FR-13 | S-06 | M | todo |
 | S-09 | #10 | settings | slice | FR-15 | S-04 | M | todo |
 | S-10 | #11 | pilot-release | slice | FR-20, NFR-05, NFR-06 | S-05 … S-09, S-11, S-12 | M | todo |

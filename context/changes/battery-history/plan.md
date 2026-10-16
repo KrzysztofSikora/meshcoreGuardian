@@ -301,7 +301,7 @@ GitHub issue: #8.
 
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
-- [ ] Phase 1: Voltage points and trend rule in the domain
+- [x] Phase 1: Voltage points and trend rule in the domain
 - [ ] Phase 2: Voltage readings from storage
 - [ ] Phase 3: Voltage in node history and the voltage presenter
 - [ ] Phase 4: Voltage card on the node screen
