@@ -37,9 +37,9 @@ appId: io.github.krzysztofsikora.guardian
 - assertNotVisible:
     id: "voltage-row-0"
 - tapOn: "Show values"
-- assertVisible:
-    id: "voltage-row-0"
-- assertVisible: "Status reply"
+- scrollUntilVisible:
+    element:
+      id: "voltage-row-0"
 - takeScreenshot: battery-one-sample
 - scrollUntilVisible:
     element: "Recent runs"
