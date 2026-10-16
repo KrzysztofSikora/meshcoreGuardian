@@ -278,7 +278,7 @@ describe("en catalog", () => {
       texts.push(row.time, row.duration);
     }
     for (const text of texts) {
-      expect(i18n.exists(text.key), text.key).toBe(true);
+      expect(i18n.exists(text.key, { count: Number(text.params?.count ?? 2) }), text.key).toBe(true);
       const rendered = tr(i18n.t, text);
       expect(rendered, text.key).not.toMatch(/\{\{|\$t\(|undefined|telemetry\.name/);
     }
@@ -326,9 +326,12 @@ describe("en catalog", () => {
         for (const r of model.rows) texts.push(r.time, r.value, r.source);
       } else texts.push(model.text);
     }
+    expect(
+      tr(i18n.t, { key: "battery.summary", params: { count: 1, first: "a", last: "b", min: "3.30", max: "3.30" } }),
+    ).toMatch(/1 sample from/);
     texts.push({ key: "battery.showValues" }, { key: "battery.hideValues" });
     for (const text of texts) {
-      expect(i18n.exists(text.key), text.key).toBe(true);
+      expect(i18n.exists(text.key, { count: Number(text.params?.count ?? 2) }), text.key).toBe(true);
       expect(tr(i18n.t, text), text.key).not.toMatch(/\{\{|\$t\(|undefined/);
     }
     for (const value of values(en)) {
