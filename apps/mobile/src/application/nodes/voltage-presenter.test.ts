@@ -124,6 +124,28 @@ describe("chart geometry (D-7)", () => {
     expect(total).toBeLessThanOrEqual(200 + 1e-9);
   });
 
+  it("two points take the whole plot width between them", () => {
+    const { chart: c } = chart([point(0, 3.4), point(HOUR, 3.39)], 300);
+    expect(c.points.map((p) => p.spacing)).toEqual([300, 0]);
+  });
+
+  it("a close pair keeps the minimum gap and the other gap gives up exactly that width", () => {
+    const { chart: c } = chart([point(0, 3.4), point(5, 3.39), point(100, 3.38)], 100);
+    expect(c.points.map((p) => p.spacing)).toEqual([6, 94, 0]);
+  });
+
+  it("with no width left after the minimum gaps, scales all gaps into the plot", () => {
+    const { chart: c } = chart(
+      [point(0, 3.4), point(1, 3.39), point(2, 3.38), point(1000, 3.37)],
+      12,
+    );
+    const [a, b, d, end] = c.points.map((p) => p.spacing);
+    expect(a).toBeCloseTo(3, 1);
+    expect(b).toBeCloseTo(3, 1);
+    expect(d).toBeCloseTo(6, 1);
+    expect(end).toBe(0);
+  });
+
   it("points sharing one time are spread evenly", () => {
     const { chart: c } = chart(
       [point(5, 3.4, { runId: 1 }), point(5, 3.3, { runId: 2 }), point(5, 3.2, { runId: 3 })],
@@ -154,6 +176,11 @@ describe("chart geometry (D-7)", () => {
     expect(flat.yMax).toBeGreaterThanOrEqual(3.35);
     const onGrid = chart([point(1, 3.3), point(2, 3.5)]).chart;
     expect([onGrid.yMin, onGrid.yMax]).toEqual([3.3, 3.5]);
+  });
+
+  it("widens a range of one grid unit symmetrically to four units", () => {
+    const { chart: c } = chart([point(1, 3.37), point(2, 3.38)]);
+    expect([c.yMin, c.yMax, c.step]).toEqual([3.3, 3.5, 0.05]);
   });
 
   it("every label is a multiple of 0.05 with two decimals", () => {

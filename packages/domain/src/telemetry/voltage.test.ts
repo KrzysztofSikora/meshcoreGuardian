@@ -37,6 +37,27 @@ describe("voltagePoints", () => {
     expect(out).toEqual([{ runId: 1, source: "status", at: 1000, voltageV: 3.353 }]);
   });
 
+  it("keeps the status reading whichever order the run's readings arrive in", () => {
+    const status = reading({ source: "status", voltageV: 3.353, measuredAt: 1000 });
+    const telemetry = reading({ source: "telemetry", voltageV: 3.35, measuredAt: 2000 });
+    for (const readings of [
+      [status, telemetry],
+      [telemetry, status],
+    ]) {
+      expect(voltagePoints(readings)).toEqual([
+        { runId: 1, source: "status", at: 1000, voltageV: 3.353 },
+      ]);
+    }
+  });
+
+  it("keeps the first of two telemetry readings of one run", () => {
+    const out = voltagePoints([
+      reading({ source: "telemetry", voltageV: 3.3, measuredAt: 1000 }),
+      reading({ source: "telemetry", voltageV: 3.1, measuredAt: 2000 }),
+    ]);
+    expect(out).toEqual([{ runId: 1, source: "telemetry", at: 1000, voltageV: 3.3 }]);
+  });
+
   it("falls back to telemetry when a run has no status reading", () => {
     const out = voltagePoints([reading({ source: "telemetry", measuredAt: 2000 })]);
     expect(out).toEqual([{ runId: 1, source: "telemetry", at: 2000, voltageV: 3.35 }]);
@@ -99,6 +120,17 @@ describe("voltageTrend kinds (D-3)", () => {
     expect(t.kind).toBe("falling");
     if (t.kind === "insufficient") throw new Error("expected a trend");
     expect(t.changeV).toBeCloseTo(-0.1, 9);
+  });
+
+  it("fits a least-squares line through uneven readings", () => {
+    const volts = [4.0, 3.9, 3.95, 3.8, 3.85];
+    const pts = volts.map((v, i) => point(1_760_000_000_000 + i * 6 * H, v, i + 1));
+    const t = voltageTrend(pts);
+    if (t.kind === "insufficient") throw new Error("expected a trend");
+    expect(t.kind).toBe("falling");
+    expect(t.changeV).toBeCloseTo(-0.16, 9);
+    expect(t.spanMs).toBe(24 * H);
+    expect(t.count).toBe(5);
   });
 
   it("rising beyond the band", () => {
