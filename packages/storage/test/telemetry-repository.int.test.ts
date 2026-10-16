@@ -246,4 +246,82 @@ describe("SqliteTelemetryRepository", () => {
 
     await expect(samples.latestForNode(NODE)).rejects.toThrow();
   });
+
+  describe("voltageForNode", () => {
+    const withVoltage = (mv: number): CheckOutcome => ({
+      ...statusCheck(1),
+      evidence: { ...statusEvidence, battMilliVolts: mv },
+    });
+
+    it("returns both voltage readings of one run with their time and source", async () => {
+      const { runs, samples } = await setup();
+      const id = await runs.save(makeRun(10_000, [statusCheck(2_000), telemetryCheck(3_000)]));
+
+      expect(await samples.voltageForNode(NODE, 50)).toEqual([
+        { runId: id, source: "status", measuredAt: 2_700, voltageV: 3.353 },
+        { runId: id, source: "telemetry", measuredAt: 3_300, voltageV: 3.35 },
+      ]);
+    });
+
+    it("excludes null voltage and does not count such a run towards the limit", async () => {
+      const { runs, samples } = await setup();
+      const a = await runs.save(makeRun(1_000, [statusCheck(100)]));
+      await runs.save(makeRun(5_000, [withVoltage(0)]));
+      await runs.save(makeRun(9_000, [noReply("status")]));
+
+      expect((await samples.voltageForNode(NODE, 1)).map((r) => r.runId)).toEqual([a]);
+    });
+
+    it("keeps the newest runs, ordered ascending", async () => {
+      const { runs, samples } = await setup();
+      await runs.save(makeRun(1_000, [statusCheck(100)]));
+      const mid = await runs.save(makeRun(5_000, [statusCheck(4_000), telemetryCheck(4_500)]));
+      const last = await runs.save(makeRun(9_000, [statusCheck(8_000)]));
+
+      const stored = await samples.voltageForNode(NODE, 2);
+
+      expect(stored.map((r) => [r.runId, r.source])).toEqual([
+        [mid, "status"],
+        [mid, "telemetry"],
+        [last, "status"],
+      ]);
+    });
+
+    it("breaks a time tie between runs by the higher run id", async () => {
+      const { runs, samples } = await setup();
+      await runs.save(makeRun(5_000, [statusCheck(100)]));
+      const later = await runs.save(makeRun(5_000, [statusCheck(100)]));
+
+      expect((await samples.voltageForNode(NODE, 1)).map((r) => r.runId)).toEqual([later]);
+    });
+
+    it("excludes another node's readings and returns [] for an unknown key", async () => {
+      const { runs, samples } = await setup();
+      const mine = await runs.save(makeRun(1_000, [statusCheck(100)]));
+      await runs.save(makeRun(9_000, [statusCheck(100)], OTHER));
+
+      expect((await samples.voltageForNode(NODE, 50)).map((r) => r.runId)).toEqual([mine]);
+      expect(await samples.voltageForNode("ee".repeat(32), 50)).toEqual([]);
+    });
+
+    it("returns the same readings after reopening the file", async () => {
+      const { runs, samples } = await setup();
+      await runs.save(makeRun(10_000, [statusCheck(2_000), telemetryCheck(3_000)]));
+      const before = await samples.voltageForNode(NODE, 50);
+
+      const reopened = new DatabaseSync(testDb!.path);
+      const again = new SqliteTelemetryRepository(new NodeSqlDriver(reopened));
+      expect(await again.voltageForNode(NODE, 50)).toEqual(before);
+      reopened.close();
+    });
+
+    it("fails to read a row with a corrupt source", async () => {
+      const { runs, samples } = await setup();
+      await runs.save(makeRun(10_000, [statusCheck(2_000)]));
+      await testDb!.driver.exec("PRAGMA ignore_check_constraints = ON");
+      await testDb!.driver.run("UPDATE telemetry_samples SET source = 'bogus'");
+
+      await expect(samples.voltageForNode(NODE, 50)).rejects.toThrow();
+    });
+  });
 });
