@@ -25,9 +25,16 @@ export default function SeedRoute() {
     if (!valid) return;
     let cancelled = false;
     void (async () => {
-      const repository = await container.runRepository();
-      for (const run of voltageSeedRuns(Date.now(), ROOM_K, SEED_COMPANION)) {
-        await repository.save(run);
+      try {
+        const repository = await container.runRepository();
+        // Opening the link again must not stack a second set of runs.
+        if ((await repository.recentForNode(ROOM_K, 1)).length === 0) {
+          for (const run of voltageSeedRuns(Date.now(), ROOM_K, SEED_COMPANION)) {
+            await repository.save(run);
+          }
+        }
+      } catch {
+        // Debug aid: show the node anyway, whatever was stored is what it shows.
       }
       if (!cancelled) setReady(true);
     })();
