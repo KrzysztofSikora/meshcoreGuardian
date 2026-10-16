@@ -163,6 +163,25 @@ describe("chart geometry (D-7)", () => {
     expect(c.points.map((p) => p.label)).toEqual(["T1", null, null, "T4"]);
   });
 
+  it("axis labels are times within one day and dates across days", () => {
+    const axis = { date: (ms: number) => `D${ms}`, time: (ms: number) => `C${ms}` };
+    const day = 86_400_000;
+    const labels = (voltage: VoltagePoint[]) => {
+      const model = voltageCard({ samples: [sample], voltage }, fmt, 300, axis);
+      if (model.kind !== "chart") throw new Error(model.kind);
+      return model.chart.points.map((p) => p.label);
+    };
+    const base = new Date(2026, 0, 5, 8).getTime();
+    expect(labels([point(base, 3.4), point(base + 3_600_000, 3.3)])).toEqual([
+      `C${base}`,
+      `C${base + 3_600_000}`,
+    ]);
+    expect(labels([point(base, 3.4), point(base + 2 * day, 3.3)])).toEqual([
+      `D${base}`,
+      `D${base + 2 * day}`,
+    ]);
+  });
+
   it("the y range covers every point on the 0.05 V grid with 4 sections", () => {
     const { chart: c } = chart([point(1, 3.07), point(2, 3.41), point(3, 3.35)]);
     expect([c.yMin, c.yMax, c.step]).toEqual([3.05, 3.45, 0.1]);

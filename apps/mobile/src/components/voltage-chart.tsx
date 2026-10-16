@@ -7,6 +7,8 @@ import { useTheme } from "../theme/theme-provider";
 export const Y_AXIS_WIDTH = 44;
 const CHART_HEIGHT = 140;
 const POINT_RADIUS = 4;
+/** Room left and right of the plot so the end points and their labels are not cut off. */
+export const EDGE_PX = 20;
 
 /**
  * The line chart of the voltage points (D-6). The only file that imports gifted-charts, through the
@@ -22,6 +24,8 @@ export function VoltageChart({
   summary: string;
   plotWidth: number;
 }) {
+  // gifted-charts adds both edges to the width it draws, so the view is as wide as all three.
+  const single = model.points.length === 1;
   const { colors } = useTheme();
   const textStyle = { color: colors.textMuted, fontSize: 11 };
   return (
@@ -31,7 +35,7 @@ export function VoltageChart({
           value: p.value,
           spacing: p.spacing,
           label: p.label ?? "",
-          labelTextStyle: { ...textStyle, width: 90 },
+          labelTextStyle: { ...textStyle, width: 44 },
         }))}
         yAxisOffset={model.yMin}
         maxValue={model.yMax - model.yMin}
@@ -45,9 +49,9 @@ export function VoltageChart({
         xAxisColor={colors.borderStrong}
         rulesColor={colors.border}
         height={CHART_HEIGHT}
-        width={plotWidth}
-        initialSpacing={POINT_RADIUS}
-        endSpacing={POINT_RADIUS}
+        width={plotWidth + 2 * EDGE_PX}
+        initialSpacing={single ? EDGE_PX + plotWidth / 2 : EDGE_PX}
+        endSpacing={EDGE_PX}
         color={colors.accent}
         thickness={2}
         dataPointsColor={colors.accent}

@@ -137,9 +137,18 @@ function spacings(points: readonly VoltagePoint[], plotWidth: number): number[] 
   return [...gaps.map((g) => g * fit), 0];
 }
 
+/** Short axis labels: the time when the whole chart is one day, the date otherwise. */
+export interface AxisFormat {
+  date: (ms: number) => string;
+  time: (ms: number) => string;
+}
+
+const sameDay = (a: number, b: number): boolean =>
+  new Date(a).toDateString() === new Date(b).toDateString();
+
 function chartModel(
   points: readonly VoltagePoint[],
-  formatTime: (ms: number) => string,
+  formatLabel: (ms: number) => string,
   plotWidth: number,
 ): ChartModel {
   const gaps = spacings(points, plotWidth);
@@ -147,7 +156,7 @@ function chartModel(
     points: points.map((p, i) => ({
       value: p.voltageV,
       spacing: gaps[i] ?? 0,
-      label: i === 0 || i === points.length - 1 ? formatTime(p.at) : null,
+      label: i === 0 || i === points.length - 1 ? formatLabel(p.at) : null,
     })),
     ...yRange(points.map((p) => p.voltageV)),
   };
@@ -161,6 +170,7 @@ export function voltageCard(
   input: { samples: readonly TelemetrySample[]; voltage: readonly VoltagePoint[] },
   formatTime: (ms: number) => string,
   plotWidth: number,
+  axis?: AxisFormat,
 ): VoltageCardModel {
   const { samples, voltage } = input;
   if (voltage.length === 0) {
@@ -171,6 +181,12 @@ export function voltageCard(
   const first = voltage[0]!;
   const last = voltage[voltage.length - 1]!;
   const values = voltage.map((p) => p.voltageV);
+  const axisLabel =
+    axis === undefined
+      ? formatTime
+      : sameDay(first.at, last.at)
+        ? axis.time
+        : axis.date;
   const { trend, detail } = trendText(voltageTrend(voltage));
   return {
     kind: "chart",
@@ -185,7 +201,7 @@ export function voltageCard(
         max: Math.max(...values).toFixed(2),
       },
     },
-    chart: chartModel(voltage, formatTime, plotWidth),
+    chart: chartModel(voltage, axisLabel, plotWidth),
     trend,
     trendDetail: detail,
     rows: [...voltage].reverse().map((p) => ({
