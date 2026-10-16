@@ -14,7 +14,7 @@ Sources: `context/prd.md`, `context/tech-stack.md`. Order follows risk: the prot
 | S-11 | #18 | nearest-repeater | slice | FR-21 | S-04 | M | done |
 | S-12 | #20 | app-look | slice | NFR-09, NFR-05 | S-11 | M | done |
 | S-05 | #6 | guest-password | slice | FR-14, FR-05 AC2 | S-04 | S | done |
-| S-06 | #7 | node-details-telemetry | slice | FR-07, FR-08 | S-04 | M | review |
+| S-06 | #7 | node-details-telemetry | slice | FR-07, FR-08 | S-04 | M | done |
 | S-07 | #8 | battery-history | slice | FR-12 | S-06 | M | todo |
 | S-08 | #9 | export-report | slice | FR-13 | S-06 | M | todo |
 | S-09 | #10 | settings | slice | FR-15 | S-04 | M | todo |
