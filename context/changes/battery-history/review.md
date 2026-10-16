@@ -51,7 +51,7 @@ Gates: typecheck ok, lint ok, unit tests ok (77 files, 1373 tests), e2e ok (21/2
 - Fix: give the presenter the spacing budget `plotWidth - 2 * POINT_RADIUS` (or pass `initialSpacing`/`endSpacing` into `voltageCard`), centre a single point with `initialSpacing = plotWidth / 2`, and shorten the x labels (date only, or time only when both ends fall on one day) so they fit; this also closes the logged `[FOLLOW-UP]`. Re-take both evidence screenshots (lesson on screenshots).
 - Effort: small
 - Lesson candidate: When a chart library adds its own padding, subtract it from the width the geometry is computed for, and check the evidence screenshot at both ends of the axis.
-- Decision: open
+- Decision: fixed (d62042a) + lesson proposed
 
 ### R2: The `diag-responded` "Show values" check passes without the list
 - Severity: major
@@ -60,7 +60,7 @@ Gates: typecheck ok, lint ok, unit tests ok (77 files, 1373 tests), e2e ok (21/2
 - Fix: assert something only the list renders, e.g. a `testID` per row (`voltage-row-0`) or `"Status reply"` together with `"Hide values"` inside `voltage-card`, and `assertNotVisible` it before the tap. Re-take `battery-one-sample.png` with the open list on screen.
 - Effort: small
 - Lesson candidate: When an e2e step asserts a value that appears in a list, assert an element only that list renders, not a value another card on the screen also shows.
-- Decision: open
+- Decision: fixed (19cb280) + lesson proposed
 
 ### R3: The seed route swallows save errors and duplicates history on each open
 - Severity: minor
@@ -69,7 +69,7 @@ Gates: typecheck ok, lint ok, unit tests ok (77 files, 1373 tests), e2e ok (21/2
 - Fix: catch and redirect to `/` (or show the error), and skip seeding when Room K already has runs; or record the duplication as accepted in *Decisions*.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (d404f7b)
 
 ### R4: The chart's accessible summary says "1 samples"
 - Severity: minor
@@ -78,7 +78,7 @@ Gates: typecheck ok, lint ok, unit tests ok (77 files, 1373 tests), e2e ok (21/2
 - Fix: add `battery.summary_one` / `battery.summary_other` (i18next plurals already key off `count`) and a catalog case for count 1.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (0b3d776)
 
 ### R5: One commit has no issue reference
 - Severity: minor
@@ -87,4 +87,4 @@ Gates: typecheck ok, lint ok, unit tests ok (77 files, 1373 tests), e2e ok (21/2
 - Fix: no history rewrite needed; make sure later commits on this branch carry `Refs #8`, or reword when squashing.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: deferred (history is not rewritten; later commits carry Refs #8)

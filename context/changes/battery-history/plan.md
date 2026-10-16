@@ -320,8 +320,10 @@ GitHub issue: #8.
 - [minor] Phase 4: the added card height broke three flows the plan did not name. `contacts-sync` could not see "Add to dashboard" (now scrolls to it); `guest-password` and `guest-password-admin` lost "Responded" off screen after a run (now wait for "View details", then scroll up to "Responded"; they scroll up to "Not tested" before the run); `guest-password` also scrolls to "Remove password" after the restart. Full suite 20/20 passed.
 - [minor] Phase 4: gifted-charts ignored `yAxisLabelTexts` together with `yAxisOffset` (labels showed offset-relative values), so the chart uses `showFractionalValues` and `roundToDigits={2}` instead; `ChartModel.yLabels` is now only used by the presenter tests and the summary, not by the chart. The deep import `react-native-gifted-charts/dist/LineChart` type-checks and bundles, so no D-6 fallback.
 - [minor] Phase 4: the first and last x labels are cut off ("16/2026, 2:2…") because the label width is 90 px and `toLocaleString()` is long; the exact times are in the list. Shorter x labels are a follow-up.
-- [FOLLOW-UP] Phase 4: shorter x axis labels (time only or date only) so they are not truncated.
+- [FOLLOW-UP] Phase 4: shorter x axis labels (time only or date only) so they are not truncated. Done in review fix R1.
 - [minor] Phase 5: the seed route needs the run repository, which the container did not expose; added `container.runRepository` (debug seed routes only). The flow's first two asserts scroll to the trend text because it sits below the chart, off screen after scrolling to the card title. Full suite: 20/20 other flows passed in the full run; `battery-history` failed once on the off-screen trend, then passed alone after the scroll fix.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->
+
+- [minor] Review fix R1/R2 changed layout and e2e selectors; evidence screenshots `battery-trend`, `battery-one-sample` must be re-taken by a green `pnpm e2e` (run started at fix time; unit gates, typecheck and lint pass).
