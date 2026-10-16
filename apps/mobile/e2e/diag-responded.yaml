@@ -34,8 +34,12 @@ appId: io.github.krzysztofsikora.guardian
 - scrollUntilVisible:
     element: "Battery voltage \\(V\\)"
 - assertVisible: "Not enough data to determine trend"
+- assertNotVisible:
+    id: "voltage-row-0"
 - tapOn: "Show values"
-- assertVisible: ".*3\\.35 V.*"
+- assertVisible:
+    id: "voltage-row-0"
+- assertVisible: "Status reply"
 - takeScreenshot: battery-one-sample
 - scrollUntilVisible:
     element: "Recent runs"

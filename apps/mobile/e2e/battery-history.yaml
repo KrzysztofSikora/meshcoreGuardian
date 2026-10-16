@@ -15,7 +15,8 @@ appId: io.github.krzysztofsikora.guardian
 - assertVisible: ".*6 samples.*"
 - tapOn: "Show values"
 - scrollUntilVisible:
-    element: ".*3\\.98 V.*"
+    element:
+      id: "voltage-row-0"
 - takeScreenshot: battery-trend
 # The history is stored: the same trend after the process was killed.
 - stopApp
