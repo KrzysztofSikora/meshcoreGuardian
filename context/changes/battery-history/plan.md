@@ -304,14 +304,21 @@ GitHub issue: #8.
 - [x] Phase 1: Voltage points and trend rule in the domain
 - [x] Phase 2: Voltage readings from storage
 - [x] Phase 3: Voltage in node history and the voltage presenter
-- [ ] Phase 4: Voltage card on the node screen
+- [x] Phase 4: Voltage card on the node screen
 - [ ] Phase 5: Seeded history and the trend flow
 
 ## Human checks
 <!-- Filled by /implement: one open checkbox per human check, with how to run it and evidence. -->
+- [ ] (Phase 4) Two diagnostics on Room K at least 60 s apart, then open the node: the voltage card shows 2 points, "Not enough data to determine trend", and "Show values" lists both runs with local time, V and source matching the run screens — run: CI APK (`android-apk`) on a real phone with companion + Room K — evidence: none
+- [ ] (Phase 4) Look of the voltage card in light and dark and at 200 % font size: chart not clipped, axis labels readable, rows wrap without overlap; the first/last x label is truncated at its current width ("16/2026, 2:2…") — run: CI APK, system theme and font settings — evidence: `context/changes/battery-history/evidence/battery-one-sample.png` (emulator, light, one point)
+- [ ] (Phase 4) TalkBack on the voltage card: the chart reads its summary (count, time range, min/max V); "Show values" announces as a button with expanded state — run: CI APK on a real phone, TalkBack on — evidence: none
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
+- [minor] Phase 4: the added card height broke three flows the plan did not name. `contacts-sync` could not see "Add to dashboard" (now scrolls to it); `guest-password` and `guest-password-admin` lost "Responded" off screen after a run (now wait for "View details", then scroll up to "Responded"; they scroll up to "Not tested" before the run); `guest-password` also scrolls to "Remove password" after the restart. Full suite 20/20 passed.
+- [minor] Phase 4: gifted-charts ignored `yAxisLabelTexts` together with `yAxisOffset` (labels showed offset-relative values), so the chart uses `showFractionalValues` and `roundToDigits={2}` instead; `ChartModel.yLabels` is now only used by the presenter tests and the summary, not by the chart. The deep import `react-native-gifted-charts/dist/LineChart` type-checks and bundles, so no D-6 fallback.
+- [minor] Phase 4: the first and last x labels are cut off ("16/2026, 2:2…") because the label width is 90 px and `toLocaleString()` is long; the exact times are in the list. Shorter x labels are a follow-up.
+- [FOLLOW-UP] Phase 4: shorter x axis labels (time only or date only) so they are not truncated.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->

@@ -38,6 +38,9 @@ appId: io.github.krzysztofsikora.guardian
     element: "chat-1"
     direction: UP
 - tapOn: "chat-1"
+# The voltage card sits above this button now, so it can be below the fold.
+- scrollUntilVisible:
+    element: "Add to dashboard"
 - tapOn: "Add to dashboard"
 - back
 - tapOn:

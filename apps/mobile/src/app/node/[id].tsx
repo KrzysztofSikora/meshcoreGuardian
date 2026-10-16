@@ -42,6 +42,7 @@ import { AppButton } from "../../components/ui/button";
 import { Card, SectionHeading } from "../../components/ui/card";
 import { Screen } from "../../components/ui/screen";
 import { useNow } from "../../components/use-now";
+import { VoltageCard } from "../../components/voltage-card";
 import { container } from "../../composition";
 import { useStyles, useTheme } from "../../theme/theme-provider";
 
@@ -160,6 +161,7 @@ function NodeDetails({ node }: { node: Node }) {
 
       <RunPanel node={node} />
       {card !== null && <TelemetryCard model={card} />}
+      {shown !== null && <VoltageCard samples={shown.samples} voltage={shown.voltage} />}
 
       <Card>
         <SectionHeading>{t("nodes.label")}</SectionHeading>
