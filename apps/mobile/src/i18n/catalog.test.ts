@@ -17,6 +17,7 @@ import {
   telemetryCard,
 } from "../application/nodes/history-presenter";
 import { nearestCard } from "../application/nodes/nearest-presenter";
+import { trendText, voltageCard } from "../application/nodes/voltage-presenter";
 import { reportedAsText, roleText, syncLine } from "../application/nodes/presenter";
 import { tr } from "../components/translate";
 import en from "./en.json";
@@ -280,6 +281,61 @@ describe("en catalog", () => {
       expect(i18n.exists(text.key), text.key).toBe(true);
       const rendered = tr(i18n.t, text);
       expect(rendered, text.key).not.toMatch(/\{\{|\$t\(|undefined|telemetry\.name/);
+    }
+  });
+
+  it("resolves every text the voltage card and trend can produce, without predictions (FR-12 AC3)", () => {
+    const texts: { key: string; params?: Record<string, string | number> }[] = [];
+    const day = 24 * 3_600_000;
+    const trends = [
+      { kind: "insufficient", count: 2, spanMs: 0 },
+      { kind: "insufficient", count: 4, spanMs: 90 * 60_000 },
+      { kind: "insufficient", count: 4, spanMs: 3 * day },
+      ...(["falling", "rising", "stable"] as const).flatMap((kind) =>
+        [30 * 60_000, 5 * 3_600_000, 3 * day].map((spanMs) => ({
+          kind,
+          changeV: -0.1,
+          spanMs,
+          count: 6,
+        })),
+      ),
+    ] as const;
+    for (const trend of trends) {
+      const t = trendText(trend);
+      texts.push(t.trend);
+      if (t.detail !== null) texts.push(t.detail);
+    }
+    const sample = { runId: 1, source: "status", measuredAt: 1 } as never;
+    for (const model of [
+      voltageCard({ samples: [], voltage: [] }, String, 300),
+      voltageCard({ samples: [sample], voltage: [] }, String, 300),
+      voltageCard(
+        {
+          samples: [sample],
+          voltage: [
+            { runId: 1, source: "status", at: 1, voltageV: 3.3 },
+            { runId: 2, source: "telemetry", at: 2, voltageV: 3.2 },
+          ],
+        },
+        String,
+        300,
+      ),
+    ]) {
+      if (model.kind === "chart") {
+        texts.push(model.title, model.summary, model.trend);
+        for (const r of model.rows) texts.push(r.time, r.value, r.source);
+      } else texts.push(model.text);
+    }
+    texts.push({ key: "battery.showValues" }, { key: "battery.hideValues" });
+    for (const text of texts) {
+      expect(i18n.exists(text.key), text.key).toBe(true);
+      expect(tr(i18n.t, text), text.key).not.toMatch(/\{\{|\$t\(|undefined/);
+    }
+    for (const value of values(en)) {
+      expect(value).not.toMatch(/battery life|time[- ]to[- ]empty|until empty|runtime left/i);
+    }
+    for (const value of values(en.battery)) {
+      expect(value).not.toMatch(/remaining|left|estimat|predict/i);
     }
   });
 });
