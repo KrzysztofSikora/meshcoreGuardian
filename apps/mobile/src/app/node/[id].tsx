@@ -4,11 +4,13 @@ import {
   effectiveRole,
   isOnDashboard,
   keyPrefix,
+  type DiagnosticRun,
   type Node,
+  type TelemetrySample,
 } from "@guardian/domain";
 import { Link, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Text, TextInput, View } from "react-native";
+import { FlatList, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
@@ -19,6 +21,7 @@ import {
   runDetails,
   statusOf,
 } from "../../application/diagnostics/presenter";
+import { lastResponseText, recentRunRow, telemetryCard } from "../../application/nodes/history-presenter";
 import {
   adminDiscardedText,
   lastHeardText,
@@ -31,7 +34,9 @@ import {
   roleText,
 } from "../../application/nodes/presenter";
 import { formatTime } from "../../components/node-row";
+import { RunRow } from "../../components/run-row";
 import { RunStatus } from "../../components/run-status";
+import { TelemetryCard } from "../../components/telemetry-card";
 import { tr } from "../../components/translate";
 import { AppButton } from "../../components/ui/button";
 import { Card, SectionHeading } from "../../components/ui/card";
@@ -40,31 +45,67 @@ import { useNow } from "../../components/use-now";
 import { container } from "../../composition";
 import { useStyles, useTheme } from "../../theme/theme-provider";
 
-const { nodes: controller, runs, session, passwords } = container;
+const { nodes: controller, runs, session, passwords, history } = container;
 
 const COUNTDOWN_TICK_MS = 1000;
+const RELATIVE_TICK_MS = 60_000;
 
 export default function NodeScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const state = useStore(controller.store);
 
+  const lastRun = useStore(runs.store, (s) => s.last);
+  const nodeHistory = useStore(history.store, (s) => (id === undefined ? undefined : s.byNode[id]));
+  const now = useNow(true, RELATIVE_TICK_MS);
+  const { colors } = useTheme();
+  const styles = useNodeStyles();
+
   useEffect(() => {
     void controller.load();
     void runs.load();
   }, []);
 
+  // Reload after a run of this node was saved, so the new row and telemetry show up.
+  const savedRunId = lastRun?.publicKey === id ? lastRun.runId : null;
+  useEffect(() => {
+    if (id !== undefined) void history.load(id);
+  }, [id, savedRunId]);
+
   const node = state.nodes.find((candidate) => candidate.publicKey === id);
+  const rows = nodeHistory?.runs.filter((run) => run.id !== undefined) ?? [];
   return (
-    <Screen scroll>
-      {node === undefined ? (
-        state.loaded && <Muted>{t("nodes.notFound")}</Muted>
-      ) : (
-        <NodeDetails node={node} />
-      )}
-      <Muted>{t("node.placeholder")}</Muted>
+    <Screen>
+      <FlatList
+        style={styles.list}
+        contentContainerStyle={styles.listContent}
+        data={rows}
+        extraData={now}
+        keyExtractor={(run) => String(run.id)}
+        renderItem={({ item }) => (
+          <RunRow runId={item.id as number} row={recentRunRow(item, formatTime, now)} />
+        )}
+        ListHeaderComponent={
+          node === undefined ? (
+            state.loaded ? <Muted>{t("nodes.notFound")}</Muted> : null
+          ) : (
+            <NodeDetails node={node} />
+          )
+        }
+        ListEmptyComponent={
+          node === undefined || nodeHistory?.loaded !== true ? null : (
+            <Text style={[styles.body, { color: colors.textMuted }]}>{t("history.empty")}</Text>
+          )
+        }
+      />
     </Screen>
   );
+}
+
+/** The finish time of the run the latest samples belong to; null when that run is not in the list. */
+function runTime(runs: readonly DiagnosticRun[], samples: readonly TelemetrySample[]): number | null {
+  const runId = samples[0]?.runId;
+  return runs.find((run) => run.id === runId)?.finishedAt ?? null;
 }
 
 function Muted({ children, mono = false }: { children: string; mono?: boolean }) {
@@ -85,6 +126,12 @@ function NodeDetails({ node }: { node: Node }) {
   const reported = reportedAsText(node);
   const reportedName = reportedNameText(node);
   const heard = lastHeardText(node, formatTime);
+  const nodeHistory = useStore(history.store, (s) => s.byNode[node.publicKey]);
+  const shown = nodeHistory?.loaded === true ? nodeHistory : null;
+  const card =
+    shown === null
+      ? null
+      : telemetryCard(shown.samples, formatTime, runTime(shown.runs, shown.samples));
   const { colors } = useTheme();
   const styles = useNodeStyles();
 
@@ -103,9 +150,16 @@ function NodeDetails({ node }: { node: Node }) {
       {reportedName !== null && <Muted>{tr(t, reportedName)}</Muted>}
       {reported !== null && <Muted>{tr(t, reported)}</Muted>}
       <Muted>{tr(t, heard)}</Muted>
+      {nodeHistory?.status === "error" && (
+        <Text accessibilityRole="alert" style={[styles.body, { color: colors.danger }]}>
+          {t("telemetry.loadFailed")}
+        </Text>
+      )}
+      {shown !== null && <Muted>{tr(t, lastResponseText(shown.lastRespondedAt, formatTime))}</Muted>}
       {!node.inContacts && <Muted>{t("nodes.notInContacts")}</Muted>}
 
       <RunPanel node={node} />
+      {card !== null && <TelemetryCard model={card} />}
 
       <Card>
         <SectionHeading>{t("nodes.label")}</SectionHeading>
@@ -159,6 +213,7 @@ function NodeDetails({ node }: { node: Node }) {
           {t(error === "nodes.labelTooLong" ? "nodes.labelTooLong" : "nodes.saveFailed")}
         </Text>
       )}
+      <SectionHeading>{t("history.heading")}</SectionHeading>
     </View>
   );
 }
@@ -312,6 +367,8 @@ function RunPanel({ node }: { node: Node }) {
 
 function useNodeStyles() {
   return useStyles((th) => ({
+    list: { flex: 1 },
+    listContent: { gap: th.space.sm, paddingBottom: 24 },
     section: { gap: th.space.sm },
     heading: { ...th.type.detailTitle },
     body: { ...th.type.body },

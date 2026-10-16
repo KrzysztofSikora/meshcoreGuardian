@@ -80,3 +80,14 @@ export type { RankedRepeater } from "./nodes/nearest";
 export { GUEST_PASSWORD_MAX_BYTES, validateGuestPassword } from "./nodes/guest-password";
 export type { GuestPasswordResult } from "./nodes/guest-password";
 export type { SecretStore } from "./secrets/secret-store";
+export { lppMeaning } from "./telemetry/lpp";
+export type { LppMeaning } from "./telemetry/lpp";
+export type { TelemetryRepository } from "./telemetry/ports";
+export { SIGNAL_SCOPES, TELEMETRY_SOURCES, samplesFromChecks } from "./telemetry/samples";
+export type {
+  Signal,
+  SignalScope,
+  TelemetrySample,
+  TelemetrySource,
+  TelemetryValue,
+} from "./telemetry/samples";

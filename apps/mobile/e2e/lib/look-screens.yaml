@@ -51,9 +51,9 @@ appId: io.github.krzysztofsikora.guardian
     timeout: 90000
 - takeScreenshot: look-node-result-${THEME}
 # After a run the Node screen overflows; its content must scroll to the last element
-# (PR #21: flex: 1 on the scroll content pinned it). Not earlier: it fits before the run.
+# (PR #21: flex: 1 on the scroll content pinned it); now the list under "Recent runs". Not earlier: it fits before the run.
 - scrollUntilVisible:
-    element: "Node details will appear here."
+    element: "Recent runs"
 - scrollUntilVisible:
     element: "View details"
     direction: UP

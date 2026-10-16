@@ -11,13 +11,18 @@ import {
 import { describe, expect, it } from "vitest";
 
 import { statusText } from "../application/diagnostics/presenter";
+import {
+  lastResponseText,
+  recentRunRow,
+  telemetryCard,
+} from "../application/nodes/history-presenter";
 import { nearestCard } from "../application/nodes/nearest-presenter";
 import { reportedAsText, roleText, syncLine } from "../application/nodes/presenter";
 import { tr } from "../components/translate";
 import en from "./en.json";
 import { i18n } from "./index";
 
-const screens = ["dashboard", "node", "run", "settings"] as const;
+const screens = ["dashboard", "run", "settings"] as const;
 
 function values(node: unknown): string[] {
   if (typeof node === "string") return [node];
@@ -29,6 +34,10 @@ describe("en catalog", () => {
   it.each(screens)("%s has a non-empty title and placeholder", (screen) => {
     expect(en[screen].title.trim()).not.toBe("");
     expect(en[screen].placeholder.trim()).not.toBe("");
+  });
+
+  it("node has a title", () => {
+    expect(en.node.title.trim()).not.toBe("");
   });
 
   it("connect has a title", () => {
@@ -116,7 +125,11 @@ describe("en catalog", () => {
   });
 
   it("resolves every text the nearest card can produce", () => {
-    const node = (publicKey: string, pathHops: number | null, position: { lat: number; lon: number } | null) => ({
+    const node = (
+      publicKey: string,
+      pathHops: number | null,
+      position: { lat: number; lon: number } | null,
+    ) => ({
       publicKey,
       reportedName: publicKey,
       reportedRole: "repeater" as const,
@@ -135,14 +148,31 @@ describe("en catalog", () => {
     const origin = { companionPublicKey: "c", position: { lat: 50, lon: 20 }, at: 1 };
     const cards = [
       nearestCard([], null, String),
-      nearestCard([node("a", 0, { lat: 50, lon: 20 }), node("b", 1, null), node("c", 3, { lat: 51, lon: 20 })], origin, String),
+      nearestCard(
+        [
+          node("a", 0, { lat: 50, lon: 20 }),
+          node("b", 1, null),
+          node("c", 3, { lat: 51, lon: 20 }),
+        ],
+        origin,
+        String,
+      ),
       nearestCard([node("a", null, null)], { ...origin, position: null }, String),
     ];
     for (const card of cards) {
       const texts =
         card.kind === "empty"
           ? [card.text, card.syncHint]
-          : [card.asOf, ...[card.nearest, ...card.others].flatMap((c) => [c.name, c.role, c.path, c.position, c.lastHeard])];
+          : [
+              card.asOf,
+              ...[card.nearest, ...card.others].flatMap((c) => [
+                c.name,
+                c.role,
+                c.path,
+                c.position,
+                c.lastHeard,
+              ]),
+            ];
       for (const text of texts) {
         if (text === null) continue;
         expect(i18n.exists(text.key, { count: 2 }), text.key).toBe(true);
@@ -165,5 +195,91 @@ describe("en catalog", () => {
     ["fake", "Transport: Fake (development)"],
   ] as const)("interpolates the %s transport label", (mode, expected) => {
     expect(i18n.t("settings.transport", { mode: i18n.t(`transport.${mode}`) })).toBe(expected);
+  });
+
+  it("resolves every text the telemetry card, last response and run rows can produce", () => {
+    const sample = (source: "status" | "telemetry", over: object) => ({
+      runId: 1,
+      checkSeq: 1,
+      source,
+      measuredAt: 1,
+      voltageV: null,
+      uptimeS: null,
+      rssiDbm: null,
+      snrDb: null,
+      extra: [],
+      ...over,
+    });
+    const texts: { key: string; params?: Record<string, string | number> }[] = [];
+    const collect = (model: ReturnType<typeof telemetryCard>) => {
+      if ("empty" in model) return void texts.push(model.empty);
+      texts.push(model.heading, model.fromRun);
+      if (model.note !== null) texts.push(model.note);
+      for (const g of model.groups) {
+        texts.push(g.title);
+        if (g.measured !== null) texts.push(g.measured);
+        for (const r of g.rows) texts.push(r.label, r.value);
+      }
+    };
+    const fmt = String;
+    collect(telemetryCard([], fmt));
+    const extras = [
+      ...[
+        "noise_floor",
+        "generic",
+        "illuminance",
+        "presence",
+        "temperature",
+        "humidity",
+        "pressure",
+        "voltage",
+        "current",
+        "percentage",
+        "concentration",
+        "power",
+        "gps",
+        "latitude",
+        "longitude",
+        "altitude",
+        "lpp_200",
+      ].flatMap((name) => [
+        { name, value: 1, unit: "x", channel: null },
+        { name, value: 1, unit: null, channel: 2 },
+      ]),
+    ];
+    for (const scope of ["last_hop", "unknown"] as const) {
+      collect(
+        telemetryCard(
+          [
+            sample("status", {
+              voltageV: 3.3,
+              uptimeS: 5,
+              rssiDbm: { value: -1, scope },
+              snrDb: { value: 1, scope },
+              extra: extras,
+            }),
+            sample("telemetry", { extra: extras }),
+          ] as never,
+          fmt,
+        ),
+      );
+    }
+    collect(telemetryCard([sample("status", {}), sample("telemetry", {})] as never, fmt));
+    collect(telemetryCard([sample("status", {})] as never, fmt));
+    collect(telemetryCard([sample("telemetry", {})] as never, fmt));
+    texts.push(lastResponseText(null, fmt), lastResponseText(1, fmt));
+    for (const ms of [1000, 90_000]) {
+      const row = recentRunRow(
+        { result: "RESPONDED", reason: "ALL_CHECKS_REPLIED", finishedAt: 1, durationMs: ms },
+        fmt,
+        1,
+      );
+      texts.push(row.time, row.duration);
+    }
+    for (const text of texts) {
+      expect(i18n.exists(text.key), text.key).toBe(true);
+      const rendered = tr(i18n.t, text);
+      expect(rendered, text.key).not.toMatch(/\{\{|\$t\(|undefined|telemetry\.name/);
+    }
   });
 });

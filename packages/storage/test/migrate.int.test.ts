@@ -107,6 +107,11 @@ describe("migrateToLatest", () => {
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'diagnostic_%' ORDER BY name",
     );
     expect(tables.map((t) => t.name)).toEqual(["diagnostic_checks", "diagnostic_runs"]);
+    expect(
+      await testDb.driver.all(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'telemetry_samples'",
+      ),
+    ).toHaveLength(1);
   });
 
   it("enforces the CHECK constraints of devices", async () => {
@@ -131,7 +136,7 @@ describe("migrateToLatest", () => {
 
     const result = await migrateToLatest(testDb.driver);
 
-    expect(result).toEqual({ from: 2, to: 3 });
+    expect(result).toEqual({ from: 2, to: MIGRATIONS.length });
     const rows = await testDb.driver.all<Record<string, unknown>>(
       "SELECT public_key, path_hops, adv_lat, adv_lon FROM devices",
     );
@@ -139,6 +144,27 @@ describe("migrateToLatest", () => {
       { public_key: "a".repeat(64), path_hops: null, adv_lat: null, adv_lon: null },
     ]);
     expect(await testDb.driver.all("SELECT * FROM contact_sync_origin")).toEqual([]);
+  });
+
+  it("migrates a version 3 database to 4 and keeps its runs and checks, with an empty samples table", async () => {
+    testDb = await openTestDb({ migrate: 3 });
+    await insertDevice(testDb, "a".repeat(64));
+    await testDb.driver.run(
+      `INSERT INTO diagnostic_runs (id, device_id, companion_public_key, companion_name, companion_firmware,
+         started_at, finished_at, duration_ms, attempts_used, attempts_per_check, result, reason)
+       VALUES (1, 1, 'k', 'c', 'v1', 1, 2, 1, 1, 2, 'RESPONDED', 'ALL_CHECKS_REPLIED')`,
+    );
+    await testDb.driver.run(
+      `INSERT INTO diagnostic_checks (run_id, seq, kind, result, reason, attempts)
+       VALUES (1, 0, 'status', 'RESPONDED', 'ALL_CHECKS_REPLIED', 1)`,
+    );
+
+    const result = await migrateToLatest(testDb.driver);
+
+    expect(result).toEqual({ from: 3, to: MIGRATIONS.length });
+    expect(await testDb.driver.all("SELECT id FROM diagnostic_runs")).toEqual([{ id: 1 }]);
+    expect(await testDb.driver.all("SELECT run_id FROM diagnostic_checks")).toEqual([{ run_id: 1 }]);
+    expect(await testDb.driver.all("SELECT id FROM telemetry_samples")).toEqual([]);
   });
 
   it("enforces the CHECK constraints of path and position", async () => {

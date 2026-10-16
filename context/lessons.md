@@ -91,3 +91,15 @@ Rules from reviews. Binding for planning, implementing and reviewing once accept
 - Seen in: guest-password, R2
 - Scope: `eslint.config.mjs`, `tooling/lint/layer-rules.test.ts`
 - Status: proposed in the PR for guest-password
+
+## Never render an empty-data message ("none recorded") from the default values of a loading or error state
+- Why: the screen claims something about the node that the app does not know, e.g. "No response recorded" after a failed storage read.
+- Seen in: node-details-telemetry, R2
+- Scope: `apps/mobile/src/app`, `apps/mobile/src/application`
+- Status: proposed in the PR for node-details-telemetry
+
+## When a component that renders relative time is reused for a stored record, pass the real "now" and test it with a record older than a minute
+- Why: passing the record's own time as "now" gives age 0, so every old record reads "just now".
+- Seen in: node-details-telemetry, R1
+- Scope: `apps/mobile/src/application`, `apps/mobile/src/components`
+- Status: proposed in the PR for node-details-telemetry

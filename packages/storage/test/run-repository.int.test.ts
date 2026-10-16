@@ -219,4 +219,64 @@ describe("SqliteDiagnosticRunRepository", () => {
     expect(await testDb!.driver.all("SELECT id FROM diagnostic_runs")).toHaveLength(1);
     expect(await testDb!.driver.all("SELECT run_id FROM diagnostic_checks")).toHaveLength(3);
   });
+
+  it("lists the newest runs of one node first, limited, without checks", async () => {
+    const repo = await setup();
+    const a = await repo.save(makeRun({ finishedAt: 100 }));
+    const b = await repo.save(makeRun({ finishedAt: 300 }));
+    const c = await repo.save(makeRun({ finishedAt: 300 }));
+    await repo.save(makeRun({ nodePublicKey: OTHER, finishedAt: 900 }));
+
+    const all = await repo.recentForNode(NODE, 10);
+    const two = await repo.recentForNode(NODE, 2);
+
+    expect(all.map((r) => r.id)).toEqual([c, b, a]);
+    expect(two.map((r) => r.id)).toEqual([c, b]);
+    expect(all[0]?.checks).toEqual([]);
+    expect(await repo.recentForNode("ee".repeat(32), 10)).toEqual([]);
+  });
+
+  it("reports the last response even when a later run got none", async () => {
+    const repo = await setup();
+    expect(await repo.lastRespondedAt(NODE)).toBeNull();
+    await repo.save(makeRun({ finishedAt: 200 }));
+    await repo.save(makeRun({ finishedAt: 100 }));
+    await repo.save(
+      makeRun({
+        finishedAt: 900,
+        result: "NO_RESPONSE",
+        reason: "NO_REPLY",
+        limitations: [],
+        checks: [],
+      }),
+    );
+    await repo.save(makeRun({ nodePublicKey: OTHER, finishedAt: 5_000 }));
+
+    expect(await repo.lastRespondedAt(NODE)).toBe(200);
+    expect(await repo.lastRespondedAt(OTHER)).toBe(5_000);
+  });
+
+  it("stores the samples of a run with the run's device", async () => {
+    const repo = await setup();
+    const id = await repo.save(makeRun());
+
+    const rows = await testDb!.driver.all<{ device_id: number; run_id: number; same: number }>(
+      `SELECT s.device_id, s.run_id, s.device_id = r.device_id AS same
+       FROM telemetry_samples s JOIN diagnostic_runs r ON r.id = s.run_id`,
+    );
+    expect(rows).toEqual([{ device_id: rows[0]!.device_id, run_id: id, same: 1 }]);
+  });
+
+  it("rolls the run back when a sample fails to insert", async () => {
+    const repo = await setup();
+    await testDb!.driver.exec(
+      `CREATE TRIGGER fail_samples BEFORE INSERT ON telemetry_samples
+       BEGIN SELECT RAISE(ABORT, 'no samples'); END`,
+    );
+
+    await expect(repo.save(makeRun())).rejects.toThrow(/no samples/);
+
+    expect(await testDb!.driver.all("SELECT id FROM diagnostic_runs")).toHaveLength(0);
+    expect(await testDb!.driver.all("SELECT run_id FROM diagnostic_checks")).toHaveLength(0);
+  });
 });

@@ -53,6 +53,12 @@ class MemoryRuns implements DiagnosticRunRepository {
   async latestPerNode(): Promise<Map<string, DiagnosticRun>> {
     return new Map(this.saved.map((run, index) => [run.nodePublicKey, { ...run, id: index + 1 }]));
   }
+  async recentForNode(): Promise<DiagnosticRun[]> {
+    return [];
+  }
+  async lastRespondedAt(): Promise<number | null> {
+    return null;
+  }
 }
 
 /** A companion whose handshake works and whose remote exchanges follow `specs`, one per run. */

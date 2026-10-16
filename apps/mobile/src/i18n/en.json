@@ -49,7 +49,8 @@
   },
   "node": {
     "title": "Node",
-    "placeholder": "Node details will appear here."
+    "lastResponse": "Last response: {{time}}",
+    "lastResponseNone": "No response recorded"
   },
   "run": {
     "title": "Diagnostic run",
@@ -473,5 +474,67 @@
       "W": "west",
       "NW": "north-west"
     }
+  },
+  "telemetry": {
+    "heading": "Latest telemetry",
+    "fromRun": "From the run of {{time}}",
+    "source": {
+      "status": "Status reply",
+      "telemetry": "Telemetry reply"
+    },
+    "measured": "Measured {{time}}",
+    "na": "N/A",
+    "value": "{{value}} {{unit}}",
+    "valueUnitUnknown": "{{value}} (unit unknown)",
+    "uptime": "{{days}} d {{hours}} h {{minutes}} min",
+    "noValues": "No values in the reply",
+    "notInRun": "Not received in this run",
+    "empty": "No telemetry recorded yet. Run a diagnostic to get it.",
+    "loadFailed": "Stored history could not be read.",
+    "lastHopNote": "Measured by the node on the last packet it received. Not end-to-end link quality.",
+    "field": {
+      "voltage": "Battery voltage",
+      "uptime": "Uptime",
+      "values": "Values",
+      "reply": "Reply",
+      "rssi": {
+        "last_hop": "RSSI, last hop into the node",
+        "unknown": "RSSI, packet unknown",
+        "none": "RSSI"
+      },
+      "snr": {
+        "last_hop": "SNR, last hop into the node",
+        "unknown": "SNR, packet unknown",
+        "none": "SNR"
+      }
+    },
+    "extra": "$t(telemetry.name.{{name}})",
+    "extraChannel": "$t(telemetry.name.{{name}}) · channel {{channel}}",
+    "name": {
+      "noise_floor": "Noise floor",
+      "generic": "Generic value",
+      "illuminance": "Illuminance",
+      "presence": "Presence",
+      "temperature": "Temperature",
+      "humidity": "Humidity",
+      "pressure": "Pressure",
+      "voltage": "Voltage",
+      "current": "Current",
+      "percentage": "Percentage",
+      "concentration": "Concentration",
+      "power": "Power",
+      "gps": "GPS",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "altitude": "Altitude",
+      "unknown": "Sensor type {{type}}"
+    }
+  },
+  "history": {
+    "heading": "Recent runs",
+    "time": "{{time}}",
+    "durationSeconds": "{{seconds}} s",
+    "durationMinutes": "{{minutes}} min {{seconds}} s",
+    "empty": "No runs stored for this node yet."
   }
 }

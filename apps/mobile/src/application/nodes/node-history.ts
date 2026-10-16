@@ -1,0 +1,78 @@
+import type {
+  DiagnosticRun,
+  DiagnosticRunRepository,
+  TelemetryRepository,
+  TelemetrySample,
+} from "@guardian/domain";
+import { createStore, type StoreApi } from "zustand/vanilla";
+
+/** "Recent" runs on the node screen (D-9); paging can come later without a schema change. */
+export const RECENT_RUNS = 50;
+
+export interface NodeHistory {
+  status: "loading" | "ok" | "error";
+  /** True once a read succeeded; the other fields are real data only then, never defaults. */
+  loaded: boolean;
+  runs: DiagnosticRun[];
+  lastRespondedAt: number | null;
+  samples: TelemetrySample[];
+}
+
+export interface NodeHistoryState {
+  byNode: Record<string, NodeHistory>;
+}
+
+export interface NodeHistoryPorts {
+  runs: () => Promise<DiagnosticRunRepository>;
+  telemetry: () => Promise<TelemetryRepository>;
+}
+
+const LOADING: NodeHistory = { status: "loading", loaded: false, runs: [], lastRespondedAt: null, samples: [] };
+
+/**
+ * Reads what the node screen shows: recent runs, the last response and the latest telemetry
+ * (D-12). Read-only and idempotent; no timers, no radio.
+ */
+export class NodeHistoryController {
+  readonly store: StoreApi<NodeHistoryState> = createStore<NodeHistoryState>(() => ({
+    byNode: {},
+  }));
+
+  private readonly inFlight = new Map<string, Promise<void>>();
+
+  constructor(private readonly ports: NodeHistoryPorts) {}
+
+  /** Concurrent calls for one node share one read. */
+  load(publicKey: string): Promise<void> {
+    const running = this.inFlight.get(publicKey);
+    if (running !== undefined) return running;
+    const read = this.read(publicKey).finally(() => this.inFlight.delete(publicKey));
+    this.inFlight.set(publicKey, read);
+    return read;
+  }
+
+  private async read(publicKey: string): Promise<void> {
+    // Keep the previous data on screen while reloading; a first load starts empty.
+    const before = this.store.getState().byNode[publicKey];
+    this.put(publicKey, {
+      ...(before ?? LOADING),
+      status: before?.loaded === true ? "ok" : "loading",
+    });
+    try {
+      const [runs, telemetry] = await Promise.all([this.ports.runs(), this.ports.telemetry()]);
+      const [recent, lastRespondedAt, samples] = await Promise.all([
+        runs.recentForNode(publicKey, RECENT_RUNS),
+        runs.lastRespondedAt(publicKey),
+        telemetry.latestForNode(publicKey),
+      ]);
+      this.put(publicKey, { status: "ok", loaded: true, runs: recent, lastRespondedAt, samples });
+    } catch {
+      // Neutral: the cause (corrupt row, closed database) is not known here.
+      this.put(publicKey, { ...(before ?? LOADING), status: "error" });
+    }
+  }
+
+  private put(publicKey: string, history: NodeHistory): void {
+    this.store.setState((state) => ({ byNode: { ...state.byNode, [publicKey]: history } }));
+  }
+}
