@@ -99,7 +99,7 @@ Round 2 re-checks the fixes from round 1 (d62042a, 19cb280, d404f7b, 0b3d776). R
 - Fix: replace the `assertVisible` on `voltage-row-0` with `scrollUntilVisible: {element: {id: "voltage-row-0"}}` and drop the "Status reply" assertion (or scope it to the row). Keep the `assertNotVisible` before the tap: it holds with the list closed whatever the scroll position. Re-run `pnpm e2e` and take `battery-one-sample.png` with the row on screen.
 - Effort: small
 - Lesson candidate: no (the R2 lesson covers it; when an assertion targets content that a tap reveals inside a card, scroll to it first)
-- Decision: open
+- Decision: fixed (82d09b6)
 
 ### R7: The committed evidence screenshots predate the R1/R2 fixes
 - Severity: minor
@@ -108,4 +108,4 @@ Round 2 re-checks the fixes from round 1 (d62042a, 19cb280, d404f7b, 0b3d776). R
 - Fix: after R6, copy both screenshots from the green run into `evidence/` (each under 300 KB) and commit them.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (dad4e9f)

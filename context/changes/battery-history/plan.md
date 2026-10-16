@@ -326,4 +326,4 @@ GitHub issue: #8.
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->
 
-- [minor] Review fix R1/R2 changed layout and e2e selectors; evidence screenshots `battery-trend`, `battery-one-sample` must be re-taken by a green `pnpm e2e` (run started at fix time; unit gates, typecheck and lint pass).
+- [minor] Review fix R1/R2 changed layout and e2e selectors; evidence screenshots `battery-trend`, `battery-one-sample` were re-taken from a green `pnpm e2e` (21/21) in fix-review round 2; typecheck, lint and unit tests pass.
