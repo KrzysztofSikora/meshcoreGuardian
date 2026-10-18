@@ -56,7 +56,7 @@ Gates: typecheck ok, lint ok, unit tests ok (91 files, 1557 tests), e2e ok (27/2
 - Fix: add `android.permission.USE_BIOMETRIC` and `android.permission.USE_FINGERPRINT` to `blockedPermissions`, extend `release-config.test.ts`, re-run the release build and re-capture `phase-1-release-permissions.txt`. Then reword `docs/release.md` to the real list (Bluetooth, plus the location entries limited to Android ≤ 11 by ble-plx).
 - Effort: small
 - Lesson candidate: When a doc or test claims what a generated manifest contains, derive the claim from the captured merged manifest, not from the config you changed
-- Decision: open
+- Decision: fixed (0975c99)
 
 ### R2: `eas.json` has no Node version, although the Design requires one; no deviation recorded
 - Severity: major
@@ -65,7 +65,7 @@ Gates: typecheck ok, lint ok, unit tests ok (91 files, 1557 tests), e2e ok (27/2
 - Fix: add `"node": "24.x"` to the `production` and `preview` profiles (and `"pnpm": "12.9.1"` if the schema accepts it), and assert it in `release-config.test.ts`. Option B: if it was left out on purpose, log a `[REVIEW]` deviation and say so in `docs/release.md`.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (0975c99)
 
 ### R3: Export screen not audited at 200 % font; the stated reason is wrong
 - Severity: major
@@ -74,7 +74,7 @@ Gates: typecheck ok, lint ok, unit tests ok (91 files, 1557 tests), e2e ok (27/2
 - Fix: after `font-node-result`, add `scrollUntilVisible`/`tapOn` `id: export-open`, wait for "Last 30 days" and take `font-export` (scroll once more for the field list). Re-run `scripts/a11y-shots.sh`, update the Export row and the `[minor]` deviation, and add Export to the Phase 4 phone walkthrough.
 - Effort: small
 - Lesson candidate: Before skipping a screen in an audit or test as unreachable, confirm the precondition in the route code
-- Decision: open
+- Decision: fixed (71db14c)
 
 ### R4: "Cold start" records time to first frame, not time to the Dashboard
 - Severity: minor
@@ -83,7 +83,7 @@ Gates: typecheck ok, lint ok, unit tests ok (91 files, 1557 tests), e2e ok (27/2
 - Fix: measure until Dashboard content appears, for example a Maestro `launchApp` plus `extendedWaitUntil "Seed node 1"` timed by the script, or a logged JS-ready marker. Otherwise relabel the row "time to first frame (`am start -W`), not Dashboard ready".
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (f49f2f6; relabelled as time to first frame, Dashboard-ready time stays a phone human check)
 
 ### R5: Docs left inaccurate by this change
 - Severity: minor
@@ -92,4 +92,4 @@ Gates: typecheck ok, lint ok, unit tests ok (91 files, 1557 tests), e2e ok (27/2
 - Fix: change the test-plan line to `<app.json version>-pr<N>.<sha>`, and drop the `accent` clause from the audit doc.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (f49f2f6)

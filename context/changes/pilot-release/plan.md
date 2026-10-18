@@ -221,7 +221,7 @@
   - The e2e flows that cover fixed controls, for assertions on new labels.
 - Proves: NFR-05, TR-19 (contrast by unit test; labels by e2e assertions; 200 % by screenshots and a human check).
 - Agent checks: `pnpm typecheck`, `pnpm lint`, `pnpm test`; `bash scripts/a11y-shots.sh`, with screenshots under `evidence/font-200/` (each < 300 KB); then the full `pnpm e2e` (layout fixes touch shared components; lesson).
-- Human checks: on the phone (CI APK), set the font size to the largest and display size to large, and walk Connect → Dashboard → Node → Run → Settings looking for clipped or overlapping text. Turn TalkBack on and confirm that every control on those screens is announced with a meaningful name and that run status is spoken in words.
+- Human checks: on the phone (CI APK), set the font size to the largest and display size to large, and walk Connect → Dashboard → Node → Run → Export → Settings looking for clipped or overlapping text. Turn TalkBack on and confirm that every control on those screens is announced with a meaningful name and that run status is spoken in words.
 
 ### Phase 5: Performance seed, trace and record
 - Files:
@@ -270,7 +270,7 @@
 - [ ] (Phase 3) Read the policy wording in the app and in `docs/privacy-policy.md` — run: install the `android-apk` artifact, Settings → Privacy policy — evidence: none (e2e `privacy.yaml` passes on the emulator)
 - [ ] (Phase 3) Publish `docs/privacy-policy.md` at a public URL, enter it in the Play Console and in `docs/release.md`, open it in a private browser window without login (FR-20 AC2) — run: follow "Publish the policy" in `docs/release.md` — evidence: none
 - [ ] (Phase 3) Fill in the Data safety form so that it matches the policy ("no data collected", "no data shared") — run: Play Console → App content → Data safety — evidence: none
-- [ ] (Phase 4) On the phone (CI APK), set the font size to the largest and display size to large, and walk Connect → Dashboard → Node → Run → Settings looking for clipped or overlapping text — run: Settings → Display → Font size and style / Display size — evidence: `context/changes/pilot-release/evidence/font-200/` (emulator, 200 %), `docs/accessibility-audit.md`
+- [ ] (Phase 4) On the phone (CI APK), set the font size to the largest and display size to large, and walk Connect → Dashboard → Node → Run → Export → Settings looking for clipped or overlapping text — run: Settings → Display → Font size and style / Display size — evidence: `context/changes/pilot-release/evidence/font-200/` (emulator, 200 %), `docs/accessibility-audit.md`
 - [ ] (Phase 4) Turn TalkBack on and confirm every control on those screens is announced with a meaningful name and run status is spoken in words — run: Settings → Accessibility → TalkBack — evidence: none (labels listed in `docs/accessibility-audit.md`)
 - [ ] (Phase 5) On the mid-range phone: run the `ci` workflow with `transport=fake`, export data, uninstall Guardian, install the `-fake` APK, open `guardian://debug/seed/large-history`, check scroll smoothness with HWUI bars and cold start ≤ 3 s, write the results into `docs/performance.md`, then reinstall the BLE APK — run: `gh workflow run ci.yml --ref change/pilot-release -f transport=fake` — evidence: `context/changes/pilot-release/evidence/perf-emulator.txt` (emulator run)
 
@@ -284,7 +284,7 @@
   new change).
 - [minor] Phase 2: `notices.json` has 81 entries; 9 packages (e.g. `expo-router`, `metro-runtime`) ship no licence file, so their rows show "Licence text not included in the package; licence: MIT" (the plan's `text: null` case).
 - [minor] Phase 4: the audit found one failure, the Dashboard title breaking mid-word at 200 % next to the "Connect companion" link. Fixed in `components/ui/screen.tsx` (title row wraps). No label failures found, so no label assertion was added; the layout fix is shown by `evidence/font-200/font-dashboard.png`.
-- [minor] Phase 4: `audit/screens.yaml` is a standalone flow instead of reusing `look-screens.yaml` (its text assertions fail when 200 % text pushes rows below the fold). It does not capture the Export screen (needs a stored run).
+- [minor] Phase 4: `audit/screens.yaml` is a standalone flow instead of reusing `look-screens.yaml` (its text assertions fail when 200 % text pushes rows below the fold). It captures Export after the stored run (`font-export`, `font-export-fields`).
 - [minor] Phase 4: `scripts/a11y-shots.sh` waits 3 s and syncs before the emulator is killed, because the restored font scale was otherwise lost and later boots stayed at 2.0; `A11Y_RESTORE_SCALE` overrides the value to restore. The build step moved into `build_fake_apk` in `scripts/lib/emulator.sh` too (shared by e2e and a11y scripts).
 - [FOLLOW-UP] The IBM Plex row on the Licences screen reads "Version fonts" (the notice's version field is the literal "fonts").
 - [FOLLOW-UP] Notices for native Android libraries (AndroidX, Hermes, OkHttp…) in the licences
