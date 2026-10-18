@@ -41,7 +41,7 @@ describe("NodeHistoryController (FR-07, FR-08 AC2)", () => {
       telemetry: async () => new SqliteTelemetryRepository(testDb.driver),
     });
 
-  async function runTwice(): Promise<void> {
+  async function runTwice(count = 2): Promise<void> {
     const platform = new FakeBlePlatform(SCENARIOS["diag-ok"]);
     const appState = new InMemoryAppState();
     const session = new CompanionSession({
@@ -70,7 +70,7 @@ describe("NodeHistoryController (FR-07, FR-08 AC2)", () => {
     await connecting;
     await vi.runAllTimersAsync();
     expect(nodes.getState().sync.kind).toBe("done");
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < count; i++) {
       const running = runs.start(ROOM_K);
       await vi.runAllTimersAsync();
       await running;
@@ -93,6 +93,92 @@ describe("NodeHistoryController (FR-07, FR-08 AC2)", () => {
     expect(node.samples.every((s) => s.runId === node.runs[0]!.id)).toBe(true);
   });
 
+  it("holds one status voltage point per stored run, oldest first (FR-12 AC1)", async () => {
+    await runTwice();
+    const controller = history();
+    await controller.load(ROOM_K);
+    const { runs, voltage } = controller.store.getState().byNode[ROOM_K]!;
+    expect(voltage).toHaveLength(2);
+    expect(voltage.map((p) => p.source)).toEqual(["status", "status"]);
+    expect(voltage.map((p) => p.runId)).toEqual([runs[1]!.id, runs[0]!.id]);
+    expect(voltage[0]!.at).toBeLessThan(voltage[1]!.at);
+    expect(voltage[0]!.voltageV).toBeGreaterThan(0);
+  });
+
+  it("samples without any voltage leave the voltage empty (FR-12 AC4)", async () => {
+    await runTwice(0);
+    const status = {
+      kind: "status" as const,
+      result: "RESPONDED" as const,
+      reason: "ALL_CHECKS_REPLIED" as const,
+      attempts: 1,
+      timeoutMs: 15_000,
+      timeoutSource: "default" as const,
+      startedAt: 1000,
+      durationMs: 500,
+      evidence: {
+        kind: "status" as const,
+        battMilliVolts: 0,
+        currTxQueueLen: 0,
+        noiseFloor: -110,
+        lastRssi: -34,
+        nPacketsRecv: 1,
+        nPacketsSent: 1,
+        totalAirTimeSecs: 1,
+        totalUpTimeSecs: 5,
+        nSentFlood: 0,
+        nSentDirect: 0,
+        nRecvFlood: 0,
+        nRecvDirect: 0,
+        errEvents: 0,
+        lastSnrX4: 0,
+        nDirectDups: 0,
+        nFloodDups: 0,
+      },
+    };
+    await new SqliteDiagnosticRunRepository(testDb.driver).save({
+      nodePublicKey: ROOM_K,
+      companion: { publicKey: "ef".repeat(32), name: "Companion", firmwareVersion: "v1.17.1" },
+      startedAt: 500,
+      finishedAt: 2000,
+      durationMs: 1500,
+      attemptsUsed: 1,
+      attemptsPerCheck: 2,
+      result: "RESPONDED",
+      reason: "ALL_CHECKS_REPLIED",
+      limitations: [],
+      checks: [status],
+    });
+    const controller = history();
+    await controller.load(ROOM_K);
+    const node = controller.store.getState().byNode[ROOM_K]!;
+    expect(node.samples).toHaveLength(1);
+    expect(node.samples[0]!.voltageV).toBeNull();
+    expect(node.voltage).toEqual([]);
+  });
+
+  it("a failing voltage read ends in the error state and keeps the previous data", async () => {
+    await runTwice();
+    let fail = false;
+    const controller = new NodeHistoryController({
+      runs: async () => new SqliteDiagnosticRunRepository(testDb.driver),
+      telemetry: async () => {
+        const real = new SqliteTelemetryRepository(testDb.driver);
+        return {
+          latestForNode: (key) => real.latestForNode(key),
+          voltageForNode: (key, n) =>
+            fail ? Promise.reject(new Error("disk on fire")) : real.voltageForNode(key, n),
+        };
+      },
+    });
+    await controller.load(ROOM_K);
+    const good = controller.store.getState().byNode[ROOM_K]!;
+    expect(good.voltage).toHaveLength(2);
+    fail = true;
+    await controller.load(ROOM_K);
+    expect(controller.store.getState().byNode[ROOM_K]).toEqual({ ...good, status: "error" });
+  });
+
   it("a node without runs is ok with nothing in it", async () => {
     const controller = history();
     await controller.load(ROOM_K);
@@ -102,6 +188,7 @@ describe("NodeHistoryController (FR-07, FR-08 AC2)", () => {
       runs: [],
       lastRespondedAt: null,
       samples: [],
+      voltage: [],
     });
   });
 
@@ -116,6 +203,7 @@ describe("NodeHistoryController (FR-07, FR-08 AC2)", () => {
       runs: [],
       lastRespondedAt: null,
       samples: [],
+      voltage: [],
     });
   });
 
@@ -135,6 +223,7 @@ describe("NodeHistoryController (FR-07, FR-08 AC2)", () => {
       runs: [],
       lastRespondedAt: null,
       samples: [],
+      voltage: [],
     });
     release();
     await first;

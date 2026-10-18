@@ -4,6 +4,7 @@ import {
   SIGNAL_SCOPES,
   TELEMETRY_SOURCES,
   type Signal,
+  type VoltageReading,
   type TelemetrySample,
 } from "@guardian/domain";
 
@@ -46,6 +47,13 @@ const sampleRowSchema = z.object({
 export const SAMPLE_COLUMNS = `run_id, check_seq, source, measured_at, voltage_v, uptime_s,
   rssi_dbm, rssi_scope, snr_db, snr_scope, extra_json`;
 
+const readingRowSchema = z.object({
+  run_id: z.number().int(),
+  source: z.enum(TELEMETRY_SOURCES),
+  measured_at: z.number(),
+  voltage_v: z.number(),
+});
+
 const signal = (value: number | null, at: z.infer<typeof scope> | null): Signal | null =>
   value === null || at === null ? null : { value, scope: at };
 
@@ -62,6 +70,17 @@ export function toSample(raw: unknown): TelemetrySample {
     rssiDbm: signal(row.rssi_dbm, row.rssi_scope),
     snrDb: signal(row.snr_db, row.snr_scope),
     extra: row.extra_json,
+  };
+}
+
+/** Parses a voltage reading row; a bad row throws. */
+export function toVoltageReading(raw: unknown): VoltageReading {
+  const row = readingRowSchema.parse(raw);
+  return {
+    runId: row.run_id,
+    source: row.source,
+    measuredAt: row.measured_at,
+    voltageV: row.voltage_v,
   };
 }
 

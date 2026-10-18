@@ -34,7 +34,7 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | TR-14 | Unsupported capability still callable or unlabelled | M | M | unit + e2e | capability → enabled-actions mapping; e2e asserts disabled button and reason text | covered (S-02: mapping + reason text); S-04: `runButton` unit tests and the `diag-unsupported.yaml` e2e |
 | TR-15 | Contact sync duplicates nodes, overwrites user label/role, or deletes history of removed contacts | M | M | integration | sync twice → one row per key; user label kept over protocol name; contact missing from companion → node kept with flag | covered (S-03) |
 | TR-16 | Telemetry shown without unit, 0 instead of N/A, RSSI/SNR presented as end-to-end | M | M | unit | mapping tests from decoded telemetry → domain samples; presenter tests for N/A and "last hop" labels | covered (S-06: domain mapping `samples.test.ts`, `lpp.test.ts`; presenter `history-presenter.test.ts`; e2e `diag-responded` asserts unit and last-hop wording) |
-| TR-17 | Trend or prediction shown on too little data | M | L | unit | trend rule: 4 samples / 23 h → "Not enough data"; 5 samples / 24 h → trend; no API returns a prediction | planned (S-07) |
+| TR-17 | Trend or prediction shown on too little data | M | L | unit | trend rule: 4 samples / 23 h → "Not enough data"; 5 samples / 24 h → trend; no API returns a prediction | covered (S-07); tests: `voltage.test.ts` "voltageTrend gate (TR-17, A-01)"; e2e `battery-history` |
 | TR-18 | Background BLE activity or automatic remote requests | M | L | integration | use-case tests: app-state `background` → transport receives no writes; no timer schedules a run | covered (S-02, S-04: no write without a tap, none in the background) |
 | TR-19 | Status relies on colour only; missing accessibility labels | M | M | e2e + hardware | Maestro asserts accessibility labels on status chips; S-10 audit with contrast checker and 200 % font scale | covered for the run status (S-04: e2e asserts the status words); S-10 audits the rest |
 | TR-20 | Settings accept out-of-range values | L | M | unit | Zod schema boundary tests (4/5/60/61 s; 0/1/3/4 attempts) | planned (S-09) |
@@ -80,7 +80,8 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | `packages/domain/src/export/redact.ts`, `packages/domain/src/export/serialize.ts` | privacy defaults (TR-09, TR-10) | 80 % | report |
 | `packages/domain/src/companion/capabilities.ts`, `firmware.ts` | capability/untested-firmware rules shown to the user (TR-14) | 80 % | report |
 | `apps/mobile/src/application/connection/companion-session.ts` | connect/scan/drop state machine, background and no-auto-reconnect rules (FR-01, FR-02, TR-12, TR-13, TR-18) | 80 % | report |
-| `packages/domain/src/trend.ts` | no trend on thin data (TR-17) | 80 % | report |
+| `packages/domain/src/telemetry/voltage.ts` | no trend on thin data (TR-17) | 80 % | report |
+| `apps/mobile/src/application/nodes/voltage-presenter.ts` | AC2/AC4 texts, empty states and chart geometry (FR-12) | 80 % | report |
 | `packages/storage/src/sync/contacts.ts` | merge rules for labels/roles and removed contacts (TR-15) | 70 % | report |
 | `apps/mobile/src/application/nodes/guest-passwords.ts` | secret key scheme, index and clear-all leave nothing behind (TR-09, TR-21) | 80 % | report |
 | `packages/domain/src/geo/geo.ts`, `packages/domain/src/nodes/nearest.ts` | distance, direction and the order of the nearest-repeater card (FR-21) | 80 % | report |
@@ -103,7 +104,7 @@ Tool setup (done in F-01, configuration fixed here): `@stryker-mutator/core` and
 - **Clock**: domain and adapter take a `Clock` port; tests use a fake clock (`vi.useFakeTimers()` only inside adapter tests that rely on library timers).
 - **SQLite**: each integration test opens a fresh `node:sqlite` database in a temp directory and runs all migrations; no shared state between tests.
 - **SecretStore**: in-memory fake in tests; the Expo implementation is never imported by tests.
-- **e2e**: the fake-transport build starts with an empty database each flow (`clearState: true`); scripted scenarios are selected by deep link `guardian://debug/scenario/<name>` available only when `EXPO_PUBLIC_TRANSPORT=fake`.
+- **e2e**: the fake-transport build starts with an empty database each flow (`clearState: true`); scripted scenarios are selected by deep link `guardian://debug/scenario/<name>` available only when `EXPO_PUBLIC_TRANSPORT=fake`; stored history is seeded by `guardian://debug/seed/<name>` (fake build only, e.g. `voltage-history`: six runs over 72 h).
 
 ## Device matrix (Q-05)
 - **Automated:** AVD `guardian` — Pixel 6 profile, Android 15 (API 35), x86_64, google_apis.

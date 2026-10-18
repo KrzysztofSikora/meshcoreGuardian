@@ -83,6 +83,14 @@ export type { SecretStore } from "./secrets/secret-store";
 export { lppMeaning } from "./telemetry/lpp";
 export type { LppMeaning } from "./telemetry/lpp";
 export type { TelemetryRepository } from "./telemetry/ports";
+export {
+  TREND_MIN_SAMPLES,
+  TREND_MIN_SPAN_MS,
+  TREND_STABLE_BAND_V,
+  voltagePoints,
+  voltageTrend,
+} from "./telemetry/voltage";
+export type { VoltagePoint, VoltageReading, VoltageTrend } from "./telemetry/voltage";
 export { SIGNAL_SCOPES, TELEMETRY_SOURCES, samplesFromChecks } from "./telemetry/samples";
 export type {
   Signal,

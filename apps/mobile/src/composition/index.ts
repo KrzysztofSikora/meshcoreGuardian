@@ -50,6 +50,8 @@ export const container = {
     runs: async () => new SqliteDiagnosticRunRepository(await db()),
     telemetry: async () => new SqliteTelemetryRepository(await db()),
   }),
+  // Debug seed routes only (fake build); the controllers above own every other access.
+  runRepository: async () => new SqliteDiagnosticRunRepository(await db()),
   runs: new RunController({
     session,
     appState: platform.appState,

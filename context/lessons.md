@@ -103,3 +103,15 @@ Rules from reviews. Binding for planning, implementing and reviewing once accept
 - Seen in: node-details-telemetry, R1
 - Scope: `apps/mobile/src/application`, `apps/mobile/src/components`
 - Status: proposed in the PR for node-details-telemetry
+
+## When a chart library adds its own padding, subtract it from the width the geometry is computed for, and check the evidence screenshot at both ends of the axis
+- Why: gifted-charts adds initial and end spacing to the width, so the newest point and the edge labels were clipped.
+- Seen in: battery-history, R1
+- Scope: apps/mobile chart components and their presenters
+- Status: proposed in the PR for battery-history
+
+## When an e2e step asserts a value that appears in a list, assert an element only that list renders
+- Why: the value was also shown by another card, so the assertion passed without the list.
+- Seen in: battery-history, R2
+- Scope: apps/mobile/e2e
+- Status: proposed in the PR for battery-history

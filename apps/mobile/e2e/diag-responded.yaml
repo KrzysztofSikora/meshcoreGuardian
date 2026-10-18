@@ -30,6 +30,17 @@ appId: io.github.krzysztofsikora.guardian
     element: ".*Not end-to-end link quality.*"
 - assertVisible: "RSSI, last hop into the node"
 - takeScreenshot: node-details-telemetry
+# FR-12 AC1/AC2: one run gives one point, no trend yet, and its value is one tap away.
+- scrollUntilVisible:
+    element: "Battery voltage \\(V\\)"
+- assertVisible: "Not enough data to determine trend"
+- assertNotVisible:
+    id: "voltage-row-0"
+- tapOn: "Show values"
+- scrollUntilVisible:
+    element:
+      id: "voltage-row-0"
+- takeScreenshot: battery-one-sample
 - scrollUntilVisible:
     element: "Recent runs"
 - scroll
@@ -48,6 +59,9 @@ appId: io.github.krzysztofsikora.guardian
 - assertVisible: "3.35 V"
 - assertVisible: "RSSI, last hop into the node"
 - takeScreenshot: node-details-after-restart
+- scrollUntilVisible:
+    element: "Battery voltage \\(V\\)"
+- assertVisible: "Not enough data to determine trend"
 - scrollUntilVisible:
     element: "Recent runs"
 - scroll

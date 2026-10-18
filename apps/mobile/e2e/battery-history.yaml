@@ -1,0 +1,32 @@
+# FR-12 AC1/AC2: six seeded runs over 72 h give a falling trend and a list of every point, which survives a restart.
+appId: io.github.krzysztofsikora.guardian
+---
+- runFlow:
+    file: lib/connect-diag.yaml
+    env:
+      SCENARIO: diag-ok
+- back
+- openLink: guardian://debug/seed/voltage-history
+- scrollUntilVisible:
+    element: "Battery voltage \\(V\\)"
+- scrollUntilVisible:
+    element: "Trend: falling.*"
+- assertVisible: "Trend: falling.*"
+- assertVisible: ".*6 samples.*"
+- tapOn: "Show values"
+- scrollUntilVisible:
+    element:
+      id: "voltage-row-0"
+- takeScreenshot: battery-trend
+# The history is stored: the same trend after the process was killed.
+- stopApp
+- launchApp
+- scrollUntilVisible:
+    element: "Room K"
+- tapOn: "Room K"
+- scrollUntilVisible:
+    element: "Battery voltage \\(V\\)"
+- scrollUntilVisible:
+    element: "Trend: falling.*"
+- assertVisible: "Trend: falling.*"
+- assertVisible: ".*6 samples.*"

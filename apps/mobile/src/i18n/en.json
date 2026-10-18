@@ -530,6 +530,33 @@
       "unknown": "Sensor type {{type}}"
     }
   },
+  "battery": {
+    "title": "Battery voltage (V)",
+    "none": "No voltage recorded yet.",
+    "unavailable": "Voltage not available from this node",
+    "notEnough": "Not enough data to determine trend",
+    "notEnoughDetail": "Needs at least {{min}} samples over 24 h; this node has {{count}} over $t(battery.span.{{spanKind}}).",
+    "trend": {
+      "falling": "Trend: falling, about {{change}} V over $t(battery.span.{{spanKind}}) ({{count}} samples)",
+      "rising": "Trend: rising, about {{change}} V over $t(battery.span.{{spanKind}}) ({{count}} samples)",
+      "stable": "Trend: stable, less than {{band}} V change over $t(battery.span.{{spanKind}}) ({{count}} samples)"
+    },
+    "span": {
+      "dh": "{{days}} d {{hours}} h",
+      "hm": "{{hours}} h {{minutes}} min",
+      "m": "{{minutes}} min"
+    },
+    "summary_one": "Battery voltage chart, {{count}} sample from {{first}} to {{last}}, lowest {{min}} V, highest {{max}} V.",
+    "summary_other": "Battery voltage chart, {{count}} samples from {{first}} to {{last}}, lowest {{min}} V, highest {{max}} V.",
+    "showValues": "Show values",
+    "hideValues": "Hide values",
+    "time": "{{time}}",
+    "value": "{{value}} V",
+    "source": {
+      "status": "Status reply",
+      "telemetry": "Telemetry reply"
+    }
+  },
   "history": {
     "heading": "Recent runs",
     "time": "{{time}}",
