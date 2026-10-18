@@ -1,11 +1,12 @@
 import Constants from "expo-constants";
-import { useState } from "react";
-import { Switch, Text, TextInput, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, Switch, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
 import type { Text as ViewText } from "../application/nodes/presenter";
-import { saveProblem, settingsView } from "../application/settings/presenter";
+import type { DeletionResult } from "../application/settings/data-deletion";
+import { dataView, deletionMessage, saveProblem, settingsView } from "../application/settings/presenter";
 import type { SaveResult } from "../application/settings/settings-controller";
 import { TIMEOUT_RANGE_S } from "../application/settings/settings";
 import { tr } from "../components/translate";
@@ -23,6 +24,13 @@ export default function SettingsScreen() {
   const { colors } = useTheme();
   const state = useStore(container.settings.store);
   const session = useStore(container.session.store);
+  const runs = useStore(container.runs.store);
+  const nodes = useStore(container.nodes.store);
+  const [result, setResult] = useState<ViewText | null>(null);
+  useEffect(() => {
+    void container.nodes.load();
+    void container.runs.load();
+  }, []);
   const [timeoutText, setTimeoutText] = useState("");
   const [problem, setProblem] = useState<ViewText | null>(null);
   const styles = useStyles((th) => ({
@@ -45,6 +53,32 @@ export default function SettingsScreen() {
 
   const view = settingsView(state, session, Constants.expoConfig?.version ?? "unknown");
   const mode = t(`transport.${container.mode}`);
+
+  const data = dataView(runs, nodes);
+  const busy = data.busyNote !== null;
+
+  const report = (scope: "node" | "all") => (outcome: DeletionResult) =>
+    setResult(deletionMessage(outcome, scope));
+
+  const confirmDelete = (publicKey: string, name: string) =>
+    Alert.alert(t("settings.confirmDeleteTitle"), t("settings.confirmDeleteMessage", { name }), [
+      { text: t("settings.cancel"), style: "cancel" },
+      {
+        text: t("settings.confirmDelete"),
+        style: "destructive",
+        onPress: () => void container.deletion.deleteNodeHistory(publicKey).then(report("node")),
+      },
+    ]);
+
+  const confirmClear = () =>
+    Alert.alert(t("settings.confirmClearTitle"), t("settings.confirmClearMessage"), [
+      { text: t("settings.cancel"), style: "cancel" },
+      {
+        text: t("settings.confirmClear"),
+        style: "destructive",
+        onPress: () => void container.deletion.clearAll().then(report("all")),
+      },
+    ]);
 
   const finish = (result: SaveResult) => setProblem(saveProblem(result));
 
@@ -142,6 +176,42 @@ export default function SettingsScreen() {
               </>
             )}
             <Text style={[styles.small, { color: colors.textMuted }]}>{t("settings.transport", { mode })}</Text>
+          </Card>
+
+          <Card>
+            <SectionHeading>{t("settings.data")}</SectionHeading>
+            <Text style={[styles.small, { color: colors.textMuted }]}>{t("settings.dataHelp")}</Text>
+            {data.empty !== null && (
+              <Text style={[styles.body, { color: colors.text }]}>{tr(t, data.empty)}</Text>
+            )}
+            {data.rows.map((row) => {
+              const name = tr(t, row.name);
+              return (
+                <AppButton
+                  key={row.publicKey}
+                  testID={`settings-delete-${row.prefix}`}
+                  title={t("settings.deleteHistory", { name })}
+                  variant="secondary"
+                  disabled={busy}
+                  onPress={() => confirmDelete(row.publicKey, name)}
+                />
+              );
+            })}
+            <AppButton
+              testID="settings-clear-all"
+              title={t("settings.clearAll")}
+              variant="danger"
+              disabled={busy}
+              onPress={confirmClear}
+            />
+            {data.busyNote !== null && (
+              <Text style={[styles.small, { color: colors.textMuted }]}>{tr(t, data.busyNote)}</Text>
+            )}
+            {result !== null && (
+              <Text accessibilityRole="alert" style={[styles.body, { color: colors.text }]}>
+                {tr(t, result)}
+              </Text>
+            )}
           </Card>
         </View>
       )}

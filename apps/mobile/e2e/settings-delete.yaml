@@ -1,0 +1,72 @@
+# FR-15 AC2: "Delete history" and "Clear all data" ask for confirmation, remove the stored data, and
+# leave the saved settings (D-9).
+appId: io.github.krzysztofsikora.guardian
+---
+- runFlow:
+    file: lib/connect-diag.yaml
+    env:
+      SCENARIO: diag-ok
+- back
+- openLink: guardian://debug/seed/voltage-history
+- scrollUntilVisible:
+    element: "Battery voltage \\(V\\)"
+- scrollUntilVisible:
+    element:
+      id: "label-input"
+- tapOn:
+    id: "label-input"
+- inputText: "Hill"
+- hideKeyboard
+- tapOn: "Save label"
+- openLink: guardian://settings
+- scrollUntilVisible:
+    element: "Delete history: Hill"
+    timeout: 20000
+- takeScreenshot: settings-data
+- tapOn: "Delete history: Hill"
+- assertVisible: "Delete history?"
+- takeScreenshot: settings-confirm
+- tapOn: "Cancel"
+- assertVisible: "Delete history: Hill"
+- tapOn: "Delete history: Hill"
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "No node has stored history."
+    timeout: 10000
+- assertVisible: "History deleted."
+- assertNotVisible: "Delete history: Hill"
+# The node is still known, without runs or label.
+- tapOn: "Dashboard"
+- scrollUntilVisible:
+    element: "Room K"
+- tapOn: "Room K"
+- assertNotVisible: "Hill"
+- assertVisible: "Not tested"
+- assertVisible: "No voltage recorded yet."
+# Clear all data keeps the settings.
+- openLink: guardian://settings
+- tapOn:
+    id: "settings-timeout-input"
+- inputText: "20"
+- tapOn:
+    id: "settings-timeout-save"
+- assertVisible: "Timeout: 20 s"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "settings-clear-all"
+- tapOn:
+    id: "settings-clear-all"
+- assertVisible: "Clear all data?"
+- tapOn: "Clear all data"
+- extendedWaitUntil:
+    visible: "All data cleared."
+    timeout: 10000
+- scrollUntilVisible:
+    element: "Timeout: 20 s"
+    direction: UP
+- assertVisible: "Timeout: 20 s"
+- tapOn: "Dashboard"
+- extendedWaitUntil:
+    visible: "Known nodes will appear here."
+    timeout: 10000

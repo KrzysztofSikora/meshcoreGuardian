@@ -279,12 +279,14 @@ The Settings screen stops being a placeholder. When this change is done:
 - [x] Phase 1: Settings model, store and policy wiring
 - [x] Phase 2: Data deletion
 - [x] Phase 3: Settings screen — preferences and about
-- [ ] Phase 4: Settings screen — delete history and clear all data
+- [x] Phase 4: Settings screen — delete history and clear all data
 
 ## Human checks
 <!-- Filled by /implement: one open checkbox per human check, with how to run it and evidence. -->
 - [ ] (Phase 3) Settings look in light and dark and at 200 % font size; nothing clipped, timeout field and buttons reachable — run: CI APK, open Settings — evidence: context/changes/settings/evidence/settings.png (emulator, light)
 - [ ] (Phase 3) Connected to the real companion, About shows model, firmware and build date matching the Connect screen; timeout 10 s + attempts 1, run a diagnostic: details say "Waited 10.0 s (your setting)" and "up to 1 per check" — run: CI APK on a phone with a paired companion — evidence: none (emulator equivalent: e2e/settings-policy.yaml)
+- [ ] (Phase 4) Wording of both confirmations and of the note that settings are kept — run: CI APK, Settings → Delete history / Clear all data, read the dialogs — evidence: context/changes/settings/evidence/settings-confirm.png (emulator)
+- [ ] (Phase 4) Delete one node's history, force-stop and reopen: its runs, label and guest password are gone, other nodes unchanged — run: CI APK on a phone with a paired companion — evidence: none (emulator equivalent: e2e/settings-delete.yaml, screenshot settings-data.png)
 
 Planned (each two minutes, CI APK `android-apk` on a real phone with a paired companion):
 1. (Phase 3) Settings look in light and dark and at 200 % font size: sections readable, nothing
@@ -312,3 +314,7 @@ Planned (each two minutes, CI APK `android-apk` on a real phone with a paired co
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->
+- [minor] (Phase 4) The Settings screen loads `nodes` and `runs` in a mount effect (both idempotent) so the deletion list does not depend on the Dashboard having been opened. `dataView`/`deletionMessage` are separate presenter functions, so `settingsView` keeps its signature.
+- [minor] (Phase 4) e2e returns to the Dashboard via the bottom nav, not `back`, because `back` lands on the mounted node screen.
+- [FOLLOW-UP] (Phase 4) A node screen that stays mounted under Settings keeps its label input text (`useState(node.userLabel)`) after "Delete history"; it shows the old label until reopened. Reaching Settings from a node screen is only possible via deep link or stack, so the effect is small. Sync the input from the node on change.
+- [FOLLOW-UP] (Phase 4) The reverse race of Phase 2 (a run starting during a deletion) is still not guarded; the buttons are disabled only while a run or sync is active, and `DataDeletion` serialises deletions.

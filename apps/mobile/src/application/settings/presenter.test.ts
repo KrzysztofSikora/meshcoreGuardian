@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { SessionState } from "../connection/companion-session";
-import { settingsView, saveProblem } from "./presenter";
+import { dataView, deletionMessage, settingsView, saveProblem } from "./presenter";
 import type { SettingsState } from "./settings-controller";
 import { DEFAULT_SETTINGS } from "./settings";
 
@@ -95,5 +95,51 @@ describe("saveProblem (FR-15 AC3)", () => {
   it("reports a storage failure and nothing on success", () => {
     expect(saveProblem({ ok: false, reason: "STORAGE_ERROR" })).toEqual({ key: "settings.saveFailed" });
     expect(saveProblem({ ok: true })).toBeNull();
+  });
+});
+
+const nodeOf = (key: string, over: Record<string, unknown> = {}) =>
+  ({ publicKey: key, userLabel: null, userRole: null, reportedName: "", ...over }) as never;
+
+const runsOf = (over: Record<string, unknown> = {}) =>
+  ({ latest: {}, loaded: true, active: null, storage: "ok", ...over }) as never;
+
+const nodesOf = (list: unknown[], over: Record<string, unknown> = {}) =>
+  ({ nodes: list, loaded: true, storage: "ok", sync: { kind: "idle" }, ...over }) as never;
+
+describe("dataView (D-13, D-11)", () => {
+  it("lists nodes with a run, a label or a role, in the given order", () => {
+    const view = dataView(
+      runsOf({ latest: { bb22: {} } }),
+      nodesOf([nodeOf("aa11", { userLabel: "Hill" }), nodeOf("bb22"), nodeOf("cc33"), nodeOf("dd44", { userRole: "repeater" })]),
+    );
+    expect(view.rows.map((r) => r.publicKey)).toEqual(["aa11", "bb22", "dd44"]);
+    expect(view.empty).toBeNull();
+    expect(view.busyNote).toBeNull();
+  });
+
+  it("says nothing is stored only when both stores loaded without error", () => {
+    const empty = { key: "settings.noHistory" };
+    expect(dataView(runsOf(), nodesOf([nodeOf("aa11")])).empty).toEqual(empty);
+    expect(dataView(runsOf({ loaded: false }), nodesOf([])).empty).toBeNull();
+    expect(dataView(runsOf(), nodesOf([], { loaded: false })).empty).toBeNull();
+    expect(dataView(runsOf({ storage: "error" }), nodesOf([])).empty).toBeNull();
+    expect(dataView(runsOf(), nodesOf([], { storage: "error" })).empty).toBeNull();
+  });
+
+  it("shows the busy note during a run or a sync", () => {
+    const busy = { key: "settings.busy" };
+    expect(dataView(runsOf({ active: {} }), nodesOf([])).busyNote).toEqual(busy);
+    expect(dataView(runsOf(), nodesOf([], { sync: { kind: "syncing" } })).busyNote).toEqual(busy);
+  });
+});
+
+describe("deletionMessage (D-10)", () => {
+  it("names what happened", () => {
+    expect(deletionMessage({ ok: true }, "node")).toEqual({ key: "settings.deleted" });
+    expect(deletionMessage({ ok: true }, "all")).toEqual({ key: "settings.clearedAll" });
+    expect(deletionMessage({ ok: false, reason: "BUSY" }, "all")).toEqual({ key: "settings.busy" });
+    expect(deletionMessage({ ok: false, reason: "STORAGE_ERROR" }, "node")).toEqual({ key: "settings.deleteStorageError" });
+    expect(deletionMessage({ ok: false, reason: "SECRET_ERROR" }, "node")).toEqual({ key: "settings.deleteSecretError" });
   });
 });
