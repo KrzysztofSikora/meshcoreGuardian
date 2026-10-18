@@ -47,6 +47,22 @@ appId: io.github.krzysztofsikora.guardian
     timeout: 90000
 - takeScreenshot: font-node-result
 - scrollUntilVisible:
+    element:
+      id: "export-open"
+- tapOn:
+    id: "export-open"
+- extendedWaitUntil:
+    visible: "Last 30 days"
+    timeout: 10000
+- takeScreenshot: font-export
+- scrollUntilVisible:
+    element: "Passwords and stored credentials are never exported"
+- takeScreenshot: font-export-fields
+- back
+- extendedWaitUntil:
+    visible: "View details"
+    timeout: 10000
+- scrollUntilVisible:
     element: "View details"
 - tapOn: "View details"
 - extendedWaitUntil:

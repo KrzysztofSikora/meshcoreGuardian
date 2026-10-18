@@ -10,7 +10,7 @@ checks in the pilot checklist in `docs/release.md`.
 
 - **Contrast:** `apps/mobile/src/theme/contrast.test.ts` asserts at least 4.5:1 for every text
   colour pair in `TEXT_PAIRS`, in the light and the dark scheme. The Licences and Privacy screens
-  use only `text` and `textMuted` on `ground` or `surface`, and `accent` for headings; those pairs
+  use only `text` and `textMuted` on `ground` or `surface`; those pairs
   are already listed, so no pair was added.
 - **Labels:** read from the code (`accessibilityRole`, `accessibilityLabel`, `accessibilityState`)
   and asserted by the e2e flows, which find controls by their text.
@@ -27,7 +27,7 @@ checks in the pilot checklist in `docs/release.md`.
 | Node | pass | text fields and role buttons labelled; chart has a summary label | pass: "Not tested" chip with icon | pass: `font-node.png`, `font-node-confirm.png`, `font-node-result.png` | none |
 | Run (in progress) | pass | live region announces the step | pass: step in words | pass: `font-run.png` | none |
 | Result | pass | headers have `accessibilityRole="header"` | pass: "No response — cause unknown" with icon | pass: `font-result.png`, `font-result-causes.png`, `font-result-steps.png` | none |
-| Export | pass | switch labelled | n/a | not captured: needs a stored run; covered by the Settings and Node layouts (same `Screen`, `Card`, `AppButton`) | none |
+| Export | pass | switch labelled | n/a | `font-export.png`, `font-export-fields.png` | none |
 | Settings | pass | timeout field and switch labelled; segmented options carry selected state | n/a | pass: `font-settings.png` | none |
 | Licences | pass | each toggle names its package; expanded state exposed | n/a | pass: `font-licenses.png` | none |
 | Privacy | pass | headings carry the header role | n/a | pass: `font-privacy.png` | none |
@@ -35,4 +35,3 @@ checks in the pilot checklist in `docs/release.md`.
 ## Not covered
 
 - TalkBack on a real device and the largest display size: human check.
-- The Export screen at 200 %: not in the flow; add it when a stored run is seeded in the audit flow.
