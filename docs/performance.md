@@ -21,8 +21,8 @@ Rendering all 1,000 rows would need paging; that is a new change.
 Emulator (automated, regression guard): `bash scripts/perf-trace.sh` builds the fake-transport
 release APK (`E2E_SKIP_BUILD=1` reuses it), runs `apps/mobile/e2e/perf/large-history.yaml` (seed,
 scroll the dashboard top to bottom and back, open the target node, scroll its history, expand
-"Show values" and scroll the 50 voltage rows), reads `dumpsys gfxinfo` and measures 5 cold starts
-with `am start -W`. Raw output: `context/changes/pilot-release/evidence/perf-emulator.txt`.
+"Show values" and scroll the 50 voltage rows), reads `dumpsys gfxinfo` and records 5 times to first frame
+with `am start -W` (the splash frame, not the Dashboard). Raw output: `context/changes/pilot-release/evidence/perf-emulator.txt`.
 The emulator renders in software on a laptop, so its numbers show regressions, not phone speed.
 
 Phone (human check):
@@ -46,7 +46,7 @@ Phone (human check):
 | Frames rendered in the flow (121 s) | 3,906 |
 | Janky frames | 143 (3.66 %) |
 | Frame time p50 / p90 / p95 / p99 | 16 / 26 / 29 / 40 ms |
-| Cold start (5 runs, ms) | 347, 313, 378, 287, 335 (median 335) |
+| Time to first frame, `am start -W` (5 runs, ms; not Dashboard ready) | 347, 313, 378, 287, 335 (median 335) |
 | Seed time | about 4 s |
 
 The 16 ms p50 is the vsync period of the emulator display, not render time. About 3.7 % of frames

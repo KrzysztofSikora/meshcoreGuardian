@@ -43,7 +43,8 @@ echo "flow seconds: $(($(date +%s) - flow_start))" >>"$out"
   adb_ shell dumpsys gfxinfo "$pkg" | tr -d '\r' | sed -n '/Total frames rendered/,/HISTOGRAM/p' | awk '!seen[$0]++ && !/^HISTOGRAM/'
 } >>"$out"
 
-# Cold start to the first drawn frame, 5 times.
+# Start to the first drawn frame (splash, before JS and the Dashboard), 5 times. Not NFR-06's
+# "cold start reaches the Dashboard"; that is a human check on the phone.
 times=()
 for _ in 1 2 3 4 5; do
   adb_ shell am force-stop "$pkg"
@@ -53,7 +54,7 @@ for _ in 1 2 3 4 5; do
 done
 median="$(printf '%s\n' "${times[@]}" | sort -n | sed -n 3p)"
 {
-  echo "--- cold start (am start -W TotalTime, ms; seeded data present) ---"
+  echo "--- time to first frame (am start -W TotalTime, ms; not Dashboard ready) ---"
   echo "runs: ${times[*]}"
   echo "median: $median"
 } >>"$out"

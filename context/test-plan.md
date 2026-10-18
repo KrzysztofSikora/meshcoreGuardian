@@ -157,7 +157,7 @@ Existing S-03 flows: `contacts-sync.yaml` (FR-04 AC1, AC2, AC4: sync after conne
 1. Prefer a dedicated test phone without personal data. USB/wireless debugging stays **off**; the laptop never connects to the phone.
 2. On the PR: Checks → `ci` → job `android-apk` → Artifacts → `meshcore-guardian-pr<N>-<sha>` (a zip with the `.apk`). From a terminal: `gh run download <run-id> -n meshcore-guardian-pr<N>-<sha>`.
 3. Move the `.apk` to the phone (download it on the phone, or any file transfer) and open it; allow "install unknown apps" for that app once.
-4. The version in Android's App info (`0.0.0-pr<N>.<sha>`) tells which commit you are testing. Installing a newer artifact updates the app in place; data is kept.
+4. The version in Android's App info (`<app.json version>-pr<N>.<sha>`) tells which commit you are testing. Installing a newer artifact updates the app in place; data is kept.
 5. Do the PR's human checks, then tick them and comment on the PR.
 
 ### Run a hardware capture (S-01 only)
