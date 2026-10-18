@@ -20,6 +20,7 @@ describe("privacyBlocks (D-5)", () => {
     expect(blocks).toHaveLength(1 + 2 * PRIVACY_SECTIONS);
     expect(blocks[0]).toEqual({ kind: "paragraph", text: { key: "privacy.effective" } });
     expect(blocks.filter((block) => block.kind === "heading")).toHaveLength(PRIVACY_SECTIONS);
+    expect(blocks.filter((block) => block.kind === "paragraph")).toHaveLength(PRIVACY_SECTIONS + 1);
   });
 
   it("uses every privacy.* catalog key except the title, exactly once", () => {
