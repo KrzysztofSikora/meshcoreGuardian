@@ -1,14 +1,16 @@
 # Review: settings
 
-Verdict: APPROVE WITH FOLLOW-UPS
-Gates: typecheck ok, lint ok, unit tests ok, e2e ok (25/25 flows), mutation (from mutation.md) ok · Round: 1
+Verdict: APPROVE
+Gates: typecheck ok, lint ok, unit tests ok (86 files, 1530 tests), e2e ok (25/25 flows), mutation (from mutation.md) ok · Round: 2
+
+Round 2 re-checked R1-R3 against b064e6e, 72688d2 and ca5f2c9: all three are fixed, each with a test. One new minor finding (R4) comes from the R2 fix.
 
 ## Plan vs diff
 | File | Status | Note |
 |------|--------|------|
 | `apps/mobile/src/application/settings/settings.ts` (+ test) | done | Zod strict schema, bounds derived from domain ranges, `parseTimeoutInput`, `toPolicy` |
 | `apps/mobile/src/application/settings/ports.ts` | done | `SettingsStore`, `DeletionPorts` |
-| `apps/mobile/src/application/settings/settings-controller.ts` (+ int test) | done | memoised load, serial writes, state only after write; attempts not validated (R2) |
+| `apps/mobile/src/application/settings/settings-controller.ts` (+ int test) | done | memoised load, serial writes, state only after write; whole value validated before write (R2 fixed) |
 | `apps/mobile/src/platform/settings-store.ts` | done | KV key `settings` (D-1) |
 | `apps/mobile/src/platform/fake/in-memory.ts` | done | `InMemorySettingsStore`, logged as [minor] deviation |
 | `apps/mobile/src/composition/index.ts` | done | settings, deletion wired; controllers hoisted to consts so `DataDeletion` can refer to them |
@@ -16,11 +18,11 @@ Gates: typecheck ok, lint ok, unit tests ok, e2e ok (25/25 flows), mutation (fro
 | `apps/mobile/src/application/diagnostics/run-controller.ts` (+ int test) | done | policy read once (logged deviation), `lastRequestAt`, `cooldownMs`, `busy()`, `refreshLatest()` |
 | `packages/domain/src/data/eraser.ts`, `packages/domain/src/index.ts` | done | `DataEraser` port |
 | `packages/storage/src/data/data-eraser.ts`, `index.ts`, `test/data-eraser.int.test.ts` | done | explicit child deletes, one transaction, rollback test |
-| `apps/mobile/src/application/settings/data-deletion.ts` (+ int test) | done | single-flight shares the promise across *different* actions (R1) |
+| `apps/mobile/src/application/settings/data-deletion.ts` (+ int test) | done | single-flight keyed by action and target, a different request gets BUSY (R1 fixed) |
 | `apps/mobile/src/application/nodes/nodes-controller.ts` | done | `reload()` public |
 | `apps/mobile/src/application/nodes/node-history.ts` (+ int test) | done | `forget()` |
-| `apps/mobile/src/application/settings/presenter.ts` (+ test) | done | settings, data and deletion views; clear-all SECRET_ERROR text (R3) |
-| `apps/mobile/src/app/settings.tsx` | done | four cards, `Alert.alert` confirmations; buttons stay enabled during a deletion (R1) |
+| `apps/mobile/src/application/settings/presenter.ts` (+ test) | done | settings, data and deletion views; clear-all SECRET_ERROR has its own text (R3 fixed); OUT_OF_RANGE always shown as a timeout message (R4) |
+| `apps/mobile/src/app/settings.tsx` | done | four cards, `Alert.alert` confirmations; Data buttons disabled while a deletion runs (R1 fixed) |
 | `apps/mobile/src/i18n/en.json`, `i18n/catalog.test.ts` | done | placeholder key removed |
 | `apps/mobile/src/components/placeholder-screen.tsx` | done | removed, no other user (logged) |
 | `apps/mobile/e2e/settings.yaml`, `settings-policy.yaml`, `settings-delete.yaml`, `lib/look-screens.yaml` | done | look flow asserts "Timeout: Auto" now |
@@ -28,16 +30,17 @@ Gates: typecheck ok, lint ok, unit tests ok, e2e ok (25/25 flows), mutation (fro
 | `apps/mobile/src/app/node/[id].tsx`, `components/nearest-repeater-card.tsx` | done | use `cooldownMs` (D-12, plan-review finding 1, logged) |
 | `apps/mobile/src/components/ui/screen.tsx` | unplanned | `keyboardShouldPersistTaps="handled"`, logged as [minor] deviation |
 | `context/roadmap.md` | unplanned | status bookkeeping |
+| `context/lessons.md` | unplanned | lesson proposed from R1 (review bookkeeping) |
 | `context/changes/settings/evidence/*.png` | done | three screenshots, each under 300 KB |
 
 ## Areas
 | Area | Result | One-line reason |
 |------|--------|-----------------|
-| Correctness | concern | "Clear all data" during a node deletion reports success without clearing (R1) |
+| Correctness | ok | R1-R3 fixed; a different deletion in flight now gets BUSY, verified by a test on the real eraser |
 | Design | ok | layering respected: domain port, storage implementation, application use-case, screen via presenter |
-| Safety | concern | same as R1 (secrets and rows reported deleted while still present); no secrets in code or logs |
+| Safety | ok | deletion status honest after R1; no secrets in code or logs |
 | Tests | ok | behaviour-level tests on real SQLite and real `GuestPasswords`; failure paths covered; mutation decisions plausible |
-| Simplicity | ok | small modules; `finishPreflight` call lines are long but readable |
+| Simplicity | concern | `save()` labels every invalid value with the attempts range, and the presenter calls it a timeout (R4, minor) |
 | Plan fidelity | ok | every deviation logged; follow-ups recorded |
 | Agent decisions | ok | D-1 (stored shape) lives in `settings.ts` + `settings-store.ts`; D-7/D-8 (deletion) in `data-eraser.ts` only; both swappable as claimed |
 
@@ -68,3 +71,12 @@ Gates: typecheck ok, lint ok, unit tests ok, e2e ok (25/25 flows), mutation (fro
 - Effort: small
 - Lesson candidate: no
 - Decision: fixed (ca5f2c9)
+
+### R4: An out-of-range attempts value is reported as a timeout error in seconds
+- Severity: minor
+- Where: `apps/mobile/src/application/settings/settings-controller.ts:93`, `apps/mobile/src/application/settings/presenter.ts:62`
+- Problem: the R2 fix returns `{ reason: "OUT_OF_RANGE", range: ATTEMPTS_RANGE }` for any invalid value in `save()`, and `saveProblem` maps every `OUT_OF_RANGE` to `settings.timeoutRange`. So `setAttempts(4)` would show "Enter whole seconds from 1 to 3." under the timeout field. The Segmented control offers only 1-3, so no user path reaches it today; it is a latent mislabel, and the `SaveResult` cannot say which field was out of range.
+- Fix: add the field to the result (`field: "timeout" | "attempts"`) and let `saveProblem` choose the message, or make `setAttempts` check `ATTEMPTS_RANGE` itself and keep `save()`'s check as an internal guard. Add a presenter test for the attempts case.
+- Effort: small
+- Lesson candidate: no
+- Decision: open
