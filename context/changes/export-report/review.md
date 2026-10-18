@@ -63,7 +63,7 @@ Gates: typecheck ok, lint ok, unit tests ok, e2e ok (22/22) · Round: 1
 - Fix: keep remount idempotence but reset per visit: add `close()` to `ExportController` (clear `publicKey`, bump `seq`, back to `initial(null)`) and call it from the screen's `useEffect` cleanup, so the next navigation starts with defaults and a fresh read. Change the test to: same key while the screen is open keeps choices; `close()` then `open()` resets to 30 days / JSON / `redactionDefault()` and reads runs saved since. Alternative: always re-read on `open` (fresh range end) but keep choices, which still leaves the redaction switch sticky and so needs an explicit reset of `redactKeys` anyway.
 - Effort: small
 - Lesson candidate: When a singleton controller backs a stack screen, reset its per-visit state on unmount; "idempotent open" protects remounts, not new visits.
-- Decision: open
+- Decision: fixed (df4e877)
 
 ### R2: Two `open()` calls at once on a new key start two reads (mutation `bug`, still present)
 - Severity: blocker
@@ -72,7 +72,7 @@ Gates: typecheck ok, lint ok, unit tests ok, e2e ok (22/22) · Round: 1
 - Fix: in `open`, record the pending key synchronously (e.g. `this.openingKey = publicKey` and return `this.opening` when `openingKey === publicKey`), or set `publicKey` in the store before awaiting `redactionDefault()`. Add the test the mutation step wrote notes for: two `open(K)` without awaiting → one `nodes.get` / `forNodeBetween` call. Do it together with R1, since both change `open`.
 - Effort: small
 - Lesson candidate: no (covered by the existing idempotent-open lesson)
-- Decision: open
+- Decision: fixed (df4e877)
 
 ### R3: Plan-review finding 7's "tap Share twice" check was not added
 - Severity: minor
@@ -81,7 +81,7 @@ Gates: typecheck ok, lint ok, unit tests ok, e2e ok (22/22) · Round: 1
 - Fix: after the first `back` in `export-report.yaml`, tap `export-share` again and assert no "Could not create the export file"; or add it to the human checks. Update *Review response*.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (b3ef5b4)
 
 ### R4: The e2e step after "Last 7 days" does not prove the range changed
 - Severity: minor
@@ -90,4 +90,4 @@ Gates: typecheck ok, lint ok, unit tests ok, e2e ok (22/22) · Round: 1
 - Fix: assert something only the 7-day state renders: the `export-days-7` option selected (accessibility state), or the range line's start date. Counts only differ if a run older than 7 days is seeded.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (b3ef5b4)
