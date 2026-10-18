@@ -103,4 +103,4 @@ Gates: typecheck ok, lint ok, unit tests ok (1449), e2e ok (22/22) · Round: 2
 - Fix: make the reset per visit rather than global: either create the `ExportController` per screen instance (`useState(() => new ExportController(ports))`, composition exports the ports), or have `open` return a visit token and `close(token)` ignore a token that is not the current visit, with `open` always starting a fresh visit when called after a `close` or from a new token. Update the doc comment either way.
 - Effort: small
 - Lesson candidate: no (follow-up of R1's lesson candidate)
-- Decision: open
+- Decision: fixed (e6674d8)
