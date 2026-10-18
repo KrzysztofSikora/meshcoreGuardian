@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   DEFAULT_DIAGNOSTIC_POLICY,
+  type Node,
+  type NodeRepository,
+  type TelemetryRepository,
   buildReport,
   toCsv,
   toJson,
@@ -27,7 +30,7 @@ import { CompanionSession } from "../connection/companion-session";
 import { RunController } from "../diagnostics/run-controller";
 import { GuestPasswords } from "../nodes/guest-passwords";
 import { NodesController } from "../nodes/nodes-controller";
-import { ExportController, exportFileName } from "./export-controller";
+import { ExportController, exportFileName, type ExportPorts } from "./export-controller";
 import type { ExportFile, ExportFilePort } from "./ports";
 
 const ID = "AA:BB:CC:DD:EE:01";
@@ -366,5 +369,184 @@ describe("ExportController (FR-13)", () => {
     expect(files.shared).toHaveLength(1);
     expect(files.shared[0]!.name.endsWith(".json")).toBe(true);
     expect(files.shared[0]!.content).not.toMatch(/[0-9a-f]{64}/);
+  });
+});
+
+/** Port doubles with gates, to drive the controller's read ordering and guards (lesson). */
+describe("ExportController read and share guards (FR-13)", () => {
+  const KEY = "ab".repeat(32);
+  const NOW = Date.UTC(2026, 9, 18, 12, 0, 0);
+  const node = { publicKey: KEY, reportedName: "n", reportedRole: "repeater" } as unknown as Node;
+  const saved = (id?: number) =>
+    ({ ...(id === undefined ? {} : { id }), finishedAt: NOW - 1000 }) as unknown as DiagnosticRun;
+
+  interface Doubles {
+    nodeCalls: number;
+    forRunsArgs: number[][];
+    shared: ExportFile[];
+    redaction: () => Promise<boolean>;
+    node: (call: number) => Promise<Node | null>;
+    runs: () => DiagnosticRun[];
+  }
+
+  const build = (over: Partial<Doubles> = {}) => {
+    const d: Doubles = {
+      nodeCalls: 0,
+      forRunsArgs: [],
+      shared: [],
+      redaction: async () => true,
+      node: async () => node,
+      runs: () => [saved(1)],
+      ...over,
+    };
+    const ports: ExportPorts = {
+      nodes: async () =>
+        ({
+          get: async () => {
+            d.nodeCalls++;
+            return d.node(d.nodeCalls);
+          },
+        }) as unknown as NodeRepository,
+      runs: async () =>
+        ({ forNodeBetween: async () => d.runs() }) as unknown as DiagnosticRunRepository,
+      telemetry: async () =>
+        ({
+          forRuns: async (ids: number[]) => {
+            d.forRunsArgs.push(ids);
+            return [];
+          },
+        }) as unknown as TelemetryRepository,
+      files: {
+        available: async () => true,
+        share: async (file) => void d.shared.push(file),
+      },
+      clock: () => NOW,
+      redactionDefault: () => d.redaction(),
+      generatedBy: "t",
+    };
+    return { d, exporter: new ExportController(ports) };
+  };
+
+  const gate = () => {
+    let release!: () => void;
+    const promise = new Promise<void>((resolve) => (release = resolve));
+    return { promise, release };
+  };
+
+  it("starts idle and redacting before anything is opened, and setDays does nothing", async () => {
+    const { d, exporter } = build();
+    expect(exporter.getState()).toMatchObject({
+      publicKey: null,
+      redactKeys: true,
+      status: "loading",
+      loaded: false,
+      share: "idle",
+    });
+    await exporter.setDays(7);
+    expect(d.nodeCalls).toBe(0);
+    expect(exporter.getState().days).toBe(30);
+    await exporter.share();
+    expect(d.shared).toEqual([]);
+    expect(exporter.getState().share).toBe("idle");
+  });
+
+  it("an open of the key being read joins that read instead of starting another", async () => {
+    const hold = gate();
+    const { d, exporter } = build({
+      node: async () => {
+        await hold.promise;
+        return node;
+      },
+    });
+    const first = exporter.open(KEY);
+    await vi.waitFor(() => expect(exporter.getState().publicKey).toBe(KEY));
+    const second = exporter.open(KEY);
+    hold.release();
+    await Promise.all([first, second]);
+    expect(d.nodeCalls).toBe(1);
+    expect(exporter.getState().status).toBe("ok");
+    await exporter.open(KEY);
+    expect(d.nodeCalls).toBe(1);
+  });
+
+  it("takes the redaction default from the setting, and redacts when it cannot be read", async () => {
+    const off = build({ redaction: async () => false });
+    await off.exporter.open(KEY);
+    expect(off.exporter.getState().redactKeys).toBe(false);
+    const broken = build({
+      redaction: async () => {
+        throw new Error("settings");
+      },
+    });
+    await broken.exporter.open(KEY);
+    expect(broken.exporter.getState()).toMatchObject({ redactKeys: true, status: "ok" });
+  });
+
+  it("asks for telemetry of saved runs only", async () => {
+    const { d, exporter } = build({ runs: () => [saved(5), saved(), saved(7)] });
+    await exporter.open(KEY);
+    expect(d.forRunsArgs).toEqual([[5, 7]]);
+  });
+
+  it("shows loading until the first read finishes, then keeps the preview while it re-reads", async () => {
+    const first = gate();
+    const second = gate();
+    const { d, exporter } = build({
+      node: async (call) => {
+        await (call === 1 ? first : second).promise;
+        return node;
+      },
+    });
+    const opening = exporter.open(KEY);
+    await vi.waitFor(() => expect(d.nodeCalls).toBe(1));
+    expect(exporter.getState()).toMatchObject({ status: "loading", loaded: false, share: "idle" });
+    first.release();
+    await opening;
+    exporter.store.setState({ share: "failed" });
+    const rereading = exporter.setDays(7);
+    expect(exporter.getState()).toMatchObject({ status: "ok", loaded: true, share: "idle" });
+    second.release();
+    await rereading;
+    expect(d.nodeCalls).toBe(2);
+  });
+
+  it("refuses to share while a re-read has failed, though the old preview is still there", async () => {
+    const { d, exporter } = build({
+      node: async (call) => {
+        if (call === 2) throw new Error("disk");
+        return node;
+      },
+    });
+    await exporter.open(KEY);
+    await exporter.setDays(7);
+    expect(exporter.getState()).toMatchObject({ status: "error", loaded: true });
+    expect(exporter.getState().input).not.toBeNull();
+    await exporter.share();
+    expect(d.shared).toEqual([]);
+    // Refused outright: not attempted and failed.
+    expect(exporter.getState().share).toBe("idle");
+  });
+
+  it("a slow earlier read that finds no node or fails does not overwrite a later good one", async () => {
+    for (const late of ["missing", "failing"] as const) {
+      const hold = gate();
+      const { exporter } = build({
+        node: async (call) => {
+          if (call === 2) {
+            await hold.promise;
+            if (late === "failing") throw new Error("disk");
+            return null;
+          }
+          return node;
+        },
+      });
+      await exporter.open(KEY);
+      const slow = exporter.setDays(90);
+      await exporter.setDays(7);
+      hold.release();
+      await slow;
+      expect(exporter.getState()).toMatchObject({ status: "ok", loaded: true, days: 7 });
+      expect(exporter.getState().input).not.toBeNull();
+    }
   });
 });

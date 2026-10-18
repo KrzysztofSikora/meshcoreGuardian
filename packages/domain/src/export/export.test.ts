@@ -28,40 +28,41 @@ const golden = (name: string): string => {
   return text;
 };
 
-const redacted = buildReport(fx.input, { redactKeys: true });
-const full = buildReport(fx.input, { redactKeys: false });
+// Built per call, not at module load: Stryker cannot switch a mutant on for code that runs on import.
+const redacted = () => buildReport(fx.input, { redactKeys: true });
+const full = () => buildReport(fx.input, { redactKeys: false });
 const withInput = (over: Partial<ExportInput>) => ({ ...fx.input, ...over });
 
 const csvRows = (csv: string): string[] => csv.split("\r\n").slice(0, -1);
 
 describe("golden files (TR-10)", () => {
   it.each([
-    ["report-redacted.json", toJson(redacted)],
-    ["report-redacted.csv", toCsv(redacted)],
-    ["report-full.json", toJson(full)],
-    ["report-full.csv", toCsv(full)],
+    ["report-redacted.json", () => toJson(redacted())],
+    ["report-redacted.csv", () => toCsv(redacted())],
+    ["report-full.json", () => toJson(full())],
+    ["report-full.csv", () => toCsv(full())],
   ])("%s matches the serialiser", (name, actual) => {
-    expect(actual).toBe(golden(name));
+    expect(actual()).toBe(golden(name));
   });
 });
 
 describe("redaction (FR-13 AC3, TR-10)", () => {
   it("keeps no 64-hex key in either output by default", () => {
-    for (const out of [toJson(redacted), toCsv(redacted)]) {
+    for (const out of [toJson(redacted()), toCsv(redacted())]) {
       expect(out).not.toMatch(/[0-9a-f]{64}/);
       expect(out).toContain(fx.NODE_KEY.slice(0, 8));
       expect(out).toContain(fx.COMPANION_KEY.slice(0, 8));
     }
-    expect(redacted.node.public_key).toHaveLength(8);
-    expect(redacted.redaction.public_keys).toBe("prefix");
+    expect(redacted().node.public_key).toHaveLength(8);
+    expect(redacted().redaction.public_keys).toBe("prefix");
   });
 
   it("shows both full keys when redaction is off", () => {
-    for (const out of [toJson(full), toCsv(full)]) {
+    for (const out of [toJson(full()), toCsv(full())]) {
       expect(out).toContain(fx.NODE_KEY);
       expect(out).toContain(fx.COMPANION_KEY);
     }
-    expect(full.redaction.public_keys).toBe("full");
+    expect(full().redaction.public_keys).toBe("full");
   });
 
   it("exportKey cuts to 4 bytes of hex or passes the key through", () => {
@@ -70,7 +71,7 @@ describe("redaction (FR-13 AC3, TR-10)", () => {
   });
 
   it("exports a run without a companion identity as null / an empty cell", () => {
-    for (const r of [redacted, full]) {
+    for (const r of [redacted(), full()]) {
       expect(r.runs[2]?.companion).toEqual({ public_key: null, name: "", firmware_version: "" });
     }
   });
@@ -78,11 +79,11 @@ describe("redaction (FR-13 AC3, TR-10)", () => {
 
 describe("schema_version", () => {
   it("is in the JSON and in every CSV row", () => {
-    expect(JSON.parse(toJson(redacted)).schema_version).toBe(EXPORT_SCHEMA_VERSION);
-    const rows = csvRows(toCsv(redacted)).slice(1);
+    expect(JSON.parse(toJson(redacted())).schema_version).toBe(EXPORT_SCHEMA_VERSION);
+    const rows = csvRows(toCsv(redacted())).slice(1);
     expect(rows).toHaveLength(3);
     for (const row of rows) expect(row.startsWith(`${EXPORT_SCHEMA_VERSION},`)).toBe(true);
-    expect(csvRows(toCsv(redacted))[0]?.startsWith("schema_version,")).toBe(true);
+    expect(csvRows(toCsv(redacted()))[0]?.startsWith("schema_version,")).toBe(true);
   });
 });
 
@@ -91,7 +92,7 @@ describe("CSV format", () => {
     toCsv(buildReport(withInput({ node: { ...fx.node, ...over } }), { redactKeys: true }));
 
   it("uses CRLF, a header and a trailing line end", () => {
-    const csv = toCsv(redacted);
+    const csv = toCsv(redacted());
     expect(csv.endsWith("\r\n")).toBe(true);
     expect(csv.replaceAll("\r\n", "")).not.toMatch(/[\r\n]/);
     expect(csvRows(csv)[0]).toBe(CSV_COLUMNS.join(","));
@@ -115,9 +116,24 @@ describe("CSV format", () => {
   });
 
   it("writes null as an empty cell", () => {
-    const row = csvRows(toCsv(redacted))[2];
+    const row = csvRows(toCsv(redacted()))[2];
     expect(row).toContain(",NO_REPLY,2,2,c0ffee11,Desk companion,1.9.0,,,,,,,,login=");
     expect(row?.split(",").length).toBe(CSV_COLUMNS.length + 1 /* the quoted name has a comma */);
+  });
+
+  it("takes the noise floor by name, not the first extra reading", () => {
+    const withTemp = {
+      ...fx.samples[0]!,
+      extra: [
+        { name: "temperature", value: 30, unit: "°C", channel: 1 },
+        { name: "noise_floor", value: -111, unit: "dBm", channel: null },
+      ],
+    };
+    const csv = toCsv(
+      buildReport(withInput({ runs: [runResponded], samples: [withTemp] }), { redactKeys: true }),
+    );
+    const cells = csvRows(csv)[1]!.split(",");
+    expect(cells[CSV_COLUMNS.indexOf("noise_floor_dbm") + 1]).toBe("-111");
   });
 
   it("takes each telemetry column from the first sample that has it (D-2)", () => {
@@ -136,7 +152,7 @@ describe("CSV format", () => {
 
 describe("buildReport", () => {
   it("sorts runs oldest first and breaks ties by id", () => {
-    expect(redacted.runs.map((r) => r.id)).toEqual([1, 2, 3]);
+    expect(redacted().runs.map((r) => r.id)).toEqual([1, 2, 3]);
     const tied = [
       { ...fx.runNoResponse, id: 9, finishedAt: 5 },
       { ...fx.runResponded, id: 4, finishedAt: 5 },
@@ -144,12 +160,35 @@ describe("buildReport", () => {
     ];
     const r = buildReport(withInput({ runs: tied, samples: [] }), { redactKeys: true });
     expect(r.runs.map((x) => x.id)).toEqual([6, 4, 9]);
+    const reversed = buildReport(withInput({ runs: [...tied].reverse(), samples: [] }), {
+      redactKeys: true,
+    });
+    expect(reversed.runs.map((x) => x.id)).toEqual([6, 4, 9]);
+  });
+
+  it("writes a node never heard and a check never started as null, not as the epoch", () => {
+    const never = { ...fx.node, lastHeardAt: null };
+    const run = { ...runResponded, checks: [{ ...runResponded.checks[0]!, startedAt: null }] };
+    const r = buildReport(withInput({ node: never, runs: [run], samples: [] }), {
+      redactKeys: true,
+    });
+    expect(r.node.last_heard_at).toBeNull();
+    expect(r.runs[0]?.checks[0]?.started_at).toBeNull();
+  });
+
+  it("exports an unsaved run (no id) with no telemetry even when samples carry run ids", () => {
+    const { id: _id, ...unsaved } = runResponded;
+    const r = buildReport(withInput({ runs: [unsaved], samples: fx.samples }), {
+      redactKeys: true,
+    });
+    expect(r.runs[0]?.id).toBeNull();
+    expect(r.runs[0]?.telemetry).toEqual([]);
   });
 
   it("attaches samples by run id, ordered by checkSeq, and drops orphans", () => {
-    expect(redacted.runs[0]?.telemetry.map((t) => t.check_seq)).toEqual([1, 2]);
-    expect(redacted.runs[1]?.telemetry).toEqual([]);
-    expect(redacted.runs[2]?.telemetry).toHaveLength(1);
+    expect(redacted().runs[0]?.telemetry.map((t) => t.check_seq)).toEqual([1, 2]);
+    expect(redacted().runs[1]?.telemetry).toEqual([]);
+    expect(redacted().runs[2]?.telemetry).toHaveLength(1);
     const orphan = { ...fx.samples[0]!, runId: 99 };
     const unsaved = { ...fx.samples[0]!, runId: null };
     const r = buildReport(withInput({ samples: [orphan, unsaved] }), { redactKeys: true });
@@ -169,10 +208,10 @@ describe("buildReport", () => {
   });
 
   it("never exports evidence, raw bytes or a password flag (D-5)", () => {
-    for (const out of [toJson(full), toCsv(full)]) {
+    for (const out of [toJson(full()), toCsv(full())]) {
       expect(out).not.toMatch(/evidence|lppHex|0167011e|passwordSent|password_sent/i);
     }
-    expect(JSON.stringify(full)).not.toContain('"hex"');
+    expect(JSON.stringify(full())).not.toContain('"hex"');
   });
 });
 
@@ -186,10 +225,10 @@ describe("manifest (FR-13 AC2)", () => {
     const m = exportManifest("json", true);
     expect(m.fields).toEqual(JSON_FIELDS.map((g) => ({ group: g.group, keys: [...g.keys] })));
     const keys = (o: object) => Object.keys(o);
-    const run = full.runs[0]!;
+    const run = full().runs[0]!;
     const groups = Object.fromEntries(JSON_FIELDS.map((g) => [g.group, g.keys]));
-    expect(groups["report"]).toEqual(keys(full));
-    expect(groups["node"]).toEqual(keys(full.node));
+    expect(groups["report"]).toEqual(keys(full()));
+    expect(groups["node"]).toEqual(keys(full().node));
     expect(groups["runs"]).toEqual(keys(run));
     expect(groups["runs[].companion"]).toEqual(keys(run.companion));
     expect(groups["runs[].checks"]).toEqual(keys(run.checks[0]!));
