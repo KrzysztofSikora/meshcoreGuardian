@@ -278,11 +278,14 @@ The Settings screen stops being a placeholder. When this change is done:
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
 - [x] Phase 1: Settings model, store and policy wiring
 - [x] Phase 2: Data deletion
-- [ ] Phase 3: Settings screen — preferences and about
+- [x] Phase 3: Settings screen — preferences and about
 - [ ] Phase 4: Settings screen — delete history and clear all data
 
 ## Human checks
 <!-- Filled by /implement: one open checkbox per human check, with how to run it and evidence. -->
+- [ ] (Phase 3) Settings look in light and dark and at 200 % font size; nothing clipped, timeout field and buttons reachable — run: CI APK, open Settings — evidence: context/changes/settings/evidence/settings.png (emulator, light)
+- [ ] (Phase 3) Connected to the real companion, About shows model, firmware and build date matching the Connect screen; timeout 10 s + attempts 1, run a diagnostic: details say "Waited 10.0 s (your setting)" and "up to 1 per check" — run: CI APK on a phone with a paired companion — evidence: none (emulator equivalent: e2e/settings-policy.yaml)
+
 Planned (each two minutes, CI APK `android-apk` on a real phone with a paired companion):
 1. (Phase 3) Settings look in light and dark and at 200 % font size: sections readable, nothing
    clipped, the timeout field and buttons reachable — evidence: e2e screenshot `settings`.
@@ -302,6 +305,10 @@ Planned (each two minutes, CI APK `android-apk` on a real phone with a paired co
 - [minor] (Phase 2) Plan-review finding 3: `RunController.busy()` (from the tap until the run ends) feeds `DataDeletion`'s busy check. The reverse race (a run starting during a deletion; Run is not disabled by Settings) is not guarded: `[FOLLOW-UP]` for Phase 4, where the Settings screen can disable deletion buttons while a deletion runs.
 - [minor] (Phase 2) Plan-review finding 4: migrations use `PRAGMA user_version`; nothing to preserve, `eraseAll` touches only the five data tables.
 - [minor] (Phase 2) `SqliteDataEraser` is covered with `PRAGMA foreign_keys = OFF` in its test, to prove the explicit child deletes.
+
+- [minor] (Phase 3) `Screen` scroll view now sets `keyboardShouldPersistTaps="handled"`: without it the first tap on Save only dismissed the keyboard (found by e2e). Shared component, benign for other scroll screens; full e2e suite passes.
+- [minor] (Phase 3) e2e: after `stopApp`/`launchApp` the `guardian://settings` link does not navigate (app opens on Dashboard), so `settings.yaml` taps the Settings tab. `settings-policy.yaml` needs `hideKeyboard` before `back`, and the result text is "Waited 5.0 s" (one decimal), so the assertion uses that.
+- [minor] (Phase 3) `PlaceholderScreen` and `settings.placeholder` removed (no other user); `catalog.test.ts` now checks the settings title only. App version line is asserted in `settings.yaml` (plan-review finding 5). Plan-review finding 6 (run before settings load) accepted: `_layout` loads settings at mount.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->

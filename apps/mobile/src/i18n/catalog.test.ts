@@ -25,7 +25,7 @@ import { tr } from "../components/translate";
 import en from "./en.json";
 import { i18n } from "./index";
 
-const screens = ["dashboard", "run", "settings"] as const;
+const screens = ["dashboard", "run"] as const;
 
 function values(node: unknown): string[] {
   if (typeof node === "string") return [node];
@@ -37,6 +37,10 @@ describe("en catalog", () => {
   it.each(screens)("%s has a non-empty title and placeholder", (screen) => {
     expect(en[screen].title.trim()).not.toBe("");
     expect(en[screen].placeholder.trim()).not.toBe("");
+  });
+
+  it("settings has a title", () => {
+    expect(en.settings.title.trim()).not.toBe("");
   });
 
   it("node has a title", () => {

@@ -1,0 +1,66 @@
+# FR-15 AC1/AC3: Settings shows the defaults, rejects out-of-range timeouts with the allowed range,
+# saves valid values, and keeps them across a restart.
+appId: io.github.krzysztofsikora.guardian
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Known nodes will appear here."
+    timeout: 30000
+- openLink: guardian://settings
+- extendedWaitUntil:
+    visible: "Timeout: Auto"
+    timeout: 10000
+- assertVisible: "App version: .*"
+- assertVisible: "Connect a companion to see its firmware."
+- assertVisible:
+    id: "settings-attempts-2"
+    selected: true
+- assertVisible:
+    id: "settings-redact"
+    checked: true
+- takeScreenshot: settings
+- tapOn:
+    id: "settings-timeout-input"
+- inputText: "61"
+- tapOn:
+    id: "settings-timeout-save"
+- assertVisible: "Enter whole seconds from 5 to 60."
+- assertVisible: "Timeout: Auto"
+- eraseText
+- inputText: "4"
+- tapOn:
+    id: "settings-timeout-save"
+- assertVisible: "Enter whole seconds from 5 to 60."
+- assertVisible: "Timeout: Auto"
+- eraseText
+- inputText: "20"
+- tapOn:
+    id: "settings-timeout-save"
+- assertVisible: "Timeout: 20 s"
+- assertNotVisible: "Enter whole seconds from 5 to 60."
+- tapOn:
+    id: "settings-attempts-3"
+- assertVisible:
+    id: "settings-attempts-3"
+    selected: true
+- tapOn:
+    id: "settings-redact"
+- assertVisible:
+    id: "settings-redact"
+    checked: false
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: "Known nodes will appear here."
+    timeout: 30000
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Timeout: 20 s"
+    timeout: 15000
+- assertVisible:
+    id: "settings-attempts-3"
+    selected: true
+- assertVisible:
+    id: "settings-redact"
+    checked: false

@@ -1,0 +1,52 @@
+# FR-10 AC3/AC4 and FR-13 AC3 through Settings: a saved timeout, attempt count and redaction default
+# reach the diagnostic run and the Export screen. FR-15 AC1: the connected companion's firmware.
+appId: io.github.krzysztofsikora.guardian
+---
+- runFlow:
+    file: lib/connect-diag.yaml
+    env:
+      SCENARIO: diag-no-reply
+- openLink: guardian://settings
+- extendedWaitUntil:
+    visible: "Firmware: .*"
+    timeout: 10000
+- assertVisible: "Model: .*"
+- assertVisible: "Firmware build: .*"
+- tapOn:
+    id: "settings-timeout-input"
+- inputText: "5"
+- tapOn:
+    id: "settings-timeout-save"
+- assertVisible: "Timeout: 5 s"
+- tapOn:
+    id: "settings-attempts-1"
+- tapOn:
+    id: "settings-redact"
+- assertVisible:
+    id: "settings-redact"
+    checked: false
+- hideKeyboard
+- back
+- tapOn: "Run diagnostic"
+- tapOn: "Run diagnostic"
+- extendedWaitUntil:
+    visible: "No response — cause unknown"
+    timeout: 90000
+- tapOn: "View details"
+- scrollUntilVisible:
+    element: "Waited 5.0 s \\(your setting\\)"
+- scrollUntilVisible:
+    element: ".*up to 1 per check.*"
+- back
+- back
+- extendedWaitUntil:
+    visible: "Room K"
+    timeout: 10000
+- tapOn: "Room K"
+- scrollUntilVisible:
+    element:
+      id: "export-open"
+- tapOn:
+    id: "export-open"
+- scrollUntilVisible:
+    element: "Public keys: written in full"
