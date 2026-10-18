@@ -46,7 +46,7 @@ jobs:
 
   # Installable test build for a real phone (context/test-plan.md, "Install a PR build on a phone").
   # Release variant with the JS bundle embedded (no Metro, no USB debugging), real BLE transport,
-  # signed with the debug keystore of the prebuild template. Not a Play release (that is S-10).
+  # signed with the debug keystore of the prebuild template. Not a Play release: see docs/release.md.
   android-apk:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -68,7 +68,8 @@ jobs:
         run: |
           sha=$(git rev-parse --short=7 HEAD)
           if [ "${{ github.event_name }}" = pull_request ]; then tag="pr${{ github.event.pull_request.number }}"; else tag="${GITHUB_REF_NAME//\//-}"; fi
-          name="0.0.0-$tag.$sha"
+          base=$(jq -r .expo.version apps/mobile/app.json)
+          name="$base-$tag.$sha"
           jq --arg v "$name" --argjson c "${{ github.run_number }}" \
             '.expo.version = $v | .expo.android.versionCode = $c' apps/mobile/app.json > app.json.tmp
           mv app.json.tmp apps/mobile/app.json

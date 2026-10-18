@@ -2,13 +2,19 @@
   "expo": {
     "name": "MeshCore Guardian",
     "slug": "meshcore-guardian",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "orientation": "portrait",
     "scheme": "guardian",
     "userInterfaceStyle": "automatic",
     "android": {
       "package": "io.github.krzysztofsikora.guardian",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.VIBRATE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -41,7 +47,8 @@
           }
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      "./plugins/with-release-no-internet"
     ],
     "experiments": {
       "typedRoutes": true

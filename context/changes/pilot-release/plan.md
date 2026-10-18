@@ -256,7 +256,7 @@
 
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
-- [ ] Phase 1: Release build config
+- [x] Phase 1: Release build config
 - [ ] Phase 2: Licences screen
 - [ ] Phase 3: Privacy policy
 - [ ] Phase 4: Accessibility audit and fixes
@@ -264,6 +264,8 @@
 
 ## Human checks
 <!-- Filled by /implement: one open checkbox per human check, with how to run it and evidence. -->
+- [ ] (Phase 1) Build and upload the AAB; the Play Console accepts it (FR-20 AC1) — run: follow `docs/release.md` (`eas init`, `eas build -p android --profile production`, manual first upload to the internal track) — evidence: none
+- [ ] (Phase 1) Install from the Play internal link; the app info screen lists no network permission — run: Settings → Apps → MeshCore Guardian → Permissions — evidence: `context/changes/pilot-release/evidence/phase-1-release-permissions.txt` (merged release manifest, local build)
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
