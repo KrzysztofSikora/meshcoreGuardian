@@ -49,7 +49,7 @@ Gates: typecheck ok, lint ok, unit tests ok, e2e ok (25/25 flows), mutation (fro
 - Fix: share the in-flight promise only for the same action (key it by `"all"` / publicKey) and return `BUSY` for a different one; also disable the Data buttons while a deletion is in flight (a `deleting` flag in the screen or a small store on `DataDeletion`). Add a test for `deleteNodeHistory(A)` + `clearAll()` concurrently.
 - Effort: small
 - Lesson candidate: When a single-flight guard shares an in-flight promise, share it only between calls for the same action and target; a different request gets its own answer
-- Decision: open
+- Decision: fixed (b064e6e) + lesson proposed
 
 ### R2: `SettingsController.setAttempts` saves out-of-range values
 - Severity: minor
@@ -58,7 +58,7 @@ Gates: typecheck ok, lint ok, unit tests ok, e2e ok (25/25 flows), mutation (fro
 - Fix: validate `next` with the same schema in `save()` (e.g. a `validateSettings` export from `settings.ts`) and return `OUT_OF_RANGE` for attempts too; add 0/4 cases to `settings-controller.int.test.ts`.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (72688d2)
 
 ### R3: "Clear all data" with a secret failure says "History deleted, but the guest password could not be removed"
 - Severity: minor
@@ -67,4 +67,4 @@ Gates: typecheck ok, lint ok, unit tests ok, e2e ok (25/25 flows), mutation (fro
 - Fix: add `settings.clearSecretError` ("All data cleared, but the guest passwords could not be removed. Try again.") and pick it when `scope === "all"`; add a presenter test.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (ca5f2c9)
