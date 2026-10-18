@@ -204,6 +204,45 @@ describe("ExportController (FR-13)", () => {
     expect(exporter.getState().input!.runs).toHaveLength(2);
   });
 
+  it("two open calls at once for one key read once (R2)", async () => {
+    await seedThreeRanges();
+    let reads = 0;
+    const exporter = controller({
+      runs: async () => {
+        reads++;
+        return runRepo();
+      },
+    });
+    await Promise.all([exporter.open(ROOM_K), exporter.open(ROOM_K)]);
+    expect(reads).toBe(1);
+    expect(exporter.getState().status).toBe("ok");
+  });
+
+  it("close then open starts from the defaults and reads runs saved since (R1)", async () => {
+    const base = await runOnce();
+    const exporter = controller();
+    await exporter.open(ROOM_K);
+    const before = exporter.getState().input!.runs.length;
+    await exporter.setDays(7);
+    exporter.setFormat("csv");
+    exporter.setRedactKeys(false);
+    exporter.close();
+    expect(exporter.getState().publicKey).toBeNull();
+    await copyAt(base, 0);
+    await exporter.open(ROOM_K);
+    expect(exporter.getState()).toMatchObject({ days: 30, format: "json", redactKeys: true });
+    expect(exporter.getState().input!.runs).toHaveLength(before + 1);
+  });
+
+  it("close while the first open is in flight keeps the closed state (R1)", async () => {
+    await seedThreeRanges();
+    const exporter = controller();
+    const opening = exporter.open(ROOM_K);
+    exporter.close();
+    await opening;
+    expect(exporter.getState().publicKey).toBeNull();
+  });
+
   it("open with the same key keeps the user's choices; a new key resets them", async () => {
     await seedThreeRanges();
     const exporter = controller();

@@ -37,7 +37,10 @@ export default function ExportScreen() {
   }));
 
   useEffect(() => {
-    if (id !== undefined) void exporter.open(id);
+    if (id === undefined) return;
+    void exporter.open(id);
+    // A new visit starts from the defaults and a fresh read (D-10).
+    return () => exporter.close();
   }, [id]);
 
   const preview = exportPreview(state, formatTime);

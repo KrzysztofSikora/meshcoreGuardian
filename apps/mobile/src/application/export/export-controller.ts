@@ -61,6 +61,7 @@ export class ExportController {
 
   private seq = 0;
   private opening: Promise<void> | null = null;
+  private openingKey: string | null = null;
 
   constructor(private readonly ports: ExportPorts) {}
 
@@ -73,13 +74,28 @@ export class ExportController {
    * them to the defaults. After an error the same key reads again.
    */
   open(publicKey: string): Promise<void> {
+    // The pending key is recorded synchronously: `state.publicKey` is set only after an await.
+    if (this.openingKey === publicKey && this.opening !== null) return this.opening;
     const state = this.getState();
     if (state.publicKey === publicKey && state.status !== "error")
       return this.opening ?? Promise.resolve();
-    this.opening = this.begin(publicKey).finally(() => {
-      this.opening = null;
+    this.openingKey = publicKey;
+    const opening: Promise<void> = this.begin(publicKey).finally(() => {
+      if (this.opening === opening) {
+        this.opening = null;
+        this.openingKey = null;
+      }
     });
-    return this.opening;
+    this.opening = opening;
+    return opening;
+  }
+
+  /** Ends a visit: the next `open` starts from the defaults and reads again (plan D-10). */
+  close(): void {
+    this.seq++;
+    this.opening = null;
+    this.openingKey = null;
+    this.store.setState(this.initial(null));
   }
 
   async setDays(days: ExportDays): Promise<void> {
@@ -142,12 +158,15 @@ export class ExportController {
   }
 
   private async begin(publicKey: string): Promise<void> {
+    const token = ++this.seq;
     let redactKeys = true;
     try {
       redactKeys = await this.ports.redactionDefault();
     } catch {
       // Redaction on is the safe default when the setting cannot be read.
     }
+    // `close()` during the await bumped `seq`: this visit is over.
+    if (token !== this.seq) return;
     this.seq++;
     this.store.setState(this.initial(publicKey, redactKeys));
     await this.read(publicKey, DEFAULT_EXPORT_DAYS);
