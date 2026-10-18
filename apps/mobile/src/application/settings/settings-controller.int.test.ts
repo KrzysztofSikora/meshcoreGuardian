@@ -55,6 +55,16 @@ describe("SettingsController", () => {
     expect(controller.policy().overrideMs).toBeNull();
   });
 
+  it.each([0, 4])("rejects attempts %d without writing", async (attempts) => {
+    const store = new InMemorySettingsStore();
+    const controller = await reload(store);
+    const writes = store.writes;
+
+    expect(await controller.setAttempts(attempts)).toMatchObject({ ok: false, reason: "OUT_OF_RANGE" });
+    expect(controller.policy().attempts).toBe(DEFAULT_SETTINGS.attempts);
+    expect(store.writes).toBe(writes);
+  });
+
   it.each(["4", "61", "12.5", "abc", ""])(
     "rejects timeout %j with the range and keeps the old value in state and store (FR-15 AC3)",
     async (input) => {

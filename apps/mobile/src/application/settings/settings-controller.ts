@@ -1,11 +1,12 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
 
-import type { DiagnosticPolicy } from "@guardian/domain";
+import { ATTEMPTS_RANGE, type DiagnosticPolicy } from "@guardian/domain";
 
 import type { SettingsStore } from "./ports";
 import {
   DEFAULT_SETTINGS,
   TIMEOUT_RANGE_S,
+  isValidSettings,
   parseStoredSettings,
   parseTimeoutInput,
   serializeSettings,
@@ -88,6 +89,9 @@ export class SettingsController {
     const run = this.tail.then(async (): Promise<SaveResult> => {
       await this.load();
       const next = { ...this.getState().settings, ...change };
+      if (!isValidSettings(next)) {
+        return { ok: false, reason: "OUT_OF_RANGE", range: ATTEMPTS_RANGE };
+      }
       try {
         await this.persistence.write(serializeSettings(next));
       } catch {

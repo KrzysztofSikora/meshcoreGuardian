@@ -35,6 +35,12 @@ const settingsSchema = z.strictObject({
   redactKeys: z.boolean(),
 });
 
+/** True when the values are within the allowed ranges (same rules as the stored shape). */
+export function isValidSettings(settings: Settings): boolean {
+  const { version: _version, ...shape } = settingsSchema.shape;
+  return z.strictObject(shape).safeParse(settings).success;
+}
+
 export function serializeSettings(settings: Settings): string {
   return JSON.stringify({ version: 1, ...settings });
 }
