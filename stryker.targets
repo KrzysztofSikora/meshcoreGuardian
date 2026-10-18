@@ -20,3 +20,7 @@ packages/storage/src/sync/contacts.ts
 apps/mobile/src/application/connection/companion-session.ts
 packages/domain/src/geo/geo.ts
 packages/domain/src/nodes/nearest.ts
+apps/mobile/src/application/settings/settings.ts
+apps/mobile/src/application/settings/settings-controller.ts
+apps/mobile/src/application/settings/data-deletion.ts
+packages/storage/src/data/data-eraser.ts

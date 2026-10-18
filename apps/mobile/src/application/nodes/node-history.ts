@@ -65,6 +65,15 @@ export class NodeHistoryController {
     return read;
   }
 
+  /** Drops cached history after a deletion; the next visit reads fresh data. `null` drops all. */
+  forget(publicKey: string | null): void {
+    this.store.setState((state) => {
+      if (publicKey === null) return { byNode: {} };
+      const { [publicKey]: _gone, ...rest } = state.byNode;
+      return { byNode: rest };
+    });
+  }
+
   private async read(publicKey: string): Promise<void> {
     // Keep the previous data on screen while reloading; a first load starts empty.
     const before = this.store.getState().byNode[publicKey];

@@ -2,6 +2,7 @@ import {
   classifyRun,
   continuesAfter,
   cooldownRemaining,
+  cooldownRemainingAt,
   loginEvidence,
   sessionRole,
   planChecks,
@@ -38,6 +39,11 @@ export interface LastRun {
 
 export interface RunState {
   latest: Record<string, DiagnosticRun>;
+  /**
+   * When each node last received a request in this app session. Kept apart from `latest` so that
+   * deleting history does not lift the cooldown (settings D-12).
+   */
+  lastRequestAt: Record<string, number>;
   loaded: boolean;
   active: ActiveRun | null;
   /** The node whose airtime notice is waiting for a decision. */
@@ -49,6 +55,7 @@ export interface RunState {
 
 const INITIAL: RunState = {
   latest: {},
+  lastRequestAt: {},
   loaded: false,
   active: null,
   notice: null,
@@ -58,6 +65,14 @@ const INITIAL: RunState = {
 };
 
 type CompanionInfo = DiagnosticRun["companion"];
+
+/** Milliseconds until `publicKey` may be tested again, from stored runs and this session's runs. */
+export function cooldownMs(state: RunState, publicKey: string, now: number): number {
+  return Math.max(
+    cooldownRemaining(state.latest[publicKey] ?? null, now),
+    cooldownRemainingAt(state.lastRequestAt[publicKey] ?? null, now),
+  );
+}
 
 const BUSY_TEXT: Text = { key: "diagnostic.refusal.busy" };
 const SYNCING_TEXT: Text = { key: "diagnostic.refusal.syncing" };
@@ -89,6 +104,16 @@ export class RunController {
   load(): Promise<void> {
     this.loading ??= this.reload();
     return this.loading;
+  }
+
+  /** True from a tap on "Run diagnostic" until the run has ended. */
+  busy(): boolean {
+    return this.running;
+  }
+
+  /** Re-reads the newest run per node, e.g. after a deletion. The cooldown memory stays. */
+  refreshLatest(): Promise<void> {
+    return this.reload();
   }
 
   /** The stored run with its checks, or `null`. */
@@ -275,6 +300,10 @@ export class RunController {
     const stored = saved === null ? run : { ...run, id: saved };
     this.set({
       latest: { ...this.getState().latest, [publicKey]: stored },
+      lastRequestAt:
+        run.attemptsUsed > 0
+          ? { ...this.getState().lastRequestAt, [publicKey]: finishedAt }
+          : this.getState().lastRequestAt,
       last: { publicKey, runId: saved, result: run.result, reason: run.reason },
     });
   }
@@ -292,10 +321,7 @@ export class RunController {
   }
 
   private refuseCooldown(publicKey: string): boolean {
-    const remaining = cooldownRemaining(
-      this.getState().latest[publicKey] ?? null,
-      this.ports.clock(),
-    );
+    const remaining = cooldownMs(this.getState(), publicKey, this.ports.clock());
     if (remaining <= 0) return false;
     this.set({ refusal: { publicKey, text: cooldownText({ remainingMs: remaining }) } });
     return true;

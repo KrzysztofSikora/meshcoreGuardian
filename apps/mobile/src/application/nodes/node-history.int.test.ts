@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_DIAGNOSTIC_POLICY, type DiagnosticRunRepository } from "@guardian/domain";
 import {
+  SqliteDataEraser,
   SqliteDiagnosticRunRepository,
   SqliteNodeRepository,
   SqliteTelemetryRepository,
@@ -91,6 +92,24 @@ describe("NodeHistoryController (FR-07, FR-08 AC2)", () => {
     expect(node.lastRespondedAt).toBe(node.runs[0]!.finishedAt);
     expect(node.samples.map((s) => s.source)).toEqual(["status", "telemetry"]);
     expect(node.samples.every((s) => s.runId === node.runs[0]!.id)).toBe(true);
+  });
+
+  it("forgets cached history of one node or of all, and reads fresh data on the next load (settings D-8)", async () => {
+    await runTwice(1);
+    const controller = history();
+    await controller.load(ROOM_K);
+    await controller.load("ab".repeat(32));
+    expect(controller.store.getState().byNode[ROOM_K]!.runs).toHaveLength(1);
+
+    controller.forget("ab".repeat(32));
+    expect(Object.keys(controller.store.getState().byNode)).toEqual([ROOM_K]);
+
+    await new SqliteDataEraser(testDb.driver).eraseNodeHistory(ROOM_K);
+    controller.forget(null);
+    expect(controller.store.getState().byNode).toEqual({});
+    await controller.load(ROOM_K);
+    const node = controller.store.getState().byNode[ROOM_K]!;
+    expect(node).toMatchObject({ status: "ok", runs: [], samples: [], voltage: [] });
   });
 
   it("holds one status voltage point per stored run, oldest first (FR-12 AC1)", async () => {

@@ -104,7 +104,7 @@ The Settings screen stops being a placeholder. When this change is done:
 | D-9 | What does "Clear all data" cover? | Every database row listed in D-8 and every guest password (`GuestPasswords.clearAll`). Preferences stay: settings, the airtime-notice flag and the remembered companion. The confirmation text says so | B: also reset settings, the notice flag and the remembered companion ("like a fresh install"). More thorough, but resets choices the user did not ask to lose, and the live session holds the remembered companion in memory | AC2 names runs, samples and labels; secrets are required by FR-14 AC3. The narrower set is the cheaper to widen later; the wording keeps it honest | cheap | agent / prd |
 | D-10 | Order of rows vs secret, and partial failure | Rows first (one transaction), then the secret. Rows fail → "Could not delete the stored data. Nothing was removed." Secret fails → "History deleted, but the guest password could not be removed. Try again." Both actions are idempotent, so Try again repeats the whole action | B: secret first. A row failure would then leave history without its password, which the user cannot see | Every failure is reported with what did and did not happen; retry is safe | cheap | agent |
 | D-11 | Deleting while a run or a contact sync is active | Refuse: both buttons are disabled and show "Wait until the running check or sync has finished." `DataDeletion` also re-checks and returns `BUSY` | B: allow and let the run save into a cleared database. The save would fail or re-create a half record | A run captures its context at start (lesson) and saves at the end; erasing under it gives a confusing result | cheap | agent |
-| D-12 | Must deleting history lift the cooldown? | No. `RunController` keeps an in-memory map `publicKey → time of last run that sent requests`, filled when a run finishes, and the cooldown uses the newer of that map and `latest` | B: let the reload of `latest` lift it. Simpler, but "delete history" becomes a way around FR-10 AC2 | Radio hygiene (CLAUDE.md) outranks simplicity; the map is local to `RunController` | cheap | agent |
+| D-12 | Must deleting history lift the cooldown? | No. `RunState.lastRequestAt` (`publicKey → finish time of the last run that sent requests`, filled when a run finishes) is kept in state; the exported `cooldownMs(state, publicKey, now)` takes the larger of it and the `latest`-based value, and `RunController.start` and both screens (node screen, nearest card) call it, so the Run button stays disabled after a deletion (plan-review finding 1) | B: let the reload of `latest` lift it. Simpler, but "delete history" becomes a way around FR-10 AC2 | Radio hygiene (CLAUDE.md) outranks simplicity; the map is local to `RunController` | cheap | agent |
 | D-13 | Which nodes does the "Delete history" list show? | Nodes with at least one stored run (`RunController.latest`) or a user label or role, sorted like the Dashboard; empty → "No node has stored history." (only after both stores loaded without error) | B: every known node (300+ contacts). C: a "Delete history" button on the Node screen. Closer to the data, but AC2 places it in Settings | Short list of exactly the nodes the action affects | cheap | agent / prd |
 | D-14 | Confirmation UI | Native `Alert.alert` with Cancel and a destructive "Delete" / "Clear all data" button; the message names the node (or "all nodes") and lists what goes | B: an in-screen confirm card. Themed, but more code and state | Native, accessible, testable with Maestro by button text | cheap | agent |
 
@@ -277,7 +277,7 @@ The Settings screen stops being a placeholder. When this change is done:
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
 - [x] Phase 1: Settings model, store and policy wiring
-- [ ] Phase 2: Data deletion
+- [x] Phase 2: Data deletion
 - [ ] Phase 3: Settings screen — preferences and about
 - [ ] Phase 4: Settings screen — delete history and clear all data
 
@@ -297,6 +297,11 @@ Planned (each two minutes, CI APK `android-apk` on a real phone with a paired co
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
 - [minor] (Phase 1) Plan D-5 says a run keeps the policy it started with, but `RunController.finish` re-read `policy().attempts` when saving, so a setting saved mid-run would have recorded the wrong `attemptsPerCheck`. `execute` now reads the policy once and passes `attempts` to `finish`; integration test added.
 - [minor] (Phase 1) The in-memory `SettingsStore` double is `InMemorySettingsStore` in `platform/fake/in-memory.ts` (where the other doubles live) instead of inside the controller test.
+
+- [minor] (Phase 2) Plan-review finding 1 (cooldown button): done as `RunState.lastRequestAt` + `cooldownMs`, used by `start`, `app/node/[id].tsx` and `nearest-repeater-card.tsx`; test reads the UI value after `refreshLatest()`.
+- [minor] (Phase 2) Plan-review finding 3: `RunController.busy()` (from the tap until the run ends) feeds `DataDeletion`'s busy check. The reverse race (a run starting during a deletion; Run is not disabled by Settings) is not guarded: `[FOLLOW-UP]` for Phase 4, where the Settings screen can disable deletion buttons while a deletion runs.
+- [minor] (Phase 2) Plan-review finding 4: migrations use `PRAGMA user_version`; nothing to preserve, `eraseAll` touches only the five data tables.
+- [minor] (Phase 2) `SqliteDataEraser` is covered with `PRAGMA foreign_keys = OFF` in its test, to prove the explicit child deletes.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->

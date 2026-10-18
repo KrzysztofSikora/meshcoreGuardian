@@ -37,8 +37,8 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | TR-17 | Trend or prediction shown on too little data | M | L | unit | trend rule: 4 samples / 23 h → "Not enough data"; 5 samples / 24 h → trend; no API returns a prediction | covered (S-07); tests: `voltage.test.ts` "voltageTrend gate (TR-17, A-01)"; e2e `battery-history` |
 | TR-18 | Background BLE activity or automatic remote requests | M | L | integration | use-case tests: app-state `background` → transport receives no writes; no timer schedules a run | covered (S-02, S-04: no write without a tap, none in the background) |
 | TR-19 | Status relies on colour only; missing accessibility labels | M | M | e2e + hardware | Maestro asserts accessibility labels on status chips; S-10 audit with contrast checker and 200 % font scale | covered for the run status (S-04: e2e asserts the status words); S-10 audits the rest |
-| TR-20 | Settings accept out-of-range values | L | M | unit | Zod schema boundary tests (4/5/60/61 s; 0/1/3/4 attempts) | planned (S-09) |
-| TR-21 | Delete/clear leaves secrets or rows behind | M | L | integration | after delete: repository queries empty and `SecretStore` fake has no key | covered (S-05 secrets); planned (S-09 rows) |
+| TR-20 | Settings accept out-of-range values | L | M | unit | Zod schema boundary tests (4/5/60/61 s; 0/1/3/4 attempts) | covered (S-09) |
+| TR-21 | Delete/clear leaves secrets or rows behind | M | L | integration | after delete: repository queries empty and `SecretStore` fake has no key | covered (S-05 secrets, S-09 rows) |
 | TR-22 | Layer boundary violated (domain imports RN, storage imports adapter) | M | M | lint | ESLint `no-restricted-imports` + one fixture file asserting lint fails | planned (F-01) |
 | TR-23 | Live capture spams the radio or runs unintentionally | M | L | unit | capture tool refuses to start without `HW_COMPANION`/`HW_REPEATER`; request budget and 60 s spacing enforced with fake clock | covered (S-01) |
 | TR-24 | Large history makes lists janky | L | M | hardware | S-10 profiler trace with seeded 200 nodes / 1,000 runs | planned (S-10) |
@@ -85,6 +85,8 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | `apps/mobile/src/application/nodes/voltage-presenter.ts` | AC2/AC4 texts, empty states and chart geometry (FR-12) | 80 % | report |
 | `packages/storage/src/sync/contacts.ts` | merge rules for labels/roles and removed contacts (TR-15) | 70 % | report |
 | `apps/mobile/src/application/nodes/guest-passwords.ts` | secret key scheme, index and clear-all leave nothing behind (TR-09, TR-21) | 80 % | report |
+| `apps/mobile/src/application/settings/settings.ts`, `settings-controller.ts` | stored shape, bounds and rejected values of the settings (TR-20) | 80 % | report |
+| `apps/mobile/src/application/settings/data-deletion.ts`, `packages/storage/src/data/data-eraser.ts` | delete/clear leaves no rows or secrets, partial failures reported (TR-21) | 80 % | report |
 | `packages/domain/src/geo/geo.ts`, `packages/domain/src/nodes/nearest.ts` | distance, direction and the order of the nearest-repeater card (FR-21) | 80 % | report |
 | `packages/domain/src/telemetry/samples.ts` | check evidence → samples: units, N/A instead of 0, last-hop scope (TR-16) | 80 % | report |
 | `apps/mobile/src/application/nodes/history-presenter.ts` | N/A and last-hop labels on the node screen (TR-16) | 80 % | report |

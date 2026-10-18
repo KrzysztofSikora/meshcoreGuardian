@@ -1,5 +1,6 @@
 import Constants from "expo-constants";
 import {
+  SqliteDataEraser,
   SqliteDiagnosticRunRepository,
   SqliteNodeRepository,
   SqliteTelemetryRepository,
@@ -11,6 +12,7 @@ import { ExportController } from "../application/export/export-controller";
 import { GuestPasswords } from "../application/nodes/guest-passwords";
 import { NodeHistoryController } from "../application/nodes/node-history";
 import { NodesController } from "../application/nodes/nodes-controller";
+import { DataDeletion } from "../application/settings/data-deletion";
 import { SettingsController } from "../application/settings/settings-controller";
 import { parseTransportMode } from "../config/transport-mode";
 import { KvAirtimeNoticeStore } from "../platform/airtime-notice-store";
@@ -40,23 +42,51 @@ const settings = new SettingsController(new KvSettingsStore());
 
 const passwords = new GuestPasswords(new ExpoSecretStore());
 
+// Real SQLite in both modes: only the radio is faked (plan D-13). Opened on first use.
+const nodes = new NodesController({
+  session,
+  appState: platform.appState,
+  clock: Date.now,
+  repository: async () => new SqliteNodeRepository(await db()),
+});
+
+const history = new NodeHistoryController({
+  runs: async () => new SqliteDiagnosticRunRepository(await db()),
+  telemetry: async () => new SqliteTelemetryRepository(await db()),
+});
+
+const runs = new RunController({
+  session,
+  appState: platform.appState,
+  clock: Date.now,
+  repository: async () => new SqliteDiagnosticRunRepository(await db()),
+  notice: new KvAirtimeNoticeStore(),
+  password: (publicKey) => passwords.password(publicKey),
+  adminPassword: async (publicKey, sent) =>
+    void (await passwords.discardAdminPassword(publicKey, sent)),
+  policy: () => settings.policy(),
+});
+
+const deletion = new DataDeletion({
+  eraser: async () => new SqliteDataEraser(await db()),
+  passwords,
+  busy: () => runs.busy() || nodes.getState().sync.kind === "syncing",
+  refresh: {
+    nodes: () => nodes.reload(),
+    runs: () => runs.refreshLatest(),
+    history: (publicKey) => history.forget(publicKey),
+  },
+});
+
 export const container = {
   mode,
   platform,
   session,
-  // Real SQLite in both modes: only the radio is faked (plan D-13). Opened on first use.
-  nodes: new NodesController({
-    session,
-    appState: platform.appState,
-    clock: Date.now,
-    repository: async () => new SqliteNodeRepository(await db()),
-  }),
+  nodes,
   passwords,
   settings,
-  history: new NodeHistoryController({
-    runs: async () => new SqliteDiagnosticRunRepository(await db()),
-    telemetry: async () => new SqliteTelemetryRepository(await db()),
-  }),
+  history,
+  deletion,
   // One controller per Export screen instance, so a late cleanup of a popped screen cannot reset
   // the next visit (review R5).
   createExporter: () =>
@@ -71,15 +101,5 @@ export const container = {
     }),
   // Debug seed routes only (fake build); the controllers above own every other access.
   runRepository: async () => new SqliteDiagnosticRunRepository(await db()),
-  runs: new RunController({
-    session,
-    appState: platform.appState,
-    clock: Date.now,
-    repository: async () => new SqliteDiagnosticRunRepository(await db()),
-    notice: new KvAirtimeNoticeStore(),
-    password: (publicKey) => passwords.password(publicKey),
-    adminPassword: async (publicKey, sent) =>
-      void (await passwords.discardAdminPassword(publicKey, sent)),
-    policy: () => settings.policy(),
-  }),
+  runs,
 };
