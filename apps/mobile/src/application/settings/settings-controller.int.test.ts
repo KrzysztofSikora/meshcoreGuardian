@@ -14,6 +14,7 @@ describe("SettingsController", () => {
   it("is loading, with defaults in policy(), until the store has been read", async () => {
     const controller = new SettingsController(new InMemorySettingsStore());
     expect(controller.getState().status).toBe("loading");
+    expect(controller.getState().unreadable).toBe(false);
     expect(controller.policy()).toEqual({ attempts: 2, overrideMs: null });
     await controller.load();
     expect(controller.getState()).toMatchObject({ status: "ready", unreadable: false });

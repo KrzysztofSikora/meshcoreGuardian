@@ -198,4 +198,44 @@ describe("DataDeletion (FR-15 AC2, FR-14 AC3, TR-21)", () => {
     expect(second).toBe(first);
     expect(erasures).toBe(1);
   });
+
+  it("runs again once the previous deletion has finished", async () => {
+    let erasures = 0;
+    const real = new SqliteDataEraser(testDb.driver);
+    eraser = async () => ({
+      eraseNodeHistory: (key) => real.eraseNodeHistory(key),
+      eraseAll: async () => {
+        erasures += 1;
+        await real.eraseAll();
+      },
+    });
+    const d = deletion();
+
+    await d.clearAll();
+    await d.clearAll();
+
+    expect(erasures).toBe(2);
+  });
+
+  it("reports SECRET_ERROR when the password store throws, not only when it answers not-ok", async () => {
+    const throwing = {
+      remove: async () => {
+        throw new Error("keystore locked");
+      },
+      clearAll: async () => {
+        throw new Error("keystore locked");
+      },
+    } as unknown as GuestPasswords;
+
+    await expect(deletion({ passwords: throwing }).deleteNodeHistory(A)).resolves.toEqual({
+      ok: false,
+      reason: "SECRET_ERROR",
+    });
+    await expect(deletion({ passwords: throwing }).clearAll()).resolves.toEqual({
+      ok: false,
+      reason: "SECRET_ERROR",
+    });
+    expect(calls).toContain(`history:${A}`);
+    expect(calls).toContain("history:null");
+  });
 });
