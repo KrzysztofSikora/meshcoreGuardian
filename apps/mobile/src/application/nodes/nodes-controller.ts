@@ -188,7 +188,8 @@ export class NodesController {
     }
   }
 
-  private async reload(): Promise<void> {
+  /** Re-reads the stored nodes, also after `load()` (after a deletion). */
+  async reload(): Promise<void> {
     const repository = await this.open();
     if (repository === null) return;
     try {

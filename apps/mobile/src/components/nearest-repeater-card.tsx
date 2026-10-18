@@ -1,4 +1,3 @@
-import { cooldownRemaining } from "@guardian/domain";
 import { Link, useIsFocused, useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -6,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
 import { runButton } from "../application/diagnostics/presenter";
+import { cooldownMs } from "../application/diagnostics/run-controller";
 import {
   nearestCard,
   type CandidateModel,
@@ -79,7 +79,7 @@ export function NearestRepeaterCard() {
     capabilities: connection.capabilities,
     running: runState.active !== null,
     inContacts: node?.inContacts ?? false,
-    cooldownMs: cooldownRemaining(runState.latest[nearest.publicKey] ?? null, now),
+    cooldownMs: cooldownMs(runState, nearest.publicKey, now),
   });
   const name = tr(t, nearest.name);
 

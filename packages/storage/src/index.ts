@@ -5,3 +5,4 @@ export { SqliteNodeRepository, NodeNotFoundError } from "./nodes/node-repository
 export { SqliteDiagnosticRunRepository } from "./diagnostics/run-repository";
 export { SqliteTelemetryRepository } from "./telemetry/telemetry-repository";
 export { backfillTelemetrySamples } from "./telemetry/backfill";
+export { SqliteDataEraser } from "./data/data-eraser";

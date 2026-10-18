@@ -1,7 +1,9 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 import { I18nextProvider, useTranslation } from "react-i18next";
 
+import { container } from "../composition";
 import { i18n } from "../i18n";
 import { ThemeProvider, useTheme } from "../theme/theme-provider";
 
@@ -34,6 +36,10 @@ function Navigator() {
 }
 
 export default function RootLayout() {
+  // Saved timeout and attempts must be in place before the first run (idempotent).
+  useEffect(() => {
+    void container.settings.load();
+  }, []);
   return (
     <I18nextProvider i18n={i18n}>
       <ThemeProvider>

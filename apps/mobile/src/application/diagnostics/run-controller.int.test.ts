@@ -26,11 +26,13 @@ import {
   InMemoryAppState,
   InMemoryLastCompanionStore,
   InMemorySecretStore,
+  InMemorySettingsStore,
 } from "../../platform/fake/in-memory";
+import { SettingsController } from "../settings/settings-controller";
 import { GuestPasswords } from "../nodes/guest-passwords";
 import { CompanionSession, type SessionState } from "../connection/companion-session";
 import type { AirtimeNoticeStore, RunPorts, RunSession } from "./ports";
-import { RunController } from "./run-controller";
+import { RunController, cooldownMs } from "./run-controller";
 
 const ID = "AA:BB:CC:DD:EE:01";
 const ROOM_K = "7c73a8cd01d92e249bf6ed13af3f60499260e408c674ad5e11a44000d87acc28";
@@ -184,6 +186,42 @@ describe("RunController", () => {
       reason: "ALL_CHECKS_REPLIED",
     });
     expect(state.latest[ROOM_K]?.id).toBe(1);
+  });
+
+  it("keeps the cooldown, in the value the UI reads and in start, after the stored runs are gone (settings D-12)", async () => {
+    const { session, controller, runs } = setup([{}, {}]);
+    await connect(session);
+    const first = controller.start(ROOM_K);
+    await vi.runAllTimersAsync();
+    await first;
+    const finished = runs.saved[0]!.finishedAt;
+    expect(controller.busy()).toBe(false);
+
+    runs.saved = [];
+    await controller.refreshLatest();
+
+    vi.setSystemTime(finished + 20_000);
+    expect(controller.getState().latest[ROOM_K]).toBeUndefined();
+    expect(cooldownMs(controller.getState(), ROOM_K, Date.now())).toBe(40_000);
+    expect(cooldownMs(controller.getState(), OTHER, Date.now())).toBe(0);
+    await controller.start(ROOM_K);
+    expect(controller.getState().refusal).toEqual({
+      publicKey: ROOM_K,
+      text: { key: "diagnostic.refusal.cooldown", params: { seconds: 40 } },
+    });
+    expect(runs.saved).toHaveLength(0);
+    vi.setSystemTime(finished + 60_000);
+    expect(cooldownMs(controller.getState(), ROOM_K, Date.now())).toBe(0);
+  });
+
+  it("reports busy from the tap until the run has ended", async () => {
+    const { session, controller } = setup([{}]);
+    await connect(session);
+    const done = controller.start(ROOM_K);
+    expect(controller.busy()).toBe(true);
+    await vi.runAllTimersAsync();
+    await done;
+    expect(controller.busy()).toBe(false);
   });
 
   it("sends the stored guest password in the login frame (FR-05 AC2)", async () => {
@@ -558,6 +596,7 @@ describe("RunController", () => {
     const { controller } = setup([{}]);
     expect(controller.getState()).toEqual({
       latest: {},
+      lastRequestAt: {},
       loaded: false,
       active: null,
       notice: null,
@@ -709,6 +748,7 @@ describe("RunController edge cases", () => {
       notice?: AirtimeNoticeStore;
       repository?: RunPorts["repository"];
       appState?: InMemoryAppState;
+      policy?: RunPorts["policy"];
     } = {},
   ) {
     const store = createStore<SessionState>(
@@ -733,7 +773,7 @@ describe("RunController edge cases", () => {
       repository: options.repository ?? (async () => runs),
       password: async () => "",
       adminPassword: async () => undefined,
-      policy: () => DEFAULT_DIAGNOSTIC_POLICY,
+      policy: options.policy ?? (() => DEFAULT_DIAGNOSTIC_POLICY),
       clock: Date.now,
     });
     return { controller, runs, appState };
@@ -822,6 +862,32 @@ describe("RunController edge cases", () => {
     await controller.start(ROOM_K);
     await controller.confirmNotice();
     expect(runs.saved).toHaveLength(1);
+  });
+
+  it("uses the saved settings: the session gets the policy and the run records the attempts (FR-10 AC3/AC4)", async () => {
+    const settings = new SettingsController(new InMemorySettingsStore());
+    await settings.setTimeout("5");
+    await settings.setAttempts(1);
+    const runChecks = vi.fn<RunSession["runChecks"]>(async () => [replied("login")]);
+    const { controller, runs } = build(runChecks, { policy: () => settings.policy() });
+    await controller.start(ROOM_K);
+    expect(runChecks.mock.calls[0]![0].policy).toEqual({ attempts: 1, overrideMs: 5000 });
+    expect(runs.saved[0]!.attemptsPerCheck).toBe(1);
+  });
+
+  it("keeps the policy a run started with when a setting is saved meanwhile (settings D-5)", async () => {
+    const settings = new SettingsController(new InMemorySettingsStore());
+    let release: (outcomes: CheckOutcome[]) => void = () => undefined;
+    const runChecks = vi.fn<RunSession["runChecks"]>(
+      () => new Promise((resolve) => (release = resolve)),
+    );
+    const { controller, runs } = build(runChecks, { policy: () => settings.policy() });
+    const done = controller.start(ROOM_K);
+    await vi.waitFor(() => expect(runChecks).toHaveBeenCalledTimes(1));
+    await settings.setAttempts(3);
+    release([replied("login")]);
+    await done;
+    expect(runs.saved[0]!.attemptsPerCheck).toBe(2);
   });
 
   it("does not keep the skipped check when fewer checks ran than planned", async () => {

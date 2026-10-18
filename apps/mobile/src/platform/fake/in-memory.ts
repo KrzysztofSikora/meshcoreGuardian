@@ -1,6 +1,7 @@
 import type { SecretStore } from "@guardian/domain";
 import type { Unsubscribe } from "@guardian/meshcore-adapter";
 
+import type { SettingsStore } from "../../application/settings/ports";
 import type { AirtimeNoticeStore } from "../../application/diagnostics/ports";
 import type {
   AppStatePort,
@@ -76,5 +77,25 @@ export class InMemorySecretStore implements SecretStore {
 
   keys(): string[] {
     return [...this.values.keys()];
+  }
+}
+
+/** In-memory `SettingsStore` for tests; either call can be made to fail. */
+export class InMemorySettingsStore implements SettingsStore {
+  failRead = false;
+  failWrite = false;
+  writes = 0;
+
+  constructor(public raw: string | null = null) {}
+
+  async read(): Promise<string | null> {
+    if (this.failRead) throw new Error("storage");
+    return this.raw;
+  }
+
+  async write(raw: string): Promise<void> {
+    if (this.failWrite) throw new Error("storage");
+    this.writes += 1;
+    this.raw = raw;
   }
 }

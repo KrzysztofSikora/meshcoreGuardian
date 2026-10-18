@@ -2,6 +2,7 @@ import {
   classifyRun,
   continuesAfter,
   cooldownRemaining,
+  cooldownRemainingAt,
   loginEvidence,
   sessionRole,
   planChecks,
@@ -38,6 +39,11 @@ export interface LastRun {
 
 export interface RunState {
   latest: Record<string, DiagnosticRun>;
+  /**
+   * When each node last received a request in this app session. Kept apart from `latest` so that
+   * deleting history does not lift the cooldown (settings D-12).
+   */
+  lastRequestAt: Record<string, number>;
   loaded: boolean;
   active: ActiveRun | null;
   /** The node whose airtime notice is waiting for a decision. */
@@ -49,6 +55,7 @@ export interface RunState {
 
 const INITIAL: RunState = {
   latest: {},
+  lastRequestAt: {},
   loaded: false,
   active: null,
   notice: null,
@@ -58,6 +65,14 @@ const INITIAL: RunState = {
 };
 
 type CompanionInfo = DiagnosticRun["companion"];
+
+/** Milliseconds until `publicKey` may be tested again, from stored runs and this session's runs. */
+export function cooldownMs(state: RunState, publicKey: string, now: number): number {
+  return Math.max(
+    cooldownRemaining(state.latest[publicKey] ?? null, now),
+    cooldownRemainingAt(state.lastRequestAt[publicKey] ?? null, now),
+  );
+}
 
 const BUSY_TEXT: Text = { key: "diagnostic.refusal.busy" };
 const SYNCING_TEXT: Text = { key: "diagnostic.refusal.syncing" };
@@ -89,6 +104,16 @@ export class RunController {
   load(): Promise<void> {
     this.loading ??= this.reload();
     return this.loading;
+  }
+
+  /** True from a tap on "Run diagnostic" until the run has ended. */
+  busy(): boolean {
+    return this.running;
+  }
+
+  /** Re-reads the newest run per node, e.g. after a deletion. The cooldown memory stays. */
+  refreshLatest(): Promise<void> {
+    return this.reload();
   }
 
   /** The stored run with its checks, or `null`. */
@@ -144,6 +169,8 @@ export class RunController {
     const startedAt = this.ports.clock();
     const abort = new AbortController();
     this.abort = abort;
+    // Read once: a setting saved while this run is in flight applies to the next one (settings D-5).
+    const policy = this.ports.policy();
     this.set({ refusal: null, last: null });
     try {
       const session = this.ports.session.store.getState();
@@ -155,14 +182,13 @@ export class RunController {
           ? planChecks(session.capabilities)
           : null;
       if (plan === null) {
-        return await this.finishPreflight(publicKey, startedAt, companion, "NOT_CONNECTED");
+        return await this.finishPreflight(publicKey, startedAt, companion, policy.attempts, "NOT_CONNECTED");
       }
       if ("unsupported" in plan) {
-        return await this.finishPreflight(publicKey, startedAt, companion, "CAPABILITY_MISSING", [
+        return await this.finishPreflight(publicKey, startedAt, companion, policy.attempts, "CAPABILITY_MISSING", [
           plan.unsupported,
         ]);
       }
-      const policy = this.ports.policy();
       this.set({
         active: { publicKey, step: plan.run[0]!, attempt: 0, of: policy.attempts, startedAt },
       });
@@ -185,9 +211,9 @@ export class RunController {
         }
         if (error instanceof CooldownError) return this.refuse(publicKey, cooldownText(error));
         if (error instanceof TransportUnavailableError) {
-          return await this.finishPreflight(publicKey, startedAt, companion, "NOT_CONNECTED");
+          return await this.finishPreflight(publicKey, startedAt, companion, policy.attempts, "NOT_CONNECTED");
         }
-        return await this.finishPreflight(publicKey, startedAt, companion, "UNEXPECTED_ERROR");
+        return await this.finishPreflight(publicKey, startedAt, companion, policy.attempts, "UNEXPECTED_ERROR");
       }
       await this.dropAdminPassword(publicKey, sentPassword, outcomes);
       const completed =
@@ -202,6 +228,7 @@ export class RunController {
         companion,
         checks,
         classifyRun(checks, { cancelled }),
+        policy.attempts,
       );
     } finally {
       this.abort = null;
@@ -228,6 +255,7 @@ export class RunController {
     publicKey: string,
     startedAt: number,
     companion: CompanionInfo | null,
+    attemptsPerCheck: number,
     preflight: Preflight,
     checks: CheckOutcome[] = [],
   ): Promise<void> {
@@ -237,6 +265,7 @@ export class RunController {
       companion,
       checks,
       classifyRun(checks, { cancelled: false, preflight }),
+      attemptsPerCheck,
     );
   }
 
@@ -246,6 +275,7 @@ export class RunController {
     companion: CompanionInfo | null,
     checks: CheckOutcome[],
     classification: ReturnType<typeof classifyRun>,
+    attemptsPerCheck: number,
   ): Promise<void> {
     const finishedAt = this.ports.clock();
     const identity = companion ?? { publicKey: "", name: "", firmwareVersion: "" };
@@ -260,7 +290,7 @@ export class RunController {
       finishedAt,
       durationMs: finishedAt - startedAt,
       attemptsUsed: checks.reduce((sum, check) => sum + check.attempts, 0),
-      attemptsPerCheck: this.ports.policy().attempts,
+      attemptsPerCheck,
       result: classification.result,
       reason: classification.reason,
       limitations: classification.limitations,
@@ -270,6 +300,10 @@ export class RunController {
     const stored = saved === null ? run : { ...run, id: saved };
     this.set({
       latest: { ...this.getState().latest, [publicKey]: stored },
+      lastRequestAt:
+        run.attemptsUsed > 0
+          ? { ...this.getState().lastRequestAt, [publicKey]: finishedAt }
+          : this.getState().lastRequestAt,
       last: { publicKey, runId: saved, result: run.result, reason: run.reason },
     });
   }
@@ -287,10 +321,7 @@ export class RunController {
   }
 
   private refuseCooldown(publicKey: string): boolean {
-    const remaining = cooldownRemaining(
-      this.getState().latest[publicKey] ?? null,
-      this.ports.clock(),
-    );
+    const remaining = cooldownMs(this.getState(), publicKey, this.ports.clock());
     if (remaining <= 0) return false;
     this.set({ refusal: { publicKey, text: cooldownText({ remainingMs: remaining }) } });
     return true;

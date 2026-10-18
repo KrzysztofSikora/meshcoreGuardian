@@ -104,3 +104,4 @@ export type { ExportInput, ExportReport, ExportRun, ExportSignal } from "./expor
 export { EXPORT_FORMATS, JSON_FIELDS, exportKey, exportManifest } from "./export/redact";
 export type { ExportFormat, ExportManifest, NeverIncluded, Redaction } from "./export/redact";
 export { CSV_COLUMNS, toCsv, toJson } from "./export/serialize";
+export type { DataEraser } from "./data/eraser";

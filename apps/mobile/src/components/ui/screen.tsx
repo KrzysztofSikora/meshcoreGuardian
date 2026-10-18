@@ -45,7 +45,10 @@ export function Screen({
   return (
     <View style={[styles.root, { backgroundColor: colors.ground }]}>
       {scroll ? (
-        <ScrollView style={styles.root} contentContainerStyle={[styles.scrollBody, { paddingTop: top, paddingBottom: 24 }]}>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          style={styles.root}
+          contentContainerStyle={[styles.scrollBody, { paddingTop: top, paddingBottom: 24 }]}>
           {content}
         </ScrollView>
       ) : (

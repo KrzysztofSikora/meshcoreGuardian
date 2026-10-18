@@ -1,6 +1,5 @@
 import {
   NODE_ROLES,
-  cooldownRemaining,
   effectiveRole,
   isOnDashboard,
   keyPrefix,
@@ -21,6 +20,7 @@ import {
   runDetails,
   statusOf,
 } from "../../application/diagnostics/presenter";
+import { cooldownMs } from "../../application/diagnostics/run-controller";
 import { lastResponseText, recentRunRow, telemetryCard } from "../../application/nodes/history-presenter";
 import {
   adminDiscardedText,
@@ -308,7 +308,7 @@ function RunPanel({ node }: { node: Node }) {
     capabilities: connection.capabilities,
     running: state.active !== null,
     inContacts: node.inContacts,
-    cooldownMs: cooldownRemaining(latest ?? null, now),
+    cooldownMs: cooldownMs(state, node.publicKey, now),
   });
   const refusal = state.refusal?.publicKey === node.publicKey ? state.refusal.text : null;
   const details = latest === undefined ? null : runDetails(latest);
