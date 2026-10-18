@@ -10,4 +10,9 @@ export interface TelemetryRepository {
    * by the higher run id. `[]` for an unknown node.
    */
   voltageForNode(publicKey: string, runs: number): Promise<VoltageReading[]>;
+  /**
+   * The samples of exactly the given runs, ordered by run id, then `checkSeq`. Unknown ids and runs
+   * without samples contribute nothing; `[]` for no ids.
+   */
+  forRuns(runIds: number[]): Promise<TelemetrySample[]>;
 }

@@ -103,6 +103,7 @@ GitHub issue: #9.
 | D-11 | File name and location | `guardian-<keyPrefix>-<from yyyymmdd>-<to yyyymmdd>.<json\|csv>` in `Paths.cache`, replacing an existing file of that name. MIME `application/json` / `text/csv` | B: document directory (persists, but the cache is meant for files we hand to another app); C: full key in the name (leaks the key even with redaction on) | The name never carries more than the prefix, whatever the switch says. The cache is what tech-stack names | cheap | agent |
 | D-12 | Share failures | `shareAsync` resolving = done (Android does not report whether the user picked a target). Sharing unavailable → "Sharing is not available on this device". A write or share error → "Could not create the export file", with no claimed cause (lesson on neutral errors). The preview stays on screen | B: retry automatically (pointless for a UI action) | Honest and neutral. Nothing is lost, and the user can tap Share again | cheap | agent |
 | D-13 | What the preview shows as "fields" | The manifest from `redact.ts`: for CSV the exact column names, for JSON the field groups (`node`, `runs`, `runs[].checks`, `runs[].telemetry`) with their keys. Plus the redaction lines and the counts. No content excerpt | B: first lines of the actual file (shows real values, but long and unreadable on a phone at 200 % font) | AC2 asks for fields and redactions. Deriving them from the same constants the serialiser uses means the preview cannot drift from the file (a test ties them) | cheap | agent |
+| D-14 | How samples are read for the range | `TelemetryRepository.forRuns(runIds)`, called by the controller with the ids `runs.forNodeBetween` returned (plan-review finding 3) | B: `TelemetryRepository.forNodeBetween` (the plan's first design; the range rule would live in two SQL queries) | The range rule lives in one query, and samples can never belong to a run outside the range | cheap | agent |
 
 ## Design
 
@@ -326,7 +327,7 @@ GitHub issue: #9.
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
 - [x] Phase 1: Export model, redaction and serialisers in the domain
-- [ ] Phase 2: Range reads in storage
+- [x] Phase 2: Range reads in storage
 - [ ] Phase 3: Export controller, schema and presenter
 - [ ] Phase 4: Export screen, share platform and node-screen button
 - [ ] Phase 5: e2e flow, evidence and human checks
@@ -340,7 +341,8 @@ GitHub issue: #9.
 - [minor] Phase 1: plan-review finding 4 (golden files). Generated once from the fixtures with a throwaway test, then checked by hand against the fixture values (times, voltage 3.353, uptime 2837, RSSI -34, SNR 13.25, noise floor -110, empty companion on run 3, quoting and `'` prefix of the node name and label). `ImportMeta.glob` is declared ambiently in `export.test.ts`, as in the adapter test.
 - [minor] Phase 1: plan-review finding 6. CSV `node_name` is `reportedName`, `node_label` is `userLabel`, and all CSV times are ISO 8601 UTC like the JSON. Added to the file contract here (D-2 text unchanged).
 - [minor] Phase 1: `ExportFormat` / `EXPORT_FORMATS` live in `redact.ts` (the manifest needs them); the JSON manifest has an extra group `runs[].companion` and a root group `report`; `mutation` target list gains `report.ts` (test-plan and `stryker.targets`).
+- [minor] Phase 2: plan-review findings 2 and 3. `TelemetryRepository` gets `forRuns(runIds)` instead of `forNodeBetween` (D-14); Phase 3's controller reads runs first, then `telemetry.forRuns(runs.map(r => r.id))`. `run-controller.int.test.ts` (`MemoryRuns`) and `node-history.int.test.ts` (telemetry literal) got the new methods. Both repositories read ids in batches of 500 (SQLite variable limit), so a 90-day range cannot hit it.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->
-Applied while implementing (no separate revise run). Phase 1: finding 1, 4, 6 (see Deviations). Finding 8: D-7 is `costly` for the PR reviewer. Findings 2, 3, 5, 7 are for phases 2 to 4.
+Applied while implementing (no separate revise run). Phase 1: finding 1, 4, 6 (see Deviations). Finding 8: D-7 is `costly` for the PR reviewer. Findings 2, 3 applied in Phase 2 (see Deviations, D-14). Findings 5, 7 are for phase 4.

@@ -3,6 +3,9 @@ import type { TelemetryRepository, TelemetrySample, VoltageReading } from "@guar
 import type { SqlDriver } from "../driver";
 import { SAMPLE_COLUMNS, toSample, toVoltageReading } from "./sample-rows";
 
+/** Ids per `IN (...)` query, well under SQLite's bound-variable limit. */
+const ID_BATCH = 500;
+
 export class SqliteTelemetryRepository implements TelemetryRepository {
   constructor(private readonly driver: SqlDriver) {}
 
@@ -30,5 +33,20 @@ export class SqliteTelemetryRepository implements TelemetryRepository {
       [publicKey, runs],
     );
     return rows.map(toVoltageReading);
+  }
+
+  async forRuns(runIds: number[]): Promise<TelemetrySample[]> {
+    const sorted = [...runIds].sort((a, b) => a - b);
+    const samples: TelemetrySample[] = [];
+    for (let i = 0; i < sorted.length; i += ID_BATCH) {
+      const ids = sorted.slice(i, i + ID_BATCH);
+      const rows = await this.driver.all<unknown>(
+        `SELECT ${SAMPLE_COLUMNS} FROM telemetry_samples
+         WHERE run_id IN (${ids.map(() => "?").join(",")}) ORDER BY run_id, check_seq`,
+        ids,
+      );
+      samples.push(...rows.map(toSample));
+    }
+    return samples;
   }
 }
