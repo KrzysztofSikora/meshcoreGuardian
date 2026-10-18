@@ -27,7 +27,7 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | TR-07 | meshcore.js does not run under Hermes / RN (Node or Web globals) | H | M | hardware | human check in S-02: app on real phone connects and decodes contacts; recorded in PR evidence | planned (S-02 human check) |
 | TR-08 | Response matched to the wrong request (late reply from a previous run, different node) | H | L | integration | fixture with interleaved replies; reply carrying another node's key prefix is not attributed to the current run | covered (S-04) |
 | TR-09 | Guest password leaks to SQLite, logs, fixtures or export | H | L | integration | write known password `pw-LEAK-CANARY`, then scan the SQLite file bytes, captured log output and export output: none contain it; capture tool test asserts password field is never serialised | covered (S-01 capture, S-05 SQLite files and logs); planned (S-08 export) |
-| TR-10 | Export includes full public keys by default or omits redaction preview | M | M | unit | golden files for JSON and CSV with redaction on/off; default settings → 8 hex chars only | planned (S-08) |
+| TR-10 | Export includes full public keys by default or omits redaction preview | M | M | unit | golden files for JSON and CSV with redaction on/off; default settings → 8 hex chars only | covered (S-08: `export.test.ts` golden files, redaction on/off, manifest) |
 | TR-11 | Data lost on restart or on schema migration | H | L | integration | repository round-trip on file-backed `node:sqlite`; migration test applies every migration in order to a DB seeded at each earlier version and checks rows survive | covered S-03 (migration, restart round-trip); covered (S-06: v4 migration from v1 and v3, backfill, file-backed reopen, `diag-responded` after `stopApp`) |
 | TR-12 | Link drop not surfaced; in-flight run hangs; reconnect needs app restart | H | M | integration + e2e | `FakeTransport.drop()` mid-request → run ends `TRANSPORT_UNAVAILABLE` within 5 s fake time; e2e `reconnect.yaml` | covered (S-02) |
 | TR-13 | Permission denied / Bluetooth off shown as "no devices found" | M | M | e2e | `permission-denied.yaml`, `bluetooth-off.yaml` with fake transport scripted states | covered (S-02) |
@@ -77,7 +77,7 @@ Impact × likelihood: H/M/L. Status: `planned` until the item that owns it lands
 | `packages/domain/src/policy/timeout.ts`, `retry.ts`, `cooldown.ts` | radio hygiene and false NO_RESPONSE (TR-03, TR-04) | 80 % | report |
 | `packages/meshcore-adapter/src/client/mesh-client.ts` | orchestration: abort, single-flight, error → reason mapping (TR-04, TR-05, TR-08) | 80 % | report |
 | `packages/meshcore-adapter/src/decode/*.ts` | companion frames → JSON-safe decoded records, corrections of meshcore.js misreads (TR-06, TR-16) | 80 % | report |
-| `packages/domain/src/export/redact.ts`, `packages/domain/src/export/serialize.ts` | privacy defaults (TR-09, TR-10) | 80 % | report |
+| `packages/domain/src/export/report.ts`, `redact.ts`, `serialize.ts` | privacy defaults (TR-09, TR-10) | 80 % | report |
 | `packages/domain/src/companion/capabilities.ts`, `firmware.ts` | capability/untested-firmware rules shown to the user (TR-14) | 80 % | report |
 | `apps/mobile/src/application/connection/companion-session.ts` | connect/scan/drop state machine, background and no-auto-reconnect rules (FR-01, FR-02, TR-12, TR-13, TR-18) | 80 % | report |
 | `packages/domain/src/telemetry/voltage.ts` | no trend on thin data (TR-17) | 80 % | report |

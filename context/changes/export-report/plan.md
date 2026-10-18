@@ -96,7 +96,7 @@ GitHub issue: #9.
 | D-4 | Which runs fall in the range | `from ≤ finishedAt ≤ to`, inclusive, `from = to − days × 24 h`. Samples belong to the run, not to their own `measuredAt` | B: by `startedAt` (differs only for runs that cross the boundary); C: by sample `measuredAt` (a run could be split across the edge) | `finishedAt` is the time the node screen shows for a run, so the preview count matches the list | cheap | agent |
 | D-5 | Is check evidence exported? | No. Each check exports `kind, result, reason, attempts, timeout_ms, timeout_source, started_at, duration_ms`. The decoded values reach the file through the run's telemetry samples. Raw `lppHex` / malformed `hex` never appear | B: full evidence objects (every status counter, but raw bytes we do not control end up in a shared file); C: evidence minus the hex fields (more counters, and a second shape to keep stable) | Smallest stable format that still carries what FR-07 shows. Raw bytes could hold anything, so leaving them out is the privacy default | cheap (additive later) | agent |
 | D-6 | Node block contents | `public_key, reported_name, label, role (effective), reported_role, last_heard_at`. No advertised position | B: include `position` (useful for maps, but the node's location ends up in a shared file, and redaction would need a second category) | D-08 includes labels and says nothing about location. Leaving it out is additive to change later. Telemetry samples keep their `extra` values as recorded (GPS from LPP included), because they are measurements the user asked the node for | cheap | agent |
-| D-7 | CSV injection | Text cells (names, labels, reasons and the like) that start with `=`, `+`, `-`, `@`, tab or CR get a leading `'`. Numeric cells are written as numbers, untouched | B: no neutralising (exact text, but a name such as `=HYPERLINK(...)` from the mesh runs in a spreadsheet); C: strip those characters (loses data) | Names come from remote nodes. The OWASP-recommended prefix is the conventional fix and keeps the text readable | cheap | research |
+| D-7 | CSV injection | Text cells (names, labels, reasons and the like) that start with `=`, `+`, `-`, `@`, tab or CR get a leading `'`. Numeric cells are written as numbers, untouched | B: no neutralising (exact text, but a name such as `=HYPERLINK(...)` from the mesh runs in a spreadsheet); C: strip those characters (loses data) | Names come from remote nodes. The OWASP-recommended prefix is the conventional fix and keeps the text readable | costly (changes cell contents in a file format, like D-2) | research |
 | D-8 | Where the Zod export schema lives | `apps/mobile/src/application/export/schema.ts`. `ExportController` parses the built report before it writes the file; a parse failure is an export error, and nothing is shared | B: in `packages/domain/src/export` (next to the model, but adds `zod` to domain, which CLAUDE.md says imports nothing); C: in `packages/storage` (wrong layer: nothing is stored) | Keeps domain dependency-free and validates at the boundary where the file leaves the app, as tech-stack's "Zod at every boundary" asks | cheap | agent |
 | D-9 | Empty range | With 0 runs in the range the preview reads "No runs recorded in this range", and Share is disabled. This text appears only after a successful read (lesson on empty-data messages) | B: allow sharing a report with only the node block (always possible, but it shares an empty file) | Sharing an empty report helps nobody, and the reason is visible | cheap | agent |
 | D-10 | Redaction default before S-09 | `ExportController` takes a port `redactionDefault: () => Promise<boolean>`; composition passes `async () => true`. Every open starts from that default, and the switch changes only the current export | B: hard-code `true` in the controller (S-09 has to touch the controller); C: build the setting now (S-09 scope) | The default is right (D-08), and S-09 changes one line in composition | cheap | agent |
@@ -325,7 +325,7 @@ GitHub issue: #9.
 
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
-- [ ] Phase 1: Export model, redaction and serialisers in the domain
+- [x] Phase 1: Export model, redaction and serialisers in the domain
 - [ ] Phase 2: Range reads in storage
 - [ ] Phase 3: Export controller, schema and presenter
 - [ ] Phase 4: Export screen, share platform and node-screen button
@@ -336,6 +336,11 @@ GitHub issue: #9.
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
+- [minor] Phase 1: plan-review finding 1 (empty companion key). The report exports `companion.public_key` as `null` for a run stored with an empty companion identity (CSV: empty cell). Phase 3's schema refines non-null keys only. Fixture run 3 and tests cover it.
+- [minor] Phase 1: plan-review finding 4 (golden files). Generated once from the fixtures with a throwaway test, then checked by hand against the fixture values (times, voltage 3.353, uptime 2837, RSSI -34, SNR 13.25, noise floor -110, empty companion on run 3, quoting and `'` prefix of the node name and label). `ImportMeta.glob` is declared ambiently in `export.test.ts`, as in the adapter test.
+- [minor] Phase 1: plan-review finding 6. CSV `node_name` is `reportedName`, `node_label` is `userLabel`, and all CSV times are ISO 8601 UTC like the JSON. Added to the file contract here (D-2 text unchanged).
+- [minor] Phase 1: `ExportFormat` / `EXPORT_FORMATS` live in `redact.ts` (the manifest needs them); the JSON manifest has an extra group `runs[].companion` and a root group `report`; `mutation` target list gains `report.ts` (test-plan and `stryker.targets`).
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->
+Applied while implementing (no separate revise run). Phase 1: finding 1, 4, 6 (see Deviations). Finding 8: D-7 is `costly` for the PR reviewer. Findings 2, 3, 5, 7 are for phases 2 to 4.

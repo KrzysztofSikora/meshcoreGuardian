@@ -11,6 +11,7 @@ packages/meshcore-adapter/src/client/mesh-client.ts
 packages/domain/src/companion/capabilities.ts
 packages/domain/src/companion/firmware.ts
 packages/meshcore-adapter/src/decode/*.ts
+packages/domain/src/export/report.ts
 packages/domain/src/export/redact.ts
 packages/domain/src/export/serialize.ts
 packages/domain/src/trend.ts
