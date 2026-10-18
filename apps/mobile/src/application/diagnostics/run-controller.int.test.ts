@@ -26,7 +26,9 @@ import {
   InMemoryAppState,
   InMemoryLastCompanionStore,
   InMemorySecretStore,
+  InMemorySettingsStore,
 } from "../../platform/fake/in-memory";
+import { SettingsController } from "../settings/settings-controller";
 import { GuestPasswords } from "../nodes/guest-passwords";
 import { CompanionSession, type SessionState } from "../connection/companion-session";
 import type { AirtimeNoticeStore, RunPorts, RunSession } from "./ports";
@@ -709,6 +711,7 @@ describe("RunController edge cases", () => {
       notice?: AirtimeNoticeStore;
       repository?: RunPorts["repository"];
       appState?: InMemoryAppState;
+      policy?: RunPorts["policy"];
     } = {},
   ) {
     const store = createStore<SessionState>(
@@ -733,7 +736,7 @@ describe("RunController edge cases", () => {
       repository: options.repository ?? (async () => runs),
       password: async () => "",
       adminPassword: async () => undefined,
-      policy: () => DEFAULT_DIAGNOSTIC_POLICY,
+      policy: options.policy ?? (() => DEFAULT_DIAGNOSTIC_POLICY),
       clock: Date.now,
     });
     return { controller, runs, appState };
@@ -822,6 +825,32 @@ describe("RunController edge cases", () => {
     await controller.start(ROOM_K);
     await controller.confirmNotice();
     expect(runs.saved).toHaveLength(1);
+  });
+
+  it("uses the saved settings: the session gets the policy and the run records the attempts (FR-10 AC3/AC4)", async () => {
+    const settings = new SettingsController(new InMemorySettingsStore());
+    await settings.setTimeout("5");
+    await settings.setAttempts(1);
+    const runChecks = vi.fn<RunSession["runChecks"]>(async () => [replied("login")]);
+    const { controller, runs } = build(runChecks, { policy: () => settings.policy() });
+    await controller.start(ROOM_K);
+    expect(runChecks.mock.calls[0]![0].policy).toEqual({ attempts: 1, overrideMs: 5000 });
+    expect(runs.saved[0]!.attemptsPerCheck).toBe(1);
+  });
+
+  it("keeps the policy a run started with when a setting is saved meanwhile (settings D-5)", async () => {
+    const settings = new SettingsController(new InMemorySettingsStore());
+    let release: (outcomes: CheckOutcome[]) => void = () => undefined;
+    const runChecks = vi.fn<RunSession["runChecks"]>(
+      () => new Promise((resolve) => (release = resolve)),
+    );
+    const { controller, runs } = build(runChecks, { policy: () => settings.policy() });
+    const done = controller.start(ROOM_K);
+    await vi.waitFor(() => expect(runChecks).toHaveBeenCalledTimes(1));
+    await settings.setAttempts(3);
+    release([replied("login")]);
+    await done;
+    expect(runs.saved[0]!.attemptsPerCheck).toBe(2);
   });
 
   it("does not keep the skipped check when fewer checks ran than planned", async () => {

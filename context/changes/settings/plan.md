@@ -276,7 +276,7 @@ The Settings screen stops being a placeholder. When this change is done:
 
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
-- [ ] Phase 1: Settings model, store and policy wiring
+- [x] Phase 1: Settings model, store and policy wiring
 - [ ] Phase 2: Data deletion
 - [ ] Phase 3: Settings screen — preferences and about
 - [ ] Phase 4: Settings screen — delete history and clear all data
@@ -295,6 +295,8 @@ Planned (each two minutes, CI APK `android-apk` on a real phone with a paired co
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
+- [minor] (Phase 1) Plan D-5 says a run keeps the policy it started with, but `RunController.finish` re-read `policy().attempts` when saving, so a setting saved mid-run would have recorded the wrong `attemptsPerCheck`. `execute` now reads the policy once and passes `attempts` to `finish`; integration test added.
+- [minor] (Phase 1) The in-memory `SettingsStore` double is `InMemorySettingsStore` in `platform/fake/in-memory.ts` (where the other doubles live) instead of inside the controller test.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->
