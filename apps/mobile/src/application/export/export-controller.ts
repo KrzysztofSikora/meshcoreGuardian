@@ -70,8 +70,9 @@ export class ExportController {
   }
 
   /**
-   * Idempotent for the same key, so a remount keeps the user's choices (lesson). A new key resets
-   * them to the defaults. After an error the same key reads again.
+   * Idempotent for the same key while a visit is open (a repeated effect keeps the user's
+   * choices, lesson). A new key resets them to the defaults; after `close()` or an error the same
+   * key reads again. One instance per screen, so `close()` only ever ends its own visit.
    */
   open(publicKey: string): Promise<void> {
     // The pending key is recorded synchronously: `state.publicKey` is set only after an await.

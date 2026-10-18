@@ -153,8 +153,8 @@ GitHub issue: #9.
   `{ publicKey, days: 7|30|90, format: "json"|"csv", redactKeys, status: "loading"|"ok"|"error", loaded, input: ExportInput | null, share: "idle"|"sharing"|"unavailable"|"failed" }`.
   Ports: `nodes`, `runs`, `telemetry` (repository factories as in `NodeHistoryController`),
   `files: ExportFilePort`, `clock`, `redactionDefault`, `generatedBy`.
-  - `open(publicKey)`: idempotent for the same key, so a remount does not reset the user's
-    choices (lesson). A new key resets to defaults (30 days, JSON, `redactionDefault()`), then reads.
+  - `open(publicKey)`: idempotent for the same key while a visit is open (a repeated effect
+    keeps the user's choices, lesson); `close()` ends the visit. One instance per screen (R5). A new key resets to defaults (30 days, JSON, `redactionDefault()`), then reads.
   - `setDays(d)` re-reads. `setFormat` / `setRedactKeys` only rebuild the preview. A read that
     finishes after a newer read started is discarded (sequence counter).
   - `share()`: takes the current input and options **at call time** (lesson on capturing

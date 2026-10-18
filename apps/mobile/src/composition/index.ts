@@ -53,16 +53,19 @@ export const container = {
     runs: async () => new SqliteDiagnosticRunRepository(await db()),
     telemetry: async () => new SqliteTelemetryRepository(await db()),
   }),
-  exporter: new ExportController({
-    nodes: async () => new SqliteNodeRepository(await db()),
-    runs: async () => new SqliteDiagnosticRunRepository(await db()),
-    telemetry: async () => new SqliteTelemetryRepository(await db()),
-    files: new ExpoExportFiles(),
-    clock: Date.now,
-    // Redaction on until the Settings default exists (plan D-10, S-09).
-    redactionDefault: async () => true,
-    generatedBy: `MeshCore Guardian ${Constants.expoConfig?.version ?? "unknown"}`,
-  }),
+  // One controller per Export screen instance, so a late cleanup of a popped screen cannot reset
+  // the next visit (review R5).
+  createExporter: () =>
+    new ExportController({
+      nodes: async () => new SqliteNodeRepository(await db()),
+      runs: async () => new SqliteDiagnosticRunRepository(await db()),
+      telemetry: async () => new SqliteTelemetryRepository(await db()),
+      files: new ExpoExportFiles(),
+      clock: Date.now,
+      // Redaction on until the Settings default exists (plan D-10, S-09).
+      redactionDefault: async () => true,
+      generatedBy: `MeshCore Guardian ${Constants.expoConfig?.version ?? "unknown"}`,
+    }),
   // Debug seed routes only (fake build); the controllers above own every other access.
   runRepository: async () => new SqliteDiagnosticRunRepository(await db()),
   runs: new RunController({

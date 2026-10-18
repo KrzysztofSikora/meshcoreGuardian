@@ -1,6 +1,6 @@
 import type { ExportFormat } from "@guardian/domain";
 import { useLocalSearchParams } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Switch, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
@@ -17,13 +17,13 @@ import { Segmented } from "../../components/ui/segmented";
 import { container } from "../../composition";
 import { useStyles, useTheme } from "../../theme/theme-provider";
 
-const { exporter } = container;
-
 const FORMATS: ExportFormat[] = ["json", "csv"];
 
 export default function ExportScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
+  // Per screen instance: a popped screen's late cleanup cannot reset the next visit (R5).
+  const [exporter] = useState(() => container.createExporter());
   const state = useStore(exporter.store);
   const { colors } = useTheme();
   const styles = useStyles((th) => ({
@@ -41,7 +41,7 @@ export default function ExportScreen() {
     void exporter.open(id);
     // A new visit starts from the defaults and a fresh read (D-10).
     return () => exporter.close();
-  }, [id]);
+  }, [exporter, id]);
 
   const preview = exportPreview(state, formatTime);
   const node = state.input?.node;
