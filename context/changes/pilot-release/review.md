@@ -1,7 +1,24 @@
 # Review: pilot-release
 
-Verdict: APPROVE WITH FOLLOW-UPS
-Gates: typecheck ok, lint ok, unit tests ok (91 files, 1557 tests), e2e ok (27/27 flows, emulator `guardian`), mutation ok (per `mutation.md`: licenses-presenter 100 %, privacy 100 %; not re-run) · Round: 1
+Verdict: APPROVE
+Gates: typecheck ok, lint ok, unit tests ok (91 files, 1558 tests), e2e ok (27/27 flows, emulator `guardian`, APK built in the first attempt and reused), mutation ok (per `mutation.md`; fixes touch no mutation target, not re-run) · Round: 2
+
+## Round 2 (re-review after `/fix-review`)
+
+Checked each round-1 finding marked `fixed` against the code and the evidence:
+
+| Finding | Fixed? | Evidence |
+|---------|--------|----------|
+| R1 | yes | `app.json` blocks `USE_BIOMETRIC`/`USE_FINGERPRINT`; `release-config.test.ts` asserts the list; re-captured `evidence/phase-1-release-permissions.txt` shows the release merged manifest with Bluetooth plus the sdk-23 location entries only; `docs/release.md` now states exactly that |
+| R2 | yes | `eas.json` `production` and `preview` pin `node: "24.21.0"` (matches local `node --version` and `engines >=24`); test asserts both; `docs/release.md` says pnpm comes from `packageManager` |
+| R3 | yes | `e2e/audit/screens.yaml` opens `export-open` after the stored run; `font-export.png` and `font-export-fields.png` exist (both < 300 KB) and show no clipping at 200 %; audit row, deviation and both Phase 4 human checks now include Export |
+| R4 | yes | Row, script comment and output label say "time to first frame, not Dashboard ready"; Dashboard-ready time stays the Phase 5 phone check |
+| R5 | yes | `test-plan.md` uses `<app.json version>-pr<N>.<sha>`; the `accent` clause is gone from the audit doc |
+
+No new findings: the fix commits change only config, tests, an audit flow and docs, and none of
+them introduces a regression or a lesson breach.
+
+Round-1 tables and findings follow unchanged for the record.
 
 ## Plan vs diff
 | File | Status | Note |
