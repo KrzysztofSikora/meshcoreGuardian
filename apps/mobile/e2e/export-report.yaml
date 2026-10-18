@@ -32,7 +32,12 @@ appId: io.github.krzysztofsikora.guardian
     element: "Public keys: written in full"
 - tapOn:
     id: "export-days-7"
-- assertVisible: ".*runs and .* telemetry samples.*"
+- assertVisible:
+    id: "export-days-7"
+    selected: true
+- assertVisible:
+    id: "export-days-30"
+    selected: false
 - takeScreenshot: export-preview
 - tapOn:
     id: "export-share"
@@ -40,6 +45,15 @@ appId: io.github.krzysztofsikora.guardian
     notVisible: "Preparing…"
     timeout: 15000
 - takeScreenshot: export-share-sheet
+- back
+- assertVisible: "Passwords and stored credentials are never exported"
+# Sharing the same range again rewrites the same file name (create with overwrite).
+- tapOn:
+    id: "export-share"
+- extendedWaitUntil:
+    notVisible: "Preparing…"
+    timeout: 15000
+- assertNotVisible: "Could not create the export file"
 - back
 - assertVisible: "Passwords and stored credentials are never exported"
 - back
