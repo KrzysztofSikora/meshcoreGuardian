@@ -25,7 +25,13 @@ export function Screen({
     root: { flex: 1 },
     body: { flex: 1, paddingHorizontal: th.space.xl, gap: th.space.md },
     scrollBody: { flexGrow: 1, paddingHorizontal: th.space.xl, gap: th.space.md },
-    titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: th.space.md },
+    titleRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: th.space.md,
+    },
     title: { ...th.type.title, flexShrink: 1 },
   }));
   const top = nav !== undefined ? insets.top + 12 : 12;

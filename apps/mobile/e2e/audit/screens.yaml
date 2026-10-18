@@ -1,0 +1,81 @@
+# NFR-05 audit (scripts/a11y-shots.sh): every screen with the system font scale at 200 %, one
+# screenshot each. Assertions only wait for a screen; at 200 % content sits below the fold, so
+# targets are scrolled to. Run through the script, which sets the scale.
+appId: io.github.krzysztofsikora.guardian
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Known nodes will appear here."
+    timeout: 30000
+- takeScreenshot: font-dashboard-empty
+- openLink: guardian://debug/scenario/diag-no-reply
+- extendedWaitUntil:
+    visible: "Scan for companions"
+    timeout: 10000
+- takeScreenshot: font-connect-idle
+- tapOn: "Scan for companions"
+- extendedWaitUntil:
+    visible: "Connect to MeshCore-companion"
+    timeout: 10000
+- tapOn: "Connect to MeshCore-companion"
+- extendedWaitUntil:
+    visible: "Connected"
+    timeout: 20000
+- takeScreenshot: font-connect-connected
+- back
+- extendedWaitUntil:
+    visible: "Contacts synced: 32"
+    timeout: 30000
+- takeScreenshot: font-dashboard
+- tapOn: "Room K"
+- extendedWaitUntil:
+    visible: "Run diagnostic"
+    timeout: 10000
+- takeScreenshot: font-node
+- scrollUntilVisible:
+    element: "Run diagnostic"
+- tapOn: "Run diagnostic"
+- takeScreenshot: font-node-confirm
+- tapOn: "Run diagnostic"
+- extendedWaitUntil:
+    visible: "Step: Login · Attempt 1 of 2"
+    timeout: 20000
+- takeScreenshot: font-run
+- extendedWaitUntil:
+    visible: "No response — cause unknown"
+    timeout: 90000
+- takeScreenshot: font-node-result
+- scrollUntilVisible:
+    element: "View details"
+- tapOn: "View details"
+- extendedWaitUntil:
+    visible: "Diagnostic run"
+    timeout: 10000
+- takeScreenshot: font-result
+- scrollUntilVisible:
+    element: "Possible causes. None of them is confirmed."
+- takeScreenshot: font-result-causes
+- scrollUntilVisible:
+    element: "Next steps"
+- takeScreenshot: font-result-steps
+- openLink: guardian://settings
+- extendedWaitUntil:
+    visible: "Timeout: Auto"
+    timeout: 10000
+- takeScreenshot: font-settings
+- scrollUntilVisible:
+    element: "Open-source licences"
+- tapOn: "Open-source licences"
+- extendedWaitUntil:
+    visible: "MeshCore Guardian is built with these open-source packages."
+    timeout: 10000
+- takeScreenshot: font-licenses
+- back
+- scrollUntilVisible:
+    element: "Privacy policy"
+- tapOn: "Privacy policy"
+- extendedWaitUntil:
+    visible: "Guest passwords"
+    timeout: 10000
+- takeScreenshot: font-privacy
