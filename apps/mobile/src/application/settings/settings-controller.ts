@@ -23,7 +23,7 @@ export interface SettingsState {
 
 export type SaveResult =
   | { ok: true }
-  | { ok: false; reason: "OUT_OF_RANGE"; range: readonly [number, number] }
+  | { ok: false; reason: "OUT_OF_RANGE"; field: "timeout" | "attempts"; range: readonly [number, number] }
   | { ok: false; reason: "STORAGE_ERROR" };
 
 /**
@@ -64,7 +64,7 @@ export class SettingsController {
   async setTimeout(input: string | "auto"): Promise<SaveResult> {
     if (input === "auto") return this.save({ timeoutOverrideS: null });
     const parsed = parseTimeoutInput(input);
-    if (!parsed.ok) return { ok: false, reason: "OUT_OF_RANGE", range: TIMEOUT_RANGE_S };
+    if (!parsed.ok) return { ok: false, reason: "OUT_OF_RANGE", field: "timeout", range: TIMEOUT_RANGE_S };
     return this.save({ timeoutOverrideS: parsed.seconds });
   }
 
@@ -90,7 +90,7 @@ export class SettingsController {
       await this.load();
       const next = { ...this.getState().settings, ...change };
       if (!isValidSettings(next)) {
-        return { ok: false, reason: "OUT_OF_RANGE", range: ATTEMPTS_RANGE };
+        return { ok: false, reason: "OUT_OF_RANGE", field: "attempts", range: ATTEMPTS_RANGE };
       }
       try {
         await this.persistence.write(serializeSettings(next));

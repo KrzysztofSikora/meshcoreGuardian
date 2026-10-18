@@ -87,9 +87,15 @@ describe("settingsView (FR-15 AC1)", () => {
 
 describe("saveProblem (FR-15 AC3)", () => {
   it("states the allowed range", () => {
-    expect(saveProblem({ ok: false, reason: "OUT_OF_RANGE", range: [5, 60] })).toEqual({
+    expect(saveProblem({ ok: false, reason: "OUT_OF_RANGE", field: "timeout", range: [5, 60] })).toEqual({
       key: "settings.timeoutRange",
       params: { min: 5, max: 60 },
+    });
+  });
+  it("names attempts, not seconds, for an attempts value", () => {
+    expect(saveProblem({ ok: false, reason: "OUT_OF_RANGE", field: "attempts", range: [1, 3] })).toEqual({
+      key: "settings.attemptsRange",
+      params: { min: 1, max: 3 },
     });
   });
   it("reports a storage failure and nothing on success", () => {

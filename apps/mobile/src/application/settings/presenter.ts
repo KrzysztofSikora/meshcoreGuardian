@@ -60,7 +60,8 @@ export function settingsView(
 export function saveProblem(result: SaveResult): Text | null {
   if (result.ok) return null;
   if (result.reason === "OUT_OF_RANGE") {
-    return { key: "settings.timeoutRange", params: { min: result.range[0], max: result.range[1] } };
+    const key = result.field === "attempts" ? "settings.attemptsRange" : "settings.timeoutRange";
+    return { key, params: { min: result.range[0], max: result.range[1] } };
   }
   return { key: "settings.saveFailed" };
 }

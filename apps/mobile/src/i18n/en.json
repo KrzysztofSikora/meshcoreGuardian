@@ -68,6 +68,7 @@
     "timeoutLabel": "Timeout in seconds",
     "timeoutHelp": "Auto picks the timeout for each check. Or enter whole seconds from {{min}} to {{max}}.",
     "timeoutRange": "Enter whole seconds from {{min}} to {{max}}.",
+    "attemptsRange": "Choose from {{min}} to {{max}} attempts.",
     "timeoutSave": "Save",
     "timeoutAutoButton": "Auto",
     "attemptsLabel": "Attempts per check",

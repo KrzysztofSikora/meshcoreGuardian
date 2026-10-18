@@ -60,7 +60,7 @@ describe("SettingsController", () => {
     const controller = await reload(store);
     const writes = store.writes;
 
-    expect(await controller.setAttempts(attempts)).toMatchObject({ ok: false, reason: "OUT_OF_RANGE" });
+    expect(await controller.setAttempts(attempts)).toMatchObject({ ok: false, reason: "OUT_OF_RANGE", field: "attempts" });
     expect(controller.policy().attempts).toBe(DEFAULT_SETTINGS.attempts);
     expect(store.writes).toBe(writes);
   });
@@ -76,6 +76,7 @@ describe("SettingsController", () => {
       expect(await controller.setTimeout(input)).toEqual({
         ok: false,
         reason: "OUT_OF_RANGE",
+        field: "timeout",
         range: [5, 60],
       });
       expect(controller.policy().overrideMs).toBe(20_000);
