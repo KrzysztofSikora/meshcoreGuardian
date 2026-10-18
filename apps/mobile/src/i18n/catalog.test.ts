@@ -10,6 +10,8 @@ import {
 } from "@guardian/domain";
 import { describe, expect, it } from "vitest";
 
+import { EXPORT_DAYS } from "../application/export/export-controller";
+import { exportPreview } from "../application/export/presenter";
 import { statusText } from "../application/diagnostics/presenter";
 import {
   lastResponseText,
@@ -339,6 +341,50 @@ describe("en catalog", () => {
     }
     for (const value of values(en.battery)) {
       expect(value).not.toMatch(/remaining|left|estimat|predict/i);
+    }
+  });
+  it("has every text the export screen and presenter can produce", () => {
+    const base = {
+      publicKey: "a".repeat(64),
+      days: 30 as const,
+      format: "json" as const,
+      redactKeys: true,
+      status: "ok" as const,
+      loaded: true,
+      share: "idle" as const,
+    };
+    const node = { publicKey: "a".repeat(64), reportedName: "n" } as never;
+    const input = {
+      node,
+      runs: [],
+      samples: [],
+      range: { from: 0, to: 1 },
+      generatedAt: 1,
+      generatedBy: "t",
+    };
+    const texts = [];
+    for (const redactKeys of [true, false])
+      for (const format of ["json", "csv"] as const)
+        for (const share of ["idle", "unavailable", "failed"] as const)
+          for (const status of ["ok", "error", "notFound"] as const) {
+            const preview = exportPreview(
+              { ...base, redactKeys, format, share, status, input },
+              String,
+            );
+            texts.push(
+              ...preview.redactions,
+              ...preview.neverIncluded,
+              ...[preview.problem, preview.range, preview.counts, preview.emptyNotice, preview.shareProblem].filter(
+                (text) => text !== null,
+              ),
+            );
+          }
+    const withRuns = exportPreview({ ...base, input: { ...input, runs: [{}] as never } }, String);
+    texts.push(withRuns.counts!, { key: "export.title" }, { key: "export.open" }, { key: "export.share" });
+    for (const days of EXPORT_DAYS) texts.push({ key: `export.days${days}` });
+    for (const text of texts) {
+      expect(i18n.exists(text.key), text.key).toBe(true);
+      expect(tr(i18n.t, text), text.key).not.toMatch(/\{\{|\$t\(|undefined/);
     }
   });
 });

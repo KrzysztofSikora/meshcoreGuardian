@@ -166,6 +166,7 @@ describe("NodeHistoryController (FR-07, FR-08 AC2)", () => {
         const real = new SqliteTelemetryRepository(testDb.driver);
         return {
           latestForNode: (key) => real.latestForNode(key),
+          forRuns: (ids) => real.forRuns(ids),
           voltageForNode: (key, n) =>
             fail ? Promise.reject(new Error("disk on fire")) : real.voltageForNode(key, n),
         };

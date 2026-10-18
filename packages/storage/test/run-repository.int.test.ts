@@ -236,6 +236,51 @@ describe("SqliteDiagnosticRunRepository", () => {
     expect(await repo.recentForNode("ee".repeat(32), 10)).toEqual([]);
   });
 
+  it("reads a node's runs in a finishedAt range, inclusive, oldest first, with checks", async () => {
+    const repo = await setup();
+    await repo.save(makeRun({ finishedAt: 999 }));
+    const lo = await repo.save(makeRun({ finishedAt: 1_000 }));
+    const mid2 = await repo.save(makeRun({ finishedAt: 2_000 }));
+    const mid1 = await repo.save(makeRun({ finishedAt: 2_000 }));
+    const hi = await repo.save(makeRun({ finishedAt: 3_000 }));
+    await repo.save(makeRun({ finishedAt: 3_001 }));
+    await repo.save(makeRun({ nodePublicKey: OTHER, finishedAt: 2_000 }));
+
+    const inRange = await repo.forNodeBetween(NODE, 1_000, 3_000);
+
+    expect(inRange.map((r) => r.id)).toEqual([lo, mid2, mid1, hi]);
+    expect(inRange[0]?.checks).toEqual(checks);
+    expect(inRange.every((r) => r.checks.length === 3)).toBe(true);
+    expect(await repo.forNodeBetween(NODE, 4_000, 5_000)).toEqual([]);
+    expect(await repo.forNodeBetween("ee".repeat(32), 0, 9_999)).toEqual([]);
+  });
+
+  it("keeps each run's own checks in seq order when reading a range", async () => {
+    const repo = await setup();
+    const one = await repo.save(makeRun({ finishedAt: 10, checks: [checks[2]!, checks[0]!] }));
+    const two = await repo.save(makeRun({ finishedAt: 20, checks: [checks[1]!] }));
+
+    const runs = await repo.forNodeBetween(NODE, 0, 100);
+
+    expect(runs.map((r) => [r.id, r.checks.map((c) => c.kind)])).toEqual([
+      [one, ["telemetry", "login"]],
+      [two, ["status"]],
+    ]);
+  });
+
+  it("returns a run without checks as an empty list in a range", async () => {
+    const repo = await setup();
+    await repo.save(makeRun({ finishedAt: 10, checks: [] }));
+    expect((await repo.forNodeBetween(NODE, 0, 100))[0]?.checks).toEqual([]);
+  });
+
+  it("fails to read a range that holds a corrupt check", async () => {
+    const repo = await setup();
+    const id = await repo.save(makeRun({ finishedAt: 10 }));
+    await testDb!.driver.run("UPDATE diagnostic_checks SET evidence_json = '{' WHERE run_id = ?", [id]);
+    await expect(repo.forNodeBetween(NODE, 0, 100)).rejects.toThrow();
+  });
+
   it("reports the last response even when a later run got none", async () => {
     const repo = await setup();
     expect(await repo.lastRespondedAt(NODE)).toBeNull();

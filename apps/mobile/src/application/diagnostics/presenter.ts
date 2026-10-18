@@ -88,7 +88,8 @@ export type IconName =
   | "sliders"
   | "compass"
   | "info"
-  | "search";
+  | "search"
+  | "download";
 
 export type Tone = "ok" | "warn" | "unsupported" | "info" | "neutral";
 

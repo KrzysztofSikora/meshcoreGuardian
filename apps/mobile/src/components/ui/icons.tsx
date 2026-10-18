@@ -79,6 +79,8 @@ function Shapes({ name }: { name: IconName }) {
           <Path d="M12 11v5M12 8h.01" />
         </>
       );
+    case "download":
+      return <Path d="M12 4v11M7 10l5 5 5-5M5 20h14" />;
     case "search":
       return (
         <>

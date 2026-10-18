@@ -56,6 +56,9 @@ class MemoryRuns implements DiagnosticRunRepository {
   async recentForNode(): Promise<DiagnosticRun[]> {
     return [];
   }
+  async forNodeBetween(): Promise<DiagnosticRun[]> {
+    return [];
+  }
   async lastRespondedAt(): Promise<number | null> {
     return null;
   }

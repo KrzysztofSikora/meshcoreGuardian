@@ -36,6 +36,9 @@ appId: io.github.krzysztofsikora.guardian
 - assertVisible: "Not enough data to determine trend"
 - assertNotVisible:
     id: "voltage-row-0"
+# The Export button made the page taller: bring the toggle on screen before the tap.
+- scrollUntilVisible:
+    element: "Show values"
 - tapOn: "Show values"
 - scrollUntilVisible:
     element:

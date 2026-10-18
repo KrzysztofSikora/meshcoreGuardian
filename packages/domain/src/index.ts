@@ -99,3 +99,8 @@ export type {
   TelemetrySource,
   TelemetryValue,
 } from "./telemetry/samples";
+export { EXPORT_SCHEMA_VERSION, buildReport } from "./export/report";
+export type { ExportInput, ExportReport, ExportRun, ExportSignal } from "./export/report";
+export { EXPORT_FORMATS, JSON_FIELDS, exportKey, exportManifest } from "./export/redact";
+export type { ExportFormat, ExportManifest, NeverIncluded, Redaction } from "./export/redact";
+export { CSV_COLUMNS, toCsv, toJson } from "./export/serialize";

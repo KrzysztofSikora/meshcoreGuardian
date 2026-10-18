@@ -115,6 +115,9 @@ function toRun(raw: unknown, checks: CheckOutcome[]): DiagnosticRun {
   };
 }
 
+/** Ids per `IN (...)` query, well under SQLite's bound-variable limit. */
+const ID_BATCH = 500;
+
 const RUN_SELECT = `SELECT r.id, d.public_key AS node_public_key, r.companion_public_key,
   r.companion_name, r.companion_firmware, r.started_at, r.finished_at, r.duration_ms,
   r.attempts_used, r.attempts_per_check, r.result, r.reason, r.limitations_json
@@ -207,6 +210,31 @@ export class SqliteDiagnosticRunRepository implements DiagnosticRunRepository {
       [publicKey, limit],
     );
     return rows.map((row) => toRun(row, []));
+  }
+
+  async forNodeBetween(publicKey: string, from: number, to: number): Promise<DiagnosticRun[]> {
+    const rows = await this.driver.all<unknown>(
+      `${RUN_SELECT} WHERE d.public_key = ? AND r.finished_at >= ? AND r.finished_at <= ?
+       ORDER BY r.finished_at, r.id`,
+      [publicKey, from, to],
+    );
+    const runs = rows.map((row) => runRowSchema.parse(row));
+    const checksByRun = new Map<number, CheckOutcome[]>();
+    for (let i = 0; i < runs.length; i += ID_BATCH) {
+      const ids = runs.slice(i, i + ID_BATCH).map((run) => run.id);
+      const checkRows = await this.driver.all<{ run_id: number }>(
+        `SELECT run_id, kind, result, reason, attempts, timeout_ms, timeout_source, started_at,
+           duration_ms, evidence_json FROM diagnostic_checks
+         WHERE run_id IN (${ids.map(() => "?").join(",")}) ORDER BY run_id, seq`,
+        ids,
+      );
+      for (const row of checkRows) {
+        const list = checksByRun.get(row.run_id) ?? [];
+        list.push(toCheck(row));
+        checksByRun.set(row.run_id, list);
+      }
+    }
+    return rows.map((row, index) => toRun(row, checksByRun.get(runs[index]!.id) ?? []));
   }
 
   async lastRespondedAt(publicKey: string): Promise<number | null> {

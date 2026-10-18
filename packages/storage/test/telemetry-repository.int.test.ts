@@ -247,6 +247,50 @@ describe("SqliteTelemetryRepository", () => {
     await expect(samples.latestForNode(NODE)).rejects.toThrow();
   });
 
+  describe("forRuns", () => {
+    it("returns the samples of exactly the given runs by run id then check order", async () => {
+      const { runs, samples } = await setup();
+      const a = await runs.save(makeRun(10_000, [statusCheck(2_000), telemetryCheck(3_000)]));
+      const b = await runs.save(makeRun(20_000, [statusCheck(12_000)]));
+      await runs.save(makeRun(30_000, [statusCheck(22_000)]));
+      await runs.save(makeRun(15_000, [statusCheck(5_000)], OTHER));
+
+      const stored = await samples.forRuns([b, a]);
+
+      expect(stored.map((s) => [s.runId, s.checkSeq, s.source])).toEqual([
+        [a, 0, "status"],
+        [a, 1, "telemetry"],
+        [b, 0, "status"],
+      ]);
+      expect(stored[0]?.rssiDbm).toEqual({ value: -34, scope: "last_hop" });
+    });
+
+    it("returns [] for no ids, unknown ids and runs without samples", async () => {
+      const { runs, samples } = await setup();
+      const bare = await runs.save(makeRun(10_000, [noReply("status")]));
+      expect(await samples.forRuns([])).toEqual([]);
+      expect(await samples.forRuns([bare, 9_999])).toEqual([]);
+    });
+
+    it("reads more runs than one query batch holds", async () => {
+      const { runs, samples } = await setup();
+      const ids: number[] = [];
+      for (let i = 0; i < 1_200; i += 1) {
+        ids.push(await runs.save(makeRun(10_000 + i, [statusCheck(i)])));
+      }
+      const stored = await samples.forRuns(ids);
+      expect(stored).toHaveLength(1_200);
+      expect(stored.map((s) => s.runId)).toEqual(ids);
+    });
+
+    it("fails to read a row with a broken extra_json", async () => {
+      const { runs, samples } = await setup();
+      const id = await runs.save(makeRun(10_000, [statusCheck(2_000)]));
+      await testDb!.driver.run("UPDATE telemetry_samples SET extra_json = '{'");
+      await expect(samples.forRuns([id])).rejects.toThrow();
+    });
+  });
+
   describe("voltageForNode", () => {
     const withVoltage = (mv: number): CheckOutcome => ({
       ...statusCheck(1),
