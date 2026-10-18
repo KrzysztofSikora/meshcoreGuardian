@@ -1,0 +1,41 @@
+# NFR-06 trace flow (scripts/perf-trace.sh, not a gate; lives in perf/ so `maestro test apps/mobile/e2e` skips it).
+# Seeds 200 nodes and 1,000 runs, scrolls the dashboard, the target node's 50-row history and its
+# 50 expanded voltage rows. The seed took about 4 s on the emulator; SEED_WAIT_MS (default 30000) leaves a wide margin for slower hosts.
+appId: io.github.krzysztofsikora.guardian
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Known nodes will appear here."
+    timeout: 30000
+- openLink: guardian://debug/seed/large-history
+- extendedWaitUntil:
+    visible: "Seed node 1"
+    timeout: ${SEED_WAIT_MS}
+- repeat:
+    times: 12
+    commands:
+      - swipe:
+          direction: UP
+          duration: 400
+- scrollUntilVisible:
+    element: "Seed node 1"
+    direction: UP
+    timeout: 60000
+    speed: 60
+- tapOn: "Seed node 1"
+- scrollUntilVisible:
+    element: "Battery voltage \\(V\\)"
+- tapOn: "Show values"
+- repeat:
+    times: 15
+    commands:
+      - swipe:
+          direction: UP
+          duration: 400
+- repeat:
+    times: 15
+    commands:
+      - swipe:
+          direction: DOWN
+          duration: 400

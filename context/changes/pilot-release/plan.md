@@ -260,7 +260,7 @@
 - [x] Phase 2: Licences screen
 - [x] Phase 3: Privacy policy
 - [x] Phase 4: Accessibility audit and fixes
-- [ ] Phase 5: Performance seed, trace and record
+- [x] Phase 5: Performance seed, trace and record
 
 ## Human checks
 <!-- Filled by /implement: one open checkbox per human check, with how to run it and evidence. -->
@@ -272,6 +272,7 @@
 - [ ] (Phase 3) Fill in the Data safety form so that it matches the policy ("no data collected", "no data shared") — run: Play Console → App content → Data safety — evidence: none
 - [ ] (Phase 4) On the phone (CI APK), set the font size to the largest and display size to large, and walk Connect → Dashboard → Node → Run → Settings looking for clipped or overlapping text — run: Settings → Display → Font size and style / Display size — evidence: `context/changes/pilot-release/evidence/font-200/` (emulator, 200 %), `docs/accessibility-audit.md`
 - [ ] (Phase 4) Turn TalkBack on and confirm every control on those screens is announced with a meaningful name and run status is spoken in words — run: Settings → Accessibility → TalkBack — evidence: none (labels listed in `docs/accessibility-audit.md`)
+- [ ] (Phase 5) On the mid-range phone: run the `ci` workflow with `transport=fake`, export data, uninstall Guardian, install the `-fake` APK, open `guardian://debug/seed/large-history`, check scroll smoothness with HWUI bars and cold start ≤ 3 s, write the results into `docs/performance.md`, then reinstall the BLE APK — run: `gh workflow run ci.yml --ref change/pilot-release -f transport=fake` — evidence: `context/changes/pilot-release/evidence/perf-emulator.txt` (emulator run)
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
@@ -288,6 +289,8 @@
 - [FOLLOW-UP] The IBM Plex row on the Licences screen reads "Version fonts" (the notice's version field is the literal "fonts").
 - [FOLLOW-UP] Notices for native Android libraries (AndroidX, Hermes, OkHttp…) in the licences
   screen, e.g. from a Gradle licence plugin (D-3 covers JS packages and fonts only).
+- [minor] Phase 5: the perf flow starts the app itself (clearState), so `gfxinfo` counts frames from that launch to the end of the flow instead of being reset right before the scrolls; the seed wait is a short no-input span. The dashboard sorts by name, so the flow scrolls back to "Seed node 1" with `scrollUntilVisible`. Emulator seed took about 4 s; `SEED_WAIT_MS` defaults to 30 s.
+- [minor] Phase 5: `container.nodeRepository` was added next to `runRepository` for the seed route (debug use only).
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->

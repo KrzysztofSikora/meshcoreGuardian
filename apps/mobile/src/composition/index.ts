@@ -101,5 +101,6 @@ export const container = {
     }),
   // Debug seed routes only (fake build); the controllers above own every other access.
   runRepository: async () => new SqliteDiagnosticRunRepository(await db()),
+  nodeRepository: async () => new SqliteNodeRepository(await db()),
   runs,
 };

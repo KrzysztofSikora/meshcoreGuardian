@@ -4,6 +4,13 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      transport:
+        description: "Transport of the android-apk build; fake is for the performance trace (docs/performance.md)"
+        type: choice
+        options: [ble, fake]
+        default: ble
 
 permissions:
   contents: read
@@ -73,12 +80,15 @@ jobs:
           jq --arg v "$name" --argjson c "${{ github.run_number }}" \
             '.expo.version = $v | .expo.android.versionCode = $c' apps/mobile/app.json > app.json.tmp
           mv app.json.tmp apps/mobile/app.json
-          echo "file=meshcore-guardian-$tag-$sha" >> "$GITHUB_OUTPUT"
+          suffix=""
+          if [ "${{ inputs.transport }}" = fake ]; then suffix="-fake"; fi
+          echo "file=meshcore-guardian-$tag-$sha$suffix" >> "$GITHUB_OUTPUT"
           echo "name=$name" >> "$GITHUB_OUTPUT"
       - name: Build release APK (arm64-v8a)
         working-directory: apps/mobile
         env:
           NODE_ENV: production
+          EXPO_PUBLIC_TRANSPORT: ${{ inputs.transport == 'fake' && 'fake' || '' }}
         run: |
           pnpm exec expo prebuild --platform android --no-install
           cd android
