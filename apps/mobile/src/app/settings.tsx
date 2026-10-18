@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert, Switch, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -22,6 +23,7 @@ const ATTEMPT_IDS = ["1", "2", "3"] as const;
 export default function SettingsScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const router = useRouter();
   const state = useStore(container.settings.store);
   const session = useStore(container.session.store);
   const runs = useStore(container.runs.store);
@@ -181,6 +183,12 @@ export default function SettingsScreen() {
               </>
             )}
             <Text style={[styles.small, { color: colors.textMuted }]}>{t("settings.transport", { mode })}</Text>
+            <AppButton
+              testID="settings-open-licenses"
+              title={t("settings.openLicenses")}
+              variant="secondary"
+              onPress={() => router.push("/licenses")}
+            />
           </Card>
 
           <Card>

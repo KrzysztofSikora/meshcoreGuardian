@@ -8,3 +8,4 @@ apps/mobile/.expo/
 .workflow/
 context/
 *.md
+apps/mobile/src/licenses/notices.json

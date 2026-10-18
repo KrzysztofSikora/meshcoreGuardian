@@ -257,7 +257,7 @@
 ## Progress
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
 - [x] Phase 1: Release build config
-- [ ] Phase 2: Licences screen
+- [x] Phase 2: Licences screen
 - [ ] Phase 3: Privacy policy
 - [ ] Phase 4: Accessibility audit and fixes
 - [ ] Phase 5: Performance seed, trace and record
@@ -266,6 +266,7 @@
 <!-- Filled by /implement: one open checkbox per human check, with how to run it and evidence. -->
 - [ ] (Phase 1) Build and upload the AAB; the Play Console accepts it (FR-20 AC1) — run: follow `docs/release.md` (`eas init`, `eas build -p android --profile production`, manual first upload to the internal track) — evidence: none
 - [ ] (Phase 1) Install from the Play internal link; the app info screen lists no network permission — run: Settings → Apps → MeshCore Guardian → Permissions — evidence: `context/changes/pilot-release/evidence/phase-1-release-permissions.txt` (merged release manifest, local build)
+- [ ] (Phase 2) Open Settings → Open-source licences on the CI APK; the list starts with meshcore.js and IBM Plex, the expanded meshcore.js text is readable, the wording is acceptable — run: install the `android-apk` artifact, Settings → Open-source licences → "Show licence text: @liamcottle/meshcore.js" — evidence: none (e2e `licenses.yaml` passes on the emulator)
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
@@ -275,6 +276,7 @@
   the trace measures the screens as they are (50 history rows, 50 voltage rows, 200 dashboard rows);
   `docs/performance.md` says so. Alternative: add paging so 1,000 rows can render (out of scope, a
   new change).
+- [minor] Phase 2: `notices.json` has 81 entries; 9 packages (e.g. `expo-router`, `metro-runtime`) ship no licence file, so their rows show "Licence text not included in the package; licence: MIT" (the plan's `text: null` case).
 - [FOLLOW-UP] Notices for native Android libraries (AndroidX, Hermes, OkHttp…) in the licences
   screen, e.g. from a Gradle licence plugin (D-3 covers JS packages and fonts only).
 

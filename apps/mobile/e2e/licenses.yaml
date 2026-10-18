@@ -1,0 +1,29 @@
+# Tech stack: the meshcore.js MIT notice and the IBM Plex OFL text are readable in the app,
+# offline. Settings -> Open-source licences lists them first; back returns to Settings.
+appId: io.github.krzysztofsikora.guardian
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Known nodes will appear here."
+    timeout: 30000
+- openLink: guardian://settings
+- extendedWaitUntil:
+    visible: "Timeout: Auto"
+    timeout: 10000
+- scrollUntilVisible:
+    element: "Open-source licences"
+- tapOn: "Open-source licences"
+- extendedWaitUntil:
+    visible: "MeshCore Guardian is built with these open-source packages."
+    timeout: 10000
+- assertVisible: "@liamcottle/meshcore.js"
+- tapOn: "Show licence text: @liamcottle/meshcore.js"
+- assertVisible: ".*Liam Cottle.*"
+- assertVisible: "Hide licence text: @liamcottle/meshcore.js"
+- takeScreenshot: licenses
+- back
+- extendedWaitUntil:
+    visible: "Timeout: Auto"
+    timeout: 10000
+- assertNotVisible: "MeshCore Guardian is built with these open-source packages."

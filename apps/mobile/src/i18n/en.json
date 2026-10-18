@@ -58,6 +58,14 @@
     "bullet": "• {{text}}",
     "notFound": "This run is not stored on this phone."
   },
+  "licenses": {
+    "title": "Open-source licences",
+    "intro": "MeshCore Guardian is built with these open-source packages.",
+    "summary": "Version {{version}} · Licence: {{id}}",
+    "show": "Show licence text: {{name}}",
+    "hide": "Hide licence text: {{name}}",
+    "textMissing": "Licence text not included in the package; licence: {{id}}"
+  },
   "settings": {
     "title": "Settings",
     "loading": "Loading settings…",
@@ -84,6 +92,7 @@
     "untested": "{{title}}. {{body}}",
     "noCompanion": "Connect a companion to see its firmware.",
     "transport": "Transport: {{mode}}",
+    "openLicenses": "Open-source licences",
     "data": "Data on this phone",
     "dataHelp": "Deleting a node's history removes its runs, checks, battery samples, label, role and guest password. The node stays in your contacts.",
     "noHistory": "No node has stored history.",
