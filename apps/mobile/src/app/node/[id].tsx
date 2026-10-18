@@ -160,6 +160,9 @@ function NodeDetails({ node }: { node: Node }) {
       {!node.inContacts && <Muted>{t("nodes.notInContacts")}</Muted>}
 
       <RunPanel node={node} />
+      <Link href={{ pathname: "/export/[id]", params: { id: node.publicKey } }} asChild>
+        <AppButton title={t("export.open")} variant="secondary" icon="download" fullWidth />
+      </Link>
       {card !== null && <TelemetryCard model={card} />}
       {shown !== null && <VoltageCard samples={shown.samples} voltage={shown.voltage} />}
 

@@ -329,7 +329,7 @@ GitHub issue: #9.
 - [x] Phase 1: Export model, redaction and serialisers in the domain
 - [x] Phase 2: Range reads in storage
 - [x] Phase 3: Export controller, schema and presenter
-- [ ] Phase 4: Export screen, share platform and node-screen button
+- [x] Phase 4: Export screen, share platform and node-screen button
 - [ ] Phase 5: e2e flow, evidence and human checks
 
 ## Human checks
@@ -345,6 +345,10 @@ GitHub issue: #9.
 - [minor] Phase 3: the controller status gets a fourth value `notFound` (plan: `loading|ok|error`) so an unknown node reads "This node is not in local storage" (`nodes.notFound`) instead of an empty range. The presenter returns `problem` for `error` and `notFound` and then no counts and no empty notice. Catalog keys it returns (`export.*`) are added with the screen in Phase 4.
 - [minor] Phase 3: `open` on the same key after an `error` reads again (plan: idempotent for the same key); otherwise the screen could not retry. If `redactionDefault()` throws, redaction stays on. `stryker.targets` gains `export-controller.ts`.
 - [minor] Phase 3: `schema.test.ts` loads the domain golden JSON files from `packages/domain/src/export/golden` by relative `import.meta.glob`; `domain/fixtures.ts` is not exported from the domain package.
+- [minor] Phase 4: plan-review finding 5. The Export button sits under the run panel as the plan says, not in a two-column row next to *Run diagnostic* as in the mockup (the run panel is a card with its own states, so a row would split it). It has the mockup's download icon (`download` added to `icons.tsx` / `IconName`).
+- [minor] Phase 4: plan-review finding 7. `ExpoExportFiles` writes with `create({ overwrite: true })`, so a second share of the same range replaces the file. `expo install` added the `expo-sharing` config plugin to `app.json`; its reformatting of the file was reverted so only that one line changed.
+- [minor] Phase 4: the export screen lists JSON fields as `group: key, key` lines and CSV columns as one comma line (testID `export-fields`). `catalog.test.ts` covers every key `exportPreview` can return plus the screen's static ones.
+- [minor] Phase 4: lesson on header height. The Export button made the node page taller and broke three flows (`diag-responded`: "Show values" below the fold; `guest-password`, `guest-password-admin`: the run button, and the airtime notice's confirm button, scrolled off). Added `scrollUntilVisible` steps in those three flows. Full suite: 21/21 passed.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->

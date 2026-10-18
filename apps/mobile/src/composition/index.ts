@@ -1,3 +1,4 @@
+import Constants from "expo-constants";
 import { DEFAULT_DIAGNOSTIC_POLICY } from "@guardian/domain";
 import {
   SqliteDiagnosticRunRepository,
@@ -7,11 +8,13 @@ import {
 
 import { CompanionSession } from "../application/connection/companion-session";
 import { RunController } from "../application/diagnostics/run-controller";
+import { ExportController } from "../application/export/export-controller";
 import { GuestPasswords } from "../application/nodes/guest-passwords";
 import { NodeHistoryController } from "../application/nodes/node-history";
 import { NodesController } from "../application/nodes/nodes-controller";
 import { parseTransportMode } from "../config/transport-mode";
 import { KvAirtimeNoticeStore } from "../platform/airtime-notice-store";
+import { ExpoExportFiles } from "../platform/export-files";
 import { ExpoSecretStore } from "../platform/secure-store";
 import { openGuardianDb } from "../platform/sqlite/open-guardian-db";
 import { createPlatform } from "./platform";
@@ -49,6 +52,16 @@ export const container = {
   history: new NodeHistoryController({
     runs: async () => new SqliteDiagnosticRunRepository(await db()),
     telemetry: async () => new SqliteTelemetryRepository(await db()),
+  }),
+  exporter: new ExportController({
+    nodes: async () => new SqliteNodeRepository(await db()),
+    runs: async () => new SqliteDiagnosticRunRepository(await db()),
+    telemetry: async () => new SqliteTelemetryRepository(await db()),
+    files: new ExpoExportFiles(),
+    clock: Date.now,
+    // Redaction on until the Settings default exists (plan D-10, S-09).
+    redactionDefault: async () => true,
+    generatedBy: `MeshCore Guardian ${Constants.expoConfig?.version ?? "unknown"}`,
   }),
   // Debug seed routes only (fake build); the controllers above own every other access.
   runRepository: async () => new SqliteDiagnosticRunRepository(await db()),
