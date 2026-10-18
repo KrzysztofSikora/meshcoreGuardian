@@ -14,6 +14,7 @@ packages/meshcore-adapter/src/decode/*.ts
 packages/domain/src/export/report.ts
 packages/domain/src/export/redact.ts
 packages/domain/src/export/serialize.ts
+apps/mobile/src/application/export/export-controller.ts
 packages/domain/src/trend.ts
 packages/storage/src/sync/contacts.ts
 apps/mobile/src/application/connection/companion-session.ts

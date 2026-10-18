@@ -328,7 +328,7 @@ GitHub issue: #9.
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
 - [x] Phase 1: Export model, redaction and serialisers in the domain
 - [x] Phase 2: Range reads in storage
-- [ ] Phase 3: Export controller, schema and presenter
+- [x] Phase 3: Export controller, schema and presenter
 - [ ] Phase 4: Export screen, share platform and node-screen button
 - [ ] Phase 5: e2e flow, evidence and human checks
 
@@ -342,6 +342,9 @@ GitHub issue: #9.
 - [minor] Phase 1: plan-review finding 6. CSV `node_name` is `reportedName`, `node_label` is `userLabel`, and all CSV times are ISO 8601 UTC like the JSON. Added to the file contract here (D-2 text unchanged).
 - [minor] Phase 1: `ExportFormat` / `EXPORT_FORMATS` live in `redact.ts` (the manifest needs them); the JSON manifest has an extra group `runs[].companion` and a root group `report`; `mutation` target list gains `report.ts` (test-plan and `stryker.targets`).
 - [minor] Phase 2: plan-review findings 2 and 3. `TelemetryRepository` gets `forRuns(runIds)` instead of `forNodeBetween` (D-14); Phase 3's controller reads runs first, then `telemetry.forRuns(runs.map(r => r.id))`. `run-controller.int.test.ts` (`MemoryRuns`) and `node-history.int.test.ts` (telemetry literal) got the new methods. Both repositories read ids in batches of 500 (SQLite variable limit), so a 90-day range cannot hit it.
+- [minor] Phase 3: the controller status gets a fourth value `notFound` (plan: `loading|ok|error`) so an unknown node reads "This node is not in local storage" (`nodes.notFound`) instead of an empty range. The presenter returns `problem` for `error` and `notFound` and then no counts and no empty notice. Catalog keys it returns (`export.*`) are added with the screen in Phase 4.
+- [minor] Phase 3: `open` on the same key after an `error` reads again (plan: idempotent for the same key); otherwise the screen could not retry. If `redactionDefault()` throws, redaction stays on. `stryker.targets` gains `export-controller.ts`.
+- [minor] Phase 3: `schema.test.ts` loads the domain golden JSON files from `packages/domain/src/export/golden` by relative `import.meta.glob`; `domain/fixtures.ts` is not exported from the domain package.
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->
