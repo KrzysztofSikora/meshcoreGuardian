@@ -5,12 +5,10 @@ android:name="android.permission.BLUETOOTH"
 android:name="android.permission.BLUETOOTH_ADMIN"
 android:name="android.permission.BLUETOOTH_CONNECT"
 android:name="android.permission.BLUETOOTH_SCAN"
-android:name="android.permission.USE_BIOMETRIC"
-android:name="android.permission.USE_FINGERPRINT"
+android:name="io.github.krzysztofsikora.guardian.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
 android:name="io.github.krzysztofsikora.guardian.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
 
 ## debug (merged manifest)
-android:name="android.permission.SYSTEM_ALERT_WINDOW"
 android:name="android.permission.ACCESS_COARSE_LOCATION"
 android:name="android.permission.ACCESS_FINE_LOCATION"
 android:name="android.permission.BLUETOOTH"
@@ -18,8 +16,8 @@ android:name="android.permission.BLUETOOTH_ADMIN"
 android:name="android.permission.BLUETOOTH_CONNECT"
 android:name="android.permission.BLUETOOTH_SCAN"
 android:name="android.permission.INTERNET"
-android:name="android.permission.USE_BIOMETRIC"
-android:name="android.permission.USE_FINGERPRINT"
+android:name="android.permission.SYSTEM_ALERT_WINDOW"
+android:name="io.github.krzysztofsikora.guardian.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
 android:name="io.github.krzysztofsikora.guardian.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
 
-note: ACCESS_*_LOCATION are uses-permission-sdk-23 maxSdkVersion=30 (react-native-ble-plx); minSdk is 31, so they never apply. SYSTEM_ALERT_WINDOW in debug comes from the debug-only manifest.
+note: ACCESS_*_LOCATION are uses-permission-sdk-23 maxSdkVersion=30 (react-native-ble-plx); minSdk is 31, so they never apply. SYSTEM_ALERT_WINDOW in debug comes from the debug-only manifest. USE_BIOMETRIC/USE_FINGERPRINT are blocked in app.json (R1).

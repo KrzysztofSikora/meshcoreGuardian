@@ -18,6 +18,11 @@ describe("eas.json", () => {
     expect(eas.build.production.android.buildType).toBe("app-bundle");
   });
 
+  it("pins the Node version EAS builds with to the repo's engine", () => {
+    expect(eas.build.production.node).toMatch(/^24\./);
+    expect(eas.build.preview.node).toBe(eas.build.production.node);
+  });
+
   it("uses the real BLE transport in production", () => {
     expect(eas.build.production.env ?? {}).not.toHaveProperty("EXPO_PUBLIC_TRANSPORT");
   });
@@ -41,6 +46,8 @@ describe("app.json", () => {
       "android.permission.VIBRATE",
       "android.permission.READ_EXTERNAL_STORAGE",
       "android.permission.WRITE_EXTERNAL_STORAGE",
+      "android.permission.USE_BIOMETRIC",
+      "android.permission.USE_FINGERPRINT",
     ]);
   });
 

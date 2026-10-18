@@ -10,9 +10,12 @@ person's step. Signing keys and the Play service-account key stay outside the re
   is never reused. The user-visible version is `expo.version` in `apps/mobile/app.json`.
 - Signing: EAS creates and stores the upload keystore on the first `eas build`. Play App Signing
   holds the app signing key, so a lost upload key can be reset through Play support.
-- Permissions: the release manifest asks for Bluetooth only. `INTERNET` is removed from the
+- Permissions: the release manifest asks for Bluetooth
+  (plus `ACCESS_*_LOCATION`, which react-native-ble-plx limits to Android 11 and older; minSdk is 31, so
+  they never apply). `INTERNET` is removed from the
   release variant by `apps/mobile/plugins/with-release-no-internet.js`; debug builds keep it
-  because Metro needs it. Unused Expo defaults are blocked in `app.json`.
+  because Metro needs it. Unused defaults (including the biometric permissions `expo-secure-store` adds) are blocked in `app.json`.
+  `eas.json` pins Node 24.21.0 to match `engines`; pnpm is taken from `packageManager`.
   If the app is ever found to need `INTERNET`, drop the plugin and update the wording here and in
   the human checks; the privacy policy claims behaviour ("makes no network requests"), not a permission.
 
