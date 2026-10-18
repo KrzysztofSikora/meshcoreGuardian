@@ -79,4 +79,4 @@ Round 2 re-checked R1-R3 against b064e6e, 72688d2 and ca5f2c9: all three are fix
 - Fix: add the field to the result (`field: "timeout" | "attempts"`) and let `saveProblem` choose the message, or make `setAttempts` check `ATTEMPTS_RANGE` itself and keep `save()`'s check as an internal guard. Add a presenter test for the attempts case.
 - Effort: small
 - Lesson candidate: no
-- Decision: open
+- Decision: fixed (ac57e5d)
