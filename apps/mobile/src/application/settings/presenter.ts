@@ -109,6 +109,6 @@ export function deletionMessage(result: DeletionResult, scope: "node" | "all"): 
     case "STORAGE_ERROR":
       return { key: "settings.deleteStorageError" };
     case "SECRET_ERROR":
-      return { key: "settings.deleteSecretError" };
+      return { key: scope === "all" ? "settings.clearSecretError" : "settings.deleteSecretError" };
   }
 }

@@ -141,5 +141,6 @@ describe("deletionMessage (D-10)", () => {
     expect(deletionMessage({ ok: false, reason: "BUSY" }, "all")).toEqual({ key: "settings.busy" });
     expect(deletionMessage({ ok: false, reason: "STORAGE_ERROR" }, "node")).toEqual({ key: "settings.deleteStorageError" });
     expect(deletionMessage({ ok: false, reason: "SECRET_ERROR" }, "node")).toEqual({ key: "settings.deleteSecretError" });
+    expect(deletionMessage({ ok: false, reason: "SECRET_ERROR" }, "all")).toEqual({ key: "settings.clearSecretError" });
   });
 });

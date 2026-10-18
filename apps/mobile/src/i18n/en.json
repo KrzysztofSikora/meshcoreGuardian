@@ -99,7 +99,8 @@
     "deleted": "History deleted.",
     "clearedAll": "All data cleared.",
     "deleteStorageError": "Could not delete the stored data. Nothing was removed.",
-    "deleteSecretError": "History deleted, but the guest password could not be removed. Try again."
+    "deleteSecretError": "History deleted, but the guest password could not be removed. Try again.",
+    "clearSecretError": "All data cleared, but the guest passwords could not be removed. Try again."
   },
   "transport": {
     "ble": "BLE",
