@@ -30,6 +30,7 @@ function Navigator() {
         <Stack.Screen name="debug/scenario/[name]" options={{ headerShown: false }} />
         <Stack.Screen name="debug/theme/[scheme]" options={{ headerShown: false }} />
         <Stack.Screen name="licenses" options={{ title: t("licenses.title") }} />
+        <Stack.Screen name="privacy" options={{ title: t("privacy.title") }} />
         <Stack.Screen name="settings" options={{ title: t("settings.title"), headerShown: false }} />
       </Stack>
     </>

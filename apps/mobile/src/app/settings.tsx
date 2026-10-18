@@ -189,6 +189,12 @@ export default function SettingsScreen() {
               variant="secondary"
               onPress={() => router.push("/licenses")}
             />
+            <AppButton
+              testID="settings-open-privacy"
+              title={t("settings.openPrivacy")}
+              variant="secondary"
+              onPress={() => router.push("/privacy")}
+            />
           </Card>
 
           <Card>

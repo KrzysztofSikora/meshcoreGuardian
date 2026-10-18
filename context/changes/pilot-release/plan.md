@@ -258,7 +258,7 @@
 <!-- One line per phase. /implement ticks it in the phase's own commit. -->
 - [x] Phase 1: Release build config
 - [x] Phase 2: Licences screen
-- [ ] Phase 3: Privacy policy
+- [x] Phase 3: Privacy policy
 - [ ] Phase 4: Accessibility audit and fixes
 - [ ] Phase 5: Performance seed, trace and record
 
@@ -267,6 +267,9 @@
 - [ ] (Phase 1) Build and upload the AAB; the Play Console accepts it (FR-20 AC1) — run: follow `docs/release.md` (`eas init`, `eas build -p android --profile production`, manual first upload to the internal track) — evidence: none
 - [ ] (Phase 1) Install from the Play internal link; the app info screen lists no network permission — run: Settings → Apps → MeshCore Guardian → Permissions — evidence: `context/changes/pilot-release/evidence/phase-1-release-permissions.txt` (merged release manifest, local build)
 - [ ] (Phase 2) Open Settings → Open-source licences on the CI APK; the list starts with meshcore.js and IBM Plex, the expanded meshcore.js text is readable, the wording is acceptable — run: install the `android-apk` artifact, Settings → Open-source licences → "Show licence text: @liamcottle/meshcore.js" — evidence: none (e2e `licenses.yaml` passes on the emulator)
+- [ ] (Phase 3) Read the policy wording in the app and in `docs/privacy-policy.md` — run: install the `android-apk` artifact, Settings → Privacy policy — evidence: none (e2e `privacy.yaml` passes on the emulator)
+- [ ] (Phase 3) Publish `docs/privacy-policy.md` at a public URL, enter it in the Play Console and in `docs/release.md`, open it in a private browser window without login (FR-20 AC2) — run: follow "Publish the policy" in `docs/release.md` — evidence: none
+- [ ] (Phase 3) Fill in the Data safety form so that it matches the policy ("no data collected", "no data shared") — run: Play Console → App content → Data safety — evidence: none
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->

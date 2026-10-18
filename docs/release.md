@@ -37,6 +37,18 @@ Google requires the first upload of a new app to be done by hand.
    outside the repo (never set `serviceAccountKeyPath` in a committed file). The profile submits to
    `internal` as a draft; promotion stays in the Play Console.
 
+## Publish the policy
+
+Play needs a public, non-geofenced URL (not a PDF) as well as the in-app text.
+
+1. Publish `docs/privacy-policy.md` where you prefer (for example GitHub Pages or Google Sites).
+   The repository is private, so a link to the file in it is not public.
+2. Enter the URL in the Play Console (App content → Privacy policy) and write it under *Play
+   Console forms* below.
+3. Open it in a private browser window and confirm that it loads without login.
+4. The in-app copy (Settings → Privacy policy) comes from the catalog; a unit test keeps it equal to
+   the document. Change both together.
+
 ## Play Console forms
 
 - **Data safety:** "no data collected", "no data shared" (matches the privacy policy).
