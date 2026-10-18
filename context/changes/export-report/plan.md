@@ -330,10 +330,13 @@ GitHub issue: #9.
 - [x] Phase 2: Range reads in storage
 - [x] Phase 3: Export controller, schema and presenter
 - [x] Phase 4: Export screen, share platform and node-screen button
-- [ ] Phase 5: e2e flow, evidence and human checks
+- [x] Phase 5: e2e flow, evidence and human checks
 
 ## Human checks
 <!-- Filled by /implement: one open checkbox per human check, with how to run it and evidence. -->
+- [ ] (Phase 5) CSV share on a real phone: run one diagnostic, open Export, choose CSV, tap Share, send to a files or mail app; the file opens in a spreadsheet with one row per run and 8-character keys — run: CI APK (`android-apk` artifact) — evidence: none (emulator sheet: `evidence/export-share-sheet.png`, sample: `evidence/sample-redacted.csv`)
+- [ ] (Phase 5) JSON with "Full public keys" on: the file has the 64-character node key and no guest password (search the file for the password you saved) — run: CI APK, Export > JSON > Full public keys > Share — evidence: `evidence/sample-redacted.json` (redacted shape)
+- [ ] (Phase 5) Wording and layout of the preview (field list, redaction lines) at 200 % font scale — run: CI APK, system font size largest, open Export — evidence: `evidence/export-preview.png` (default scale)
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
@@ -349,6 +352,7 @@ GitHub issue: #9.
 - [minor] Phase 4: plan-review finding 7. `ExpoExportFiles` writes with `create({ overwrite: true })`, so a second share of the same range replaces the file. `expo install` added the `expo-sharing` config plugin to `app.json`; its reformatting of the file was reverted so only that one line changed.
 - [minor] Phase 4: the export screen lists JSON fields as `group: key, key` lines and CSV columns as one comma line (testID `export-fields`). `catalog.test.ts` covers every key `exportPreview` can return plus the screen's static ones.
 - [minor] Phase 4: lesson on header height. The Export button made the node page taller and broke three flows (`diag-responded`: "Show values" below the fold; `guest-password`, `guest-password-admin`: the run button, and the airtime notice's confirm button, scrolled off). Added `scrollUntilVisible` steps in those three flows. Full suite: 21/21 passed.
+- [minor] Phase 5: `export-report.yaml` scrolls to each preview text (the preview card is below the fold) instead of asserting directly; the node screen's Export button got `testID="export-open"`. The flow asserts Share was tapped and the share sheet screenshot shows it opening on the emulator (Quick Share, Drive, Gmail). Full suite: 22/22 (21 on the full run plus this flow rerun after the scroll fix).
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->

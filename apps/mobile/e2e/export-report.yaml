@@ -1,0 +1,46 @@
+# FR-13 AC1/AC2/AC5: the export screen previews counts, fields and redactions, and Share opens the sheet.
+appId: io.github.krzysztofsikora.guardian
+---
+- runFlow:
+    file: lib/connect-diag.yaml
+    env:
+      SCENARIO: diag-ok
+- back
+- openLink: guardian://debug/seed/voltage-history
+- scrollUntilVisible:
+    element:
+      id: "export-open"
+- tapOn:
+    id: "export-open"
+- extendedWaitUntil:
+    visible: "Export report|Room K"
+    timeout: 10000
+- assertVisible: "Last 30 days"
+- assertVisible: ".*6 runs and .* telemetry samples.*"
+- scrollUntilVisible:
+    element: "Public keys: shortened to a 4-byte prefix"
+- scrollUntilVisible:
+    element: "Passwords and stored credentials are never exported"
+# The column list is rendered only by the preview, so this proves the CSV choice reached it.
+- tapOn:
+    id: "export-format-csv"
+- scrollUntilVisible:
+    element: ".*companion_public_key.*"
+- tapOn:
+    id: "export-full-keys"
+- scrollUntilVisible:
+    element: "Public keys: written in full"
+- tapOn:
+    id: "export-days-7"
+- assertVisible: ".*runs and .* telemetry samples.*"
+- takeScreenshot: export-preview
+- tapOn:
+    id: "export-share"
+- extendedWaitUntil:
+    notVisible: "Preparing…"
+    timeout: 15000
+- takeScreenshot: export-share-sheet
+- back
+- assertVisible: "Passwords and stored credentials are never exported"
+- back
+- assertVisible: "Diagnostic"
