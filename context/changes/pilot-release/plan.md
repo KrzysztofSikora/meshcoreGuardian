@@ -11,7 +11,8 @@
 - `docs/accessibility-audit.md` records contrast, labels, colour-only status and 200 % font scale
   per screen, and fixes the failures it finds (NFR-05).
 - `docs/performance.md` records an emulator profiler trace (frame stats) with a seeded 200 nodes
-  and 1,000 runs, plus cold start time. Measuring on the mid-range phone is a human check (NFR-06).
+  and 1,000 runs (the node screen renders its 50-run caps; see `[REVIEW]` deviation), plus cold
+  start time. Measuring on the mid-range phone is a human check (NFR-06).
 - Success criteria (definition of done): the pilot checklist in `docs/release.md` names the
   hardware checks a person signs off before inviting testers.
 
@@ -45,12 +46,24 @@
   (`components/ui/screen.tsx`) takes `scroll`; long lists use `FlatList`
   (`app/index.tsx:101`, `app/node/[id].tsx:80`).
 - Node history shows the latest `RECENT_RUNS = 50` runs
-  (`application/nodes/node-history.ts:12`). The voltage chart loads the runs of its range
-  (`forNodeBetween`). The trace therefore covers the dashboard list (200 rows), the 50-row
-  history and a chart range with hundreds of points.
-- Debug seed route `app/debug/seed/[name].tsx` (fake build only) knows `voltage-history`. Nodes
-  can be stored through `NodeRepository.applySync(reports, { complete, now, origin })`
-  (`packages/domain/src/nodes/ports.ts:19`), and runs through `RunRepository.save`.
+  (`application/nodes/node-history.ts:12`). The voltage chart reads
+  `telemetry.voltageForNode(publicKey, VOLTAGE_RUNS)` with `VOLTAGE_RUNS = 50`
+  (`node-history.ts:15,90`). The node screen has no range control (`app/node/[id].tsx`,
+  `components/voltage-card.tsx`); `forNodeBetween` is used only by export
+  (`application/export/export-controller.ts:197`). "Show values" renders the voltage rows with
+  `.map`, not virtualised (`voltage-card.tsx:70`). So no screen loads or renders more than 50 runs
+  of one node: the trace covers the 200-row dashboard, the 50-row history and the 50 expanded
+  voltage rows, while 1,000 runs are stored.
+- Debug seed route `app/debug/seed/[name].tsx` (fake build only) knows `voltage-history` and saves
+  runs one `repository.save` at a time. Nodes can be stored through
+  `NodeRepository.applySync(reports, { complete, now, origin })`
+  (`packages/domain/src/nodes/ports.ts:21`). `applyContactSync`
+  (`packages/storage/src/sync/contacts.ts:15-90`) writes `origin` to `contact_sync_origin` on every
+  call, whatever `complete` is; only `complete: true` marks absent nodes missing. `RunRepository.save`
+  opens one transaction per run (`packages/storage/src/diagnostics/run-repository.ts:129`).
+- CI "Stamp version" hardcodes `name="0.0.0-$tag.$sha"` (`.github/workflows/ci.yml:71`).
+- `scripts/e2e.sh:20-95` boots AVD `guardian` headless when no emulator runs, and its `cleanup`
+  trap signals the started emulator by PID before `wait` (lesson).
 - Contrast is already checked per token pair by `apps/mobile/src/theme/contrast.test.ts` (app-look
   D-11). TR-19 leaves "the rest" of the label/200 % audit to S-10.
 - `AppButton` sets `accessibilityRole="button"` and takes an optional `accessibilityLabel`
@@ -78,10 +91,12 @@
 | D-5 | How the privacy policy is reachable inside the app | Route `/privacy` (Settings → About → "Privacy policy"), with paragraphs from the catalog (`privacy.*`). `docs/privacy-policy.md` carries the same paragraphs, and a unit test asserts that every catalog paragraph appears verbatim, in order, in the doc | B: a link that opens the public URL (needs a browser and network, and the URL does not exist yet); C: render the markdown file in the app (new runtime dependency) | Play accepts the policy text inside the app. It works offline, needs no dependency, and the test stops the two copies drifting apart | cheap | agent |
 | D-6 | Privacy contact in the policy | The policy points to "the developer contact e-mail shown on the app's Google Play listing" (mandatory in the Play Console). No address is written into the repo | B: write the developer's e-mail into the doc (personal data in git and in a public doc without consent); C: a placeholder to fill in later (a published placeholder is a defect, and a test would have to allow it) | Meets Play's contact requirement without putting personal data in the repo | cheap | agent |
 | D-7 | Where the public policy URL comes from (AC2) | A person publishes `docs/privacy-policy.md` (for example on GitHub Pages or Google Sites, as they prefer), enters the URL in the Play Console and records it in `docs/release.md`. The agent publishes nothing | B: make the repo public and link the file (outward-facing; the user decides); C: a public gist (publishing on the user's behalf) | Publishing is outward-facing and the repo is private. AC2 becomes a human check with a concrete step | cheap | agent |
-| D-8 | Shape of the large-history seed | `guardian://debug/seed/large-history` (fake build only) stores 200 nodes (repeaters and room servers, alternating, through `applySync` with a seed origin) and 1,000 responded runs. 801 runs go to one node, spread over 30 days with voltage evidence; each of the other 199 nodes gets one run. The route then opens the Dashboard. Opening it again adds nothing | B: 5 runs per node (the history and the chart are never stressed); C: 1,000 runs on one node and no others (dashboard rows have no status variety) | Stresses all three NFR-06 views: the 200-row dashboard, the history list and a chart range with hundreds of points | cheap | agent |
-| D-9 | How a person gets a seedable build onto the phone for the trace | `ci.yml` gets `workflow_dispatch` with input `transport` (`ble` default, `fake`). With `fake`, the `android-apk` job builds with `EXPO_PUBLIC_TRANSPORT=fake` and names the artifact `…-fake`. `docs/performance.md` says to export and uninstall Guardian first, because the fake APK has the same application id | B: build both transports on every PR (doubles the 45-min job); C: a local build installed over USB (forbidden for agents, and CLAUDE.md routes phone checks through CI APKs); D: an application id suffix for the fake build (no data clash, but e2e `appId` and deep links would have to change) | Opt-in, one job, no change to e2e | cheap | agent |
+| D-8 | Shape of the large-history seed | `guardian://debug/seed/large-history` (fake build only) stores 200 nodes (repeaters and room servers, alternating) through `applySync` with `complete: false`, and with `origin` = the stored `syncOrigin()` if one exists, else the seed companion with no position. It then stores 1,000 responded runs: 801 on one target node, spread over 30 days with voltage evidence; one run on each of the other 199 nodes. The route then opens the Dashboard. Opening it again adds nothing | B: 5 runs per node (history and voltage card of any node never filled to their 50-row cap); C: 1,000 runs on one node and no others (dashboard rows have no status variety) | The dashboard gets 200 rows with status variety; the target node fills the 50-row history and the 50-row voltage list, and its `recentForNode`/`voltageForNode` queries run against a node with 801 rows (the read path NFR-06 "1,000 runs" can stress, given the 50-run caps; see `[REVIEW]` deviation). `complete: false` never marks real nodes missing; reusing the stored origin keeps the sync line and nearest card unchanged | cheap | agent |
+| D-9 | How a person gets a seedable build onto the phone for the trace | `ci.yml` gets `workflow_dispatch` with input `transport` (`ble` default, `fake`). With `fake`, the `android-apk` job builds with `EXPO_PUBLIC_TRANSPORT=fake` and names the artifact `…-fake`. `docs/performance.md` says to export and uninstall Guardian first, because the fake APK has the same application id and, if Guardian came from Play, a different signature (CI APKs use the debug keystore, Play builds the Play signing key), so installing over it fails | B: build both transports on every PR (doubles the 45-min job); C: a local build installed over USB (forbidden for agents, and CLAUDE.md routes phone checks through CI APKs); D: an application id suffix for the fake build (no data clash, but e2e `appId` and deep links would have to change) | Opt-in, one job, no change to e2e | cheap | agent |
 | D-10 | Where the audits are recorded | `docs/accessibility-audit.md`, `docs/performance.md` and `docs/release.md` (durable pilot docs), with screenshots and raw stats in `context/changes/pilot-release/evidence/` | B: only in the change's evidence folder (lost to later changes) | The pilot and later releases repeat these checks | cheap | agent |
 | D-11 | EAS project id | A person runs `eas init` in `apps/mobile`, which writes `extra.eas.projectId` and `owner` into `app.json`, and commits it (not a secret). `docs/release.md` gives the exact steps | B: `app.config.ts` that reads the id from `.env` (adds a dynamic config only for this value) | Needs an Expo account the agent does not have; the value is public | cheap | agent |
+| D-12 | What the privacy policy and the Data safety answers claim | The policy states: all data (nodes, runs, telemetry, settings) stays on the device; guest passwords only in Keystore-backed secure storage, never exported; the app **makes no network requests** (no account, analytics, crash reporting or ads) — worded around behaviour (NFR-02), not around the manifest permission; Bluetooth only to talk to the user's companion, no location use; exports leave the device only when the user shares them, public keys redacted by default; deletion via Settings or uninstall; contact per D-6. `docs/release.md` gives the Data safety answers "no data collected", "no data shared" | B: also claim "no network permission" (true only while D-2 holds; becomes false if D-2 falls back to keeping `INTERNET`); C: a generic template policy (does not describe the real handling, which Play and AC2 require) | Every claim is backed by a PRD requirement and an existing test or gate; the behaviour wording survives a D-2 fallback, so policy, its test and Data safety stay true together | costly (public legal text on Play and in the app, fixed by FR-20 AC2; one doc, one catalog block, one test) | agent |
+| D-13 | How the audit and perf scripts get an emulator | Move `scripts/e2e.sh`'s boot, serial guard and `cleanup` trap into `scripts/lib/emulator.sh` (moved, not copied), sourced by `e2e.sh`, `a11y-shots.sh` and `perf-trace.sh`. `a11y-shots.sh` registers its font-scale restore through the same cleanup, so one EXIT trap restores the scale before killing a started emulator | B: the two scripts require an already-running emulator (simpler, but the agent check then needs a manual boot step); C: copy the boot code (two places to keep the PID-before-`wait` fix) | One tested boot path keeps the lesson in one place | cheap | agent |
 
 ## Design
 - **Release config** (`apps/mobile/eas.json`):
@@ -108,7 +123,7 @@
 - **Privacy policy**: catalog keys `privacy.title` and `privacy.p1 … pN`. Sections:
   - what the app stores (nodes, runs, telemetry, settings) and where (on the device only);
   - guest passwords (Keystore-backed secure storage, never exported);
-  - no network: no account, no analytics, no crash reporting, no network permission;
+  - no network: the app makes no network requests; no account, no analytics, no crash reporting (D-12);
   - Bluetooth use (only to talk to the user's companion; no location use);
   - exports (only when the user shares them; public keys redacted by default);
   - retention and deletion (Settings → Delete/Clear, or uninstall);
@@ -124,8 +139,12 @@
 - **Perf script** `scripts/perf-trace.sh`:
   - emulator only (refuses non-`emulator-*` serials, like `scripts/e2e.sh`);
   - reuses the fake release APK (`E2E_SKIP_BUILD`) or builds it through `scripts/e2e.sh`'s build path;
-  - runs `apps/mobile/e2e/perf/large-history.yaml`: seed, then scroll the dashboard top to bottom,
-    open the seeded node, scroll the history, switch the chart range to 30 days;
+  - boots or picks the emulator through `scripts/lib/emulator.sh` (D-13);
+  - runs `apps/mobile/e2e/perf/large-history.yaml`: open the seed link and wait for the Dashboard
+    with `extendedWaitUntil` (timeout set from the seed time measured in this phase, with 2× margin,
+    and written in the flow's comment), then scroll the 200-row dashboard top to bottom, open the
+    target node, scroll the 50-row history to its end, tap "Show values" and scroll through the
+    50 voltage rows;
   - wraps the flow with `adb shell dumpsys gfxinfo <pkg> reset` before and `dumpsys gfxinfo <pkg>`
     after, so the evidence covers that flow only;
   - measures cold start 5 times (`am force-stop`, `am start -W`) and records `TotalTime` and the median;
@@ -133,8 +152,9 @@
 
   `perf/` is a subfolder, so `maestro test apps/mobile/e2e` does not run it.
 - **200 % font shots** `scripts/a11y-shots.sh`:
-  - emulator only;
-  - `adb shell settings put system font_scale 2.0`, with a trap that restores the previous value;
+  - emulator only, booted or picked through `scripts/lib/emulator.sh` (D-13);
+  - `adb shell settings put system font_scale 2.0`; the previous value is restored by the shared
+    EXIT cleanup, before a started emulator is killed;
   - runs `apps/mobile/e2e/audit/screens.yaml`, which reuses `lib/look-screens.yaml`'s navigation
     and adds the licences and privacy screens, with `takeScreenshot`;
   - downscales the PNGs to stay under 300 KB.
@@ -151,15 +171,16 @@
     - the blocked list is present and the plugin is registered.
 
     It also runs the plugin's mod function against a temp project root and asserts the manifest it writes.
-  - `docs/release.md` (new): `eas login`, `eas init` (D-11), `eas build -p android --profile production`, first manual upload to the internal track, testers, Data safety form ("no data collected or shared"), policy URL (D-7), later `eas submit`, and the pilot checklist from the success criteria.
-  - `.github/workflows/ci.yml`: update the comment on `android-apk` to point to `docs/release.md` (no behaviour change in this phase).
+  - `docs/release.md` (new): `eas login`, `eas init` (D-11), `eas build -p android --profile production`, first manual upload to the internal track, testers, Data safety form (D-12 answers), policy URL (D-7), later `eas submit`, and the pilot checklist from the success criteria. It notes that Play builds and CI APKs are signed with different keys, so switching between them needs an uninstall (export first).
+  - `.github/workflows/ci.yml`: update the comment on `android-apk` to point to `docs/release.md`; "Stamp version" builds the name from `app.json` (`base=$(jq -r .expo.version apps/mobile/app.json)`, `name="$base-$tag.$sha"`) instead of the hardcoded `0.0.0`, so CI APKs show `0.1.0-…` in Settings → About.
 - Proves: FR-20 AC1 (config by unit test; AAB built locally by the agent check; Play upload by a human check).
 - Agent checks: `pnpm typecheck`, `pnpm lint`, `pnpm test`. Run `cd apps/mobile && pnpm exec expo prebuild --platform android --no-install && cd android && ./gradlew bundleRelease -PreactNativeArchitectures=x86_64`, then:
   - check that `app/build/outputs/bundle/release/app-release.aab` exists;
   - grep the merged release manifest for `uses-permission` and save the list (no `INTERNET`, no blocked permissions) to `evidence/phase-1-release-permissions.txt`;
   - grep the merged debug manifest to show that it still has `INTERNET`.
 
-  Finally run `pnpm e2e --flow apps/mobile/e2e/smoke.yaml` and `--flow apps/mobile/e2e/diag-responded.yaml` (the release APK starts and runs without `INTERNET`).
+  Finally run `pnpm e2e --flow apps/mobile/e2e/smoke.yaml`, then `E2E_SKIP_BUILD=1 pnpm e2e --flow apps/mobile/e2e/diag-responded.yaml` (the release APK starts and runs without `INTERNET`; one build).
+- D-2 fallback: if these runs show the app needs `INTERNET`, keeping it (option B) is a `[REVIEW]` deviation that, in the same phase, also changes the human check below ("lists no network permission") and the `docs/release.md` wording. The policy (D-12) claims no permission, so it stays true.
 - Human checks: run `eas init` and `eas build -p android --profile production` per `docs/release.md`, then upload the AAB manually to the internal testing track and confirm that the Play Console accepts it (FR-20 AC1). Install it from the Play internal link and confirm that the app info screen lists no network permission.
 
 ### Phase 2: Licences screen
@@ -173,24 +194,26 @@
   - `apps/mobile/src/i18n/en.json`: `licenses.*` and `settings.openLicenses`.
   - `apps/mobile/e2e/licenses.yaml` (new): Settings → licences; assert the meshcore.js row, expand it, assert "Liam Cottle"; press back and assert Settings (lesson: check the back stack).
 - Proves: tech-stack licence obligation and app-look `[FOLLOW-UP]`; unit tests and an e2e flow.
-- Agent checks: `pnpm typecheck`, `pnpm lint`, `pnpm test`. Grep `apps/mobile/e2e` for assertions on Settings rows below the About card (the new button adds height; lesson) and run `pnpm e2e --flow` for `licenses.yaml`, `settings.yaml`, `settings-delete.yaml` and `settings-policy.yaml`.
+- Agent checks: `pnpm typecheck`, `pnpm lint`, `pnpm test`. Grep `apps/mobile/e2e` for assertions on Settings rows below the About card (the new button adds height; lesson) and run `pnpm e2e --flow` for `licenses.yaml`, then `E2E_SKIP_BUILD=1 pnpm e2e --flow` for `settings.yaml`, `settings-delete.yaml` and `settings-policy.yaml`.
 - Human checks: open Settings → Open-source licences on the CI APK. The list should start with meshcore.js and IBM Plex, the expanded meshcore.js text should be readable, and the wording should be acceptable.
 
 ### Phase 3: Privacy policy
 - Files:
   - `docs/privacy-policy.md` (new): the policy (sections in *Design*, D-6), with an effective date and a version line.
   - `apps/mobile/src/i18n/en.json`: `privacy.title`, `privacy.p1 … pN`, `settings.openPrivacy`.
-  - `apps/mobile/src/application/about/privacy.ts` and `privacy.test.ts` (new): `privacyParagraphs()`. The test checks that every paragraph appears verbatim and in order in `docs/privacy-policy.md`. It also checks that the doc states "no network permission", "secure storage" and how to delete data.
+  - `apps/mobile/src/application/about/privacy.ts` and `privacy.test.ts` (new): `privacyParagraphs()`. The test checks that every paragraph appears verbatim and in order in `docs/privacy-policy.md`. It also checks that the doc states "makes no network requests", "secure storage" and how to delete data, and that it does not mention the network permission (D-12).
   - `apps/mobile/src/app/privacy.tsx` (new): a scrolling `Screen` with the paragraphs; headings carry `accessibilityRole="header"`.
   - `apps/mobile/src/app/settings.tsx`: a "Privacy policy" button in About.
   - `apps/mobile/e2e/privacy.yaml` (new): Settings → Privacy policy; assert the title and one paragraph; back returns to Settings.
   - `docs/release.md`: "Publish the policy" step and a slot for the URL (D-7).
 - Proves: FR-20 AC2 (content and in-app availability by unit and e2e tests; the public URL by a human check).
-- Agent checks: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm e2e --flow apps/mobile/e2e/privacy.yaml`, and re-run the Settings flows from Phase 2.
+- Agent checks: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm e2e --flow apps/mobile/e2e/privacy.yaml`, then the Settings flows from Phase 2 with `E2E_SKIP_BUILD=1`.
 - Human checks: read the policy wording. Publish `docs/privacy-policy.md` at a public URL, enter it in the Play Console's privacy policy field and in `docs/release.md`, open it in a private browser window and confirm that it loads without login (FR-20 AC2). Fill in the Data safety form so that it matches the policy.
 
 ### Phase 4: Accessibility audit and fixes
 - Files:
+  - `scripts/lib/emulator.sh` (new, D-13): `pick_or_boot_emulator`, the serial guard and `cleanup` with an `on_cleanup` hook list, moved from `scripts/e2e.sh`. Contract: `scripts/e2e.sh` usage and env vars unchanged.
+  - `scripts/e2e.sh`: source `lib/emulator.sh`; behaviour unchanged.
   - `scripts/a11y-shots.sh` (new) and `apps/mobile/e2e/audit/screens.yaml` (new): 200 % font screenshots on the emulator (*Design*).
   - `apps/mobile/src/theme/tokens.ts`: add any text pairs that the licences and privacy screens use to `TEXT_PAIRS` (contrast test).
   - `docs/accessibility-audit.md` (new; D-10): a table with one row per screen (Connect, Dashboard, Node, Run, Result, Export, Settings, Licences, Privacy) and columns for contrast (test name), labels (controls checked), colour-only status, 200 % font (screenshot link, pass/fail) and the fix applied.
@@ -202,15 +225,15 @@
 
 ### Phase 5: Performance seed, trace and record
 - Files:
-  - `apps/mobile/src/debug/large-seed.ts` and `large-seed.test.ts` (new; D-8). The test checks 200 contacts with unique keys, 1,000 runs, 801 of them on the target node within 30 days, deterministic output for a given `now`, and that every run passes the run schema used by the repository.
+  - `apps/mobile/src/debug/large-seed.ts` and `large-seed.test.ts` (new; D-8). The test checks 200 contacts with unique keys, 1,000 runs, 801 of them on the target node within 30 days, at least 50 of them with voltage evidence, deterministic output for a given `now`, and that every run passes the run schema used by the repository. An integration test (`openTestDb`) stores the seed with `complete: false` over a database with one real node and a sync origin, and asserts that the real node is not marked missing and the origin is unchanged.
   - `apps/mobile/src/debug/voltage-seed.ts`: export the shared status-check helper; behaviour unchanged.
-  - `apps/mobile/src/app/debug/seed/[name].tsx`: accept `large-history`. Store the contacts through `applySync`, then the runs, skipping when the target node already has runs. Go to `/` when done.
+  - `apps/mobile/src/app/debug/seed/[name].tsx`: accept `large-history`. Store the contacts through `applySync` (`complete: false`, origin per D-8), then the runs, skipping when the target node already has runs. Log the seed duration (debug build only) so the perf flow's wait can be sized. Go to `/` when done.
   - `apps/mobile/e2e/perf/large-history.yaml` (new) and `scripts/perf-trace.sh` (new; *Design*).
   - `.github/workflows/ci.yml`: `workflow_dispatch` input `transport` (`ble`|`fake`). `android-apk` passes `EXPO_PUBLIC_TRANSPORT` and adds a `-fake` suffix to the artifact name; `checks` stays unchanged; `mutation-report` keeps its `pull_request` guard (D-9).
-  - `docs/performance.md` (new; D-10): method, emulator results (frame percentiles and janky %, cold start median) and a phone section for the person to fill in.
+  - `docs/performance.md` (new; D-10): method, emulator results (frame percentiles and janky %, cold start median) and a phone section for the person to fill in. It states what the trace covers: 200 dashboard rows; 1,000 runs stored, of which the node screen loads and renders 50 history rows and 50 voltage rows (`RECENT_RUNS`, `VOLTAGE_RUNS`). It notes the uninstall needed because Play and CI APKs are signed differently.
 - Proves: NFR-06, TR-24 (seed by unit test; trace on the emulator by the agent; phone by a human check).
-- Agent checks: `pnpm typecheck`, `pnpm lint`, `pnpm test`; `bash scripts/perf-trace.sh`, writing `evidence/perf-emulator.txt` and copying the results into `docs/performance.md`; full `pnpm e2e` (the seed route change and the CI file).
-- Human checks: run the `ci` workflow with `transport=fake` (`gh workflow run ci.yml --ref change/pilot-release -f transport=fake`). Export your data and uninstall Guardian, then install the `-fake` APK on the mid-range phone and open `guardian://debug/seed/large-history`. Turn on Developer options → Profile HWUI rendering → "On screen as bars" and scroll the dashboard and the node history. Few bars should cross the green 16 ms line (about 55 fps or better). Time a cold start to the Dashboard (≤ 3 s), write both results into `docs/performance.md`, then uninstall and reinstall the BLE APK.
+- Agent checks: `pnpm typecheck`, `pnpm lint`, `pnpm test`; `bash scripts/perf-trace.sh` (builds the APK once; later runs use `E2E_SKIP_BUILD=1`), writing `evidence/perf-emulator.txt` and copying the results into `docs/performance.md`; full `pnpm e2e` (the seed route change and the CI file).
+- Human checks: run the `ci` workflow with `transport=fake` (`gh workflow run ci.yml --ref change/pilot-release -f transport=fake`). Export your data and uninstall Guardian, then install the `-fake` APK on the mid-range phone and open `guardian://debug/seed/large-history`. Turn on Developer options → Profile HWUI rendering → "On screen as bars" and scroll the dashboard, the node history and the expanded "Show values" list. Few bars should cross the green 16 ms line (about 55 fps or better). Time a cold start to the Dashboard (≤ 3 s), write both results into `docs/performance.md`, then uninstall and reinstall the BLE APK.
 
 ## Risks and unknowns
 - R-05 Play Console account readiness: the human steps in `docs/release.md` cannot run without it.
@@ -226,6 +249,8 @@
   If the phone misses 55 fps, the fix is a new change (`[FOLLOW-UP]`), not hidden tuning here.
 - The audit may find more failures than one phase can hold (~400 lines). Then split Phase 4 into
   4a/4b and log a `[minor]` deviation.
+- NFR-06 reads "history with 1,000 runs", but the node screen caps history and voltage at 50 runs
+  (see `[REVIEW]` deviation). If the person wants 1,000 rendered rows, that needs paging, a new change.
 - Second phone (Android 12, other vendor; test-plan device matrix) is a human check in
   `docs/release.md`'s pilot checklist.
 
@@ -242,8 +267,22 @@
 
 ## Deviations
 <!-- [minor] / [REVIEW] / [FOLLOW-UP] / [STUCK] entries, see autonomy.md section 3 -->
+- [REVIEW] NFR-06 vs the 50-run caps. Plan said: trace "history with 1,000 runs", including a chart
+  range. Code shows: history and voltage load at most 50 runs per node (`RECENT_RUNS`, `VOLTAGE_RUNS`,
+  `node-history.ts:12,15`) and there is no chart range. Consequence: the seed stores 1,000 runs and
+  the trace measures the screens as they are (50 history rows, 50 voltage rows, 200 dashboard rows);
+  `docs/performance.md` says so. Alternative: add paging so 1,000 rows can render (out of scope, a
+  new change).
 - [FOLLOW-UP] Notices for native Android libraries (AndroidX, Hermes, OkHttp…) in the licences
   screen, e.g. from a Gradle licence plugin (D-3 covers JS packages and fonts only).
 
 ## Review response
 <!-- revise mode only: one line per plan-review finding and what changed -->
+- #1 (blocker): Findings corrected (`VOLTAGE_RUNS`, no range control, `forNodeBetween` export-only); chart-range step dropped; perf flow scrolls the 50-row history and the expanded 50 voltage rows; `docs/performance.md` states the coverage; `[REVIEW]` deviation on NFR-06 vs the caps; D-8 re-justified.
+- #2 (major): new D-12 (`costly`) for the policy claims and the Data safety answers; Phase 1 `docs/release.md` points to it.
+- #3 (major): policy worded around "makes no network requests" (D-12), Phase 3 test asserts that and that the permission is not mentioned; Phase 1 spells out what a D-2 fallback must change in the same deviation.
+- #4 (minor): Phase 1 CI stamp takes the base version from `app.json`.
+- #5 (minor): D-8 and Phase 5 use `complete: false` and keep the stored origin (`applyContactSync` writes origin on every call); integration test added; perf flow uses `extendedWaitUntil` sized from the measured seed time.
+- #6 (minor): new D-13, shared `scripts/lib/emulator.sh` moved out of `e2e.sh` (PID-before-`wait`, font-scale restore in the same cleanup); Phase 4 files.
+- #7 (minor): signature note in D-9, `docs/release.md` (Phase 1) and `docs/performance.md` (Phase 5).
+- #8 (minor): e2e runs after the first use `E2E_SKIP_BUILD=1` in Phases 1, 2, 3 and 5.
