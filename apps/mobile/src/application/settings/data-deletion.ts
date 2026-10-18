@@ -6,15 +6,15 @@ export type DeletionResult =
 /**
  * Deletes stored history on request (FR-15 AC2, FR-14 AC3). Rows go first, in one transaction,
  * then the secrets; both steps are idempotent, so a retry repeats the whole action (D-10).
- * One deletion runs at a time; a second call gets the same result.
+ * One deletion runs at a time; the same request gets the same result, a different one gets BUSY.
  */
 export class DataDeletion {
-  private inFlight: Promise<DeletionResult> | null = null;
+  private inFlight: { key: string; promise: Promise<DeletionResult> } | null = null;
 
   constructor(private readonly ports: DeletionPorts) {}
 
   deleteNodeHistory(publicKey: string): Promise<DeletionResult> {
-    return this.once(async () => {
+    return this.once(`node:${publicKey}`, async () => {
       const erased = await this.erase((eraser) => eraser.eraseNodeHistory(publicKey));
       if (!erased) return { ok: false, reason: "STORAGE_ERROR" };
       let removed = false;
@@ -29,7 +29,7 @@ export class DataDeletion {
   }
 
   clearAll(): Promise<DeletionResult> {
-    return this.once(async () => {
+    return this.once("all", async () => {
       const erased = await this.erase((eraser) => eraser.eraseAll());
       if (!erased) return { ok: false, reason: "STORAGE_ERROR" };
       let removed = true;
@@ -43,13 +43,17 @@ export class DataDeletion {
     });
   }
 
-  private once(action: () => Promise<DeletionResult>): Promise<DeletionResult> {
-    if (this.inFlight !== null) return this.inFlight;
+  private once(key: string, action: () => Promise<DeletionResult>): Promise<DeletionResult> {
+    if (this.inFlight !== null) {
+      return this.inFlight.key === key
+        ? this.inFlight.promise
+        : Promise.resolve({ ok: false, reason: "BUSY" });
+    }
     if (this.ports.busy()) return Promise.resolve({ ok: false, reason: "BUSY" });
     const running = action().finally(() => {
       this.inFlight = null;
     });
-    this.inFlight = running;
+    this.inFlight = { key, promise: running };
     return running;
   }
 

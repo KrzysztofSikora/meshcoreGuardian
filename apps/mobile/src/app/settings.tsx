@@ -27,6 +27,7 @@ export default function SettingsScreen() {
   const runs = useStore(container.runs.store);
   const nodes = useStore(container.nodes.store);
   const [result, setResult] = useState<ViewText | null>(null);
+  const [deleting, setDeleting] = useState(false);
   useEffect(() => {
     void container.nodes.load();
     void container.runs.load();
@@ -55,10 +56,14 @@ export default function SettingsScreen() {
   const mode = t(`transport.${container.mode}`);
 
   const data = dataView(runs, nodes);
-  const busy = data.busyNote !== null;
+  const busy = data.busyNote !== null || deleting;
 
-  const report = (scope: "node" | "all") => (outcome: DeletionResult) =>
-    setResult(deletionMessage(outcome, scope));
+  const report = (scope: "node" | "all", started: Promise<DeletionResult>) => {
+    setDeleting(true);
+    void started
+      .then((outcome) => setResult(deletionMessage(outcome, scope)))
+      .finally(() => setDeleting(false));
+  };
 
   const confirmDelete = (publicKey: string, name: string) =>
     Alert.alert(t("settings.confirmDeleteTitle"), t("settings.confirmDeleteMessage", { name }), [
@@ -66,7 +71,7 @@ export default function SettingsScreen() {
       {
         text: t("settings.confirmDelete"),
         style: "destructive",
-        onPress: () => void container.deletion.deleteNodeHistory(publicKey).then(report("node")),
+        onPress: () => report("node", container.deletion.deleteNodeHistory(publicKey)),
       },
     ]);
 
@@ -76,7 +81,7 @@ export default function SettingsScreen() {
       {
         text: t("settings.confirmClear"),
         style: "destructive",
-        onPress: () => void container.deletion.clearAll().then(report("all")),
+        onPress: () => report("all", container.deletion.clearAll()),
       },
     ]);
 

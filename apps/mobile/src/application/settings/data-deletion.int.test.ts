@@ -199,6 +199,17 @@ describe("DataDeletion (FR-15 AC2, FR-14 AC3, TR-21)", () => {
     expect(erasures).toBe(1);
   });
 
+  it("answers BUSY to a different deletion while one is in flight, and clears nothing it did not run", async () => {
+    const d = deletion();
+
+    const [node, all] = await Promise.all([d.deleteNodeHistory(A), d.clearAll()]);
+
+    expect(node).toEqual({ ok: true });
+    expect(all).toEqual({ ok: false, reason: "BUSY" });
+    expect(await hasPassword(B)).toBe(true);
+    expect(await count("diagnostic_runs")).toBe(1);
+  });
+
   it("runs again once the previous deletion has finished", async () => {
     let erasures = 0;
     const real = new SqliteDataEraser(testDb.driver);
