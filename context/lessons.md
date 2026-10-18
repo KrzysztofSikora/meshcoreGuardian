@@ -115,3 +115,9 @@ Rules from reviews. Binding for planning, implementing and reviewing once accept
 - Seen in: battery-history, R2
 - Scope: apps/mobile/e2e
 - Status: proposed in the PR for battery-history
+
+## When a single-flight guard shares an in-flight promise, share it only between calls for the same action and target; a different request gets its own answer (BUSY)
+- Why: a second, different deletion received the first one's `{ ok: true }`, so the screen reported data cleared that was still there.
+- Seen in: settings, R1
+- Scope: `apps/mobile/src/application`
+- Status: proposed in the PR for settings
