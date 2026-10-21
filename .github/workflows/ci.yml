@@ -4,6 +4,13 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      transport:
+        description: "Transport of the android-apk build; fake is for the performance trace (docs/performance.md)"
+        type: choice
+        options: [ble, fake]
+        default: ble
 
 permissions:
   contents: read
@@ -46,7 +53,7 @@ jobs:
 
   # Installable test build for a real phone (context/test-plan.md, "Install a PR build on a phone").
   # Release variant with the JS bundle embedded (no Metro, no USB debugging), real BLE transport,
-  # signed with the debug keystore of the prebuild template. Not a Play release (that is S-10).
+  # signed with the debug keystore of the prebuild template. Not a Play release: see docs/release.md.
   android-apk:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -68,16 +75,20 @@ jobs:
         run: |
           sha=$(git rev-parse --short=7 HEAD)
           if [ "${{ github.event_name }}" = pull_request ]; then tag="pr${{ github.event.pull_request.number }}"; else tag="${GITHUB_REF_NAME//\//-}"; fi
-          name="0.0.0-$tag.$sha"
+          base=$(jq -r .expo.version apps/mobile/app.json)
+          name="$base-$tag.$sha"
           jq --arg v "$name" --argjson c "${{ github.run_number }}" \
             '.expo.version = $v | .expo.android.versionCode = $c' apps/mobile/app.json > app.json.tmp
           mv app.json.tmp apps/mobile/app.json
-          echo "file=meshcore-guardian-$tag-$sha" >> "$GITHUB_OUTPUT"
+          suffix=""
+          if [ "${{ inputs.transport }}" = fake ]; then suffix="-fake"; fi
+          echo "file=meshcore-guardian-$tag-$sha$suffix" >> "$GITHUB_OUTPUT"
           echo "name=$name" >> "$GITHUB_OUTPUT"
       - name: Build release APK (arm64-v8a)
         working-directory: apps/mobile
         env:
           NODE_ENV: production
+          EXPO_PUBLIC_TRANSPORT: ${{ inputs.transport == 'fake' && 'fake' || '' }}
         run: |
           pnpm exec expo prebuild --platform android --no-install
           cd android

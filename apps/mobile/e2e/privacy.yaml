@@ -1,0 +1,29 @@
+# FR-20 AC2: the privacy policy is readable in the app, offline. Settings -> Privacy policy shows
+# the title and the no-network statement; back returns to Settings.
+appId: io.github.krzysztofsikora.guardian
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Known nodes will appear here."
+    timeout: 30000
+- openLink: guardian://settings
+- extendedWaitUntil:
+    visible: "Timeout: Auto"
+    timeout: 10000
+- scrollUntilVisible:
+    element: "Privacy policy"
+- tapOn: "Privacy policy"
+- extendedWaitUntil:
+    visible: "Guest passwords"
+    timeout: 10000
+- assertVisible: "Privacy policy"
+- scrollUntilVisible:
+    element: "The app makes no network requests.*"
+- assertVisible: "The app makes no network requests.*"
+- takeScreenshot: privacy
+- back
+- extendedWaitUntil:
+    visible: "Timeout: Auto"
+    timeout: 10000
+- assertNotVisible: "Guest passwords"

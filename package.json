@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "e2e": "bash scripts/e2e.sh",
+    "licenses:generate": "node scripts/licenses.mjs",
     "mutation": "stryker run",
     "capture": "pnpm --filter @guardian/capture capture",
     "format": "prettier --write ."

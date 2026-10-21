@@ -12,7 +12,7 @@ const POINTS: readonly { hoursAgo: number; milliVolts: number }[] = [
   { hoursAgo: 2, milliVolts: 3980 },
 ];
 
-function statusCheck(startedAt: number, milliVolts: number): CheckOutcome {
+export function statusCheck(startedAt: number, milliVolts: number): CheckOutcome {
   return {
     kind: "status",
     result: "RESPONDED",

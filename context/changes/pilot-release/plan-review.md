@@ -1,0 +1,28 @@
+# Plan review: pilot-release
+
+Verdict: READY WITH NOTES
+
+Previous review: all eight findings have a line in *Review response*, and the plan text matches them. #1 (the blocker) is resolved: the Findings now cite `RECENT_RUNS`/`VOLTAGE_RUNS` (`node-history.ts:12,15`, confirmed), the chart-range step is gone, and the NFR-06 reading is logged as a `[REVIEW]` deviation.
+
+| # | Severity | Check | Finding | Suggested change |
+|---|----------|-------|---------|------------------|
+| 1 | major | Human checks / Grounding (D-9) | The Phase 5 human check runs `gh workflow run ci.yml --ref change/pilot-release -f transport=fake`. GitHub docs say: "This event will only trigger a workflow run if the workflow file exists on the default branch" (docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch). `main`'s `ci.yml` has only `pull_request` and `push: main` (`.github/workflows/ci.yml:3-6`). So the dispatch is rejected until this PR merges, and the NFR-06 phone check cannot be done while the PR is open, which is when the human checks are meant to be done. | Use a trigger that works on a PR. Two options: (a) build the fake APK in `android-apk` when the PR has a label (e.g. `fake-apk`; add `labeled` to the `pull_request` types), or (b) a step in the same job that runs only when the head commit message contains `[fake-apk]`. Or state plainly that the phone trace is a post-merge check and record it as a `[FOLLOW-UP]`. |
+| 2 | minor | End state / Grounding (D-2) | The goal says "the release manifest asks only for the permissions the app uses". The generated main manifest also has `ACCESS_COARSE/FINE_LOCATION` (`maxSdkVersion="30"`), `BLUETOOTH` and `BLUETOOTH_ADMIN`, which come from ble-plx (`android/app/src/main/AndroidManifest.xml:2-5`). With `minSdkVersion` 31 (`app.json`), none of them can be granted. D-2 blocks none of them, and the Phase 1 evidence check looks only for `INTERNET` and the blocked list. A location entry on the Play listing also sits badly next to D-12's "no location use". | Either add the four permissions to `blockedPermissions` (and check that BLE scan/connect still pass the e2e flows), or record them in D-2 with the reason they are kept. Make the Phase 1 evidence list the full merged set, and have a person review it. |
+| 3 | minor | Design (D-8 seed) | D-8 says the dashboard "gets 200 rows with status variety", but every seeded run is "responded" ("1,000 responded runs"), so all 200 rows show the same result. That is the very weakness D-8 holds against option C. | Give the 199 single-run nodes a deterministic mix (e.g. some `NO_RESPONSE`, some with no run, so they read "not tested"). Or drop the variety claim. |
+| 4 | minor | Design / Failure paths (seed) | `applyContactSync` always sets `contact_sync_origin.synced_at = now` and every seeded row's `synced_at` (`packages/storage/src/sync/contacts.ts:60-75`). Reusing the stored origin keeps the companion and position, but the sync time changes, and so does the "last sync" line. The planned integration assertion "the origin is unchanged" will therefore fail as written. Opening the link again also re-runs `applySync` (the skip covers only the runs). | Assert only that `companionPublicKey` and `position` are unchanged. Accept and document the new `at`, or skip the contact step too when the target node exists. |
+| 5 | minor | Grounding (Phase 5 test) | "every run passes the run schema used by the repository": there is no write-side run schema. The zod schemas in `run-repository.ts:49-78` and `evidence.ts:14` parse rows on read and are not exported for runs. | Prove it by a round trip instead: store the runs through `SqliteDiagnosticRunRepository` on `openTestDb` and read them back with `recentForNode` (this fits the integration test that is already planned). |
+| 6 | minor | Design (perf script) | `perf-trace.sh` "builds it through `scripts/e2e.sh`'s build path". D-13 moves only the boot, guard and cleanup code into `lib/emulator.sh`. The build stays inline in `e2e.sh:98-110` and cannot be called on its own. | Move the build into `lib/emulator.sh` too (or into `lib/build-apk.sh`), so `perf-trace.sh` does not copy it. |
+
+## Decisions the PR reviewer should look at
+- D-2: release-only `INTERNET` removal. It changes the Play listing. Also check which other inert permissions stay (finding 2).
+- D-12: the public policy claims and the Data safety answers ("no data collected/shared").
+- D-1: EAS-managed upload keystore and remote `versionCode`. This fixes the signing identity of the Play app.
+- D-9: how the fake APK reaches the phone. As written, it cannot run before merge (finding 1).
+
+## What is good
+- Every finding from the previous review is answered. The NFR-06 cap conflict is logged honestly as `[REVIEW]`, and `docs/performance.md` must say what the trace covers.
+- The cited code is real: `RECENT_RUNS`/`VOLTAGE_RUNS`, `voltage-card.tsx:70` `.map`, `applySync` ports, the per-run transaction at `run-repository.ts:129`, the hardcoded `0.0.0` CI stamp, the PID-before-`wait` cleanup in `e2e.sh`, and the meshcore.js LICENSE text.
+- The agent/human split is clean: upload, `eas init`, the policy URL and Data safety are human steps. This follows EAS's manual-first-upload rule and the private repo.
+- The policy is worded around behaviour (NFR-02), not around the manifest. Together with the doc/catalog drift test, a D-2 fallback cannot make the policy false.
+- The licence source (source map plus native-module deps) is well argued. Native notices are deferred as `[FOLLOW-UP]`.
+- The lessons are applied: shared emulator cleanup, back-stack e2e checks, a grep for list height below the About card, and the full suite after shared layout fixes.
